@@ -1,0 +1,15 @@
+[submodule "sky/vendor/glfw"]
+	path = sky/vendor/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "sky/vendor/glm"]
+	path = sky/vendor/glm
+	url = https://github.com/g-truc/glm.git
+[submodule "sky/vendor/imgui"]
+	path = sky/vendor/imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "sky/vendor/vk-bootstrap"]
+	path = sky/vendor/vk-bootstrap
+	url = https://github.com/charles-lunarg/vk-bootstrap.git
+[submodule "sky/vendor/spdlog"]
+	path = sky/vendor/spdlog
+	url = https://github.com/gabime/spdlog.git
