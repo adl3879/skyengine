@@ -1,0 +1,41 @@
+cmake_minimum_required(VERSION 3.17)
+
+project(editor VERSION 0.1.0)
+set(CMAKE_CXX_STANDARD 20)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(TargetShaders)
+
+file(GLOB_RECURSE SOURCES "src/*.cpp")
+file(GLOB_RECURSE HEADERS "src/*.h")
+
+add_executable(editor ${SOURCES} ${HEADERS})
+#set_target_properties(editor PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
+include_directories(${VULKAN_INCLUDE_DIR})
+
+target_include_directories(editor PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/sky/src
+    src) 
+target_link_libraries(editor PRIVATE sky)
+
+set(SHADERS
+    "gradient.comp"
+    "triangle.vert"
+    "triangle.frag")
+
+set(SKY_SHADERS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/res/shaders/")
+list(TRANSFORM SHADERS PREPEND "${SKY_SHADERS_DIR}")
+
+target_shaders(editor ${SHADERS})
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/sky/vendor/assimp/assimp-vc143-mt.dll
+        ${CMAKE_CURRENT_BINARY_DIR}/assimp-vc143-mt.dll
+        COMMENT "copying assimp library")
+
+# copy res folder
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/res
+		${CMAKE_CURRENT_BINARY_DIR}/res
+		COMMENT "copying res folder")
