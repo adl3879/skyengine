@@ -14,6 +14,10 @@ Window::Window(int width, int height, std::string name)
 }
 
 Window::~Window()
+{   
+}
+
+void Window::destroy()
 {
     glfwDestroyWindow(m_window);
     glfwTerminate();

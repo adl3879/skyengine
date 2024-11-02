@@ -18,6 +18,7 @@ class ForwardRendererPass : public Pass
     void draw(
         const gfx::Device &device, 
         gfx::CommandBuffer cmd, 
+        VkExtent2D extent,
         const Camera &camera,
         const MeshCache &meshCache,
         const std::vector<MeshDrawCommand> &drawCommands);

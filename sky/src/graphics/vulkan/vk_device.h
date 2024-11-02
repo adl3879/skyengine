@@ -3,6 +3,11 @@
 #include "vk_types.h"
 #include "vk_initializers.h"
 #include "vk_descriptors.h"
+#include "vk_swapchain.h"
+#include "vk_image_cache.h"
+#include "vk_utils.h"
+#include "vk_imgui_backend.h"
+
 #include "renderer/model_loader.h"
 #include "renderer/camera/camera.h"
 
@@ -44,7 +49,6 @@ struct FrameData
 	DeletionQueue deletionQueue;
 	DescriptorAllocatorGrowable frameDescriptors;
 };
-constexpr unsigned int MAX_FRAMES_IN_FLIGHT = 2;
 
 struct CommandBuffer
 {
@@ -65,92 +69,76 @@ class Device
     Device(Window &window);
     ~Device();
 
-	FrameData &getCurrentFrame() { return m_frames[m_frameNumber % MAX_FRAMES_IN_FLIGHT]; }
-
+	FrameData &getCurrentFrame() { return m_frames[m_frameNumber % gfx::FRAME_OVERLAP]; }
+    uint32_t getCurrentFrameIndex() { return m_frameNumber % gfx::FRAME_OVERLAP; }
 	VkDevice getDevice() const const { return m_device; }
-	VkPhysicalDevice getPhysicalDevice() const const  { return m_chosenGPU; }
-	VkInstance getInstance() const { return m_instance; }
-	VkSurfaceKHR getSurface() const { return m_surface; }
-	VkQueue getGraphicsQueue() const { return m_graphicsQueue; }
-	uint32_t getGraphicsQueueFamily() const { return m_graphicsQueueFamily; }
-	VkExtent2D getSwapchainExtent() const { return m_swapchainExtent; }
-	VkFormat getSwapchainImageFormat() const { return m_swapchainImageFormat; }
-	bool getResizeRequested() const { return resizeRequested; }
-    Camera &getCamera() { return m_camera; }
-    VkExtent2D getDrawImageExtent() const { return m_drawExtent; } 
-
-    VkDescriptorSetLayout getGpuSceneDescriptorLayout() const { return m_gpuSceneDescriptorLayout; }
+    ImageID getWhiteTextureID() const { return m_whiteImageId; }
+	VkDescriptorSetLayout getBindlessDescSetLayout() const;
+    float getMaxAnisotropy() const { return m_maxSamplerAnisotropy; }
 
 	CommandBuffer beginFrame();
-	void draw();
-	void drawImgui(VkCommandBuffer cmd, VkImageView target);
+    void endFrame(CommandBuffer cmd, const AllocatedImage &drawImage);
+    void cleanup();
 
-	bool isInitialized() const { return m_isInitialized; }
-    void resizeSwapchain();
-
-	AllocatedImage createImage(VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false);
-    AllocatedImage createImage(void *data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false);
-    void destroyImage(const AllocatedImage &img);
 	AllocatedBuffer createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 	void destroyBuffer(const AllocatedBuffer &buffer);
 	void immediateSubmit(std::function<void(VkCommandBuffer cmd)> &&function);
 
+	bool isInitialized() const { return m_isInitialized; }
+	bool needsSwapchainRecreate() const { return m_swapchain.needsRecreation(); }
+	void recreateSwapchain(CommandBuffer cmd, int width, int height);
+    void bindBindlessDescSet(VkCommandBuffer cmd, VkPipelineLayout layout);
+	
+  public:
+    ImageID createImage(const vkutil::CreateImageInfo &createInfo,
+        void *pixelData, 
+		ImageID imageId = NULL_IMAGE_ID);
+    void uploadImageData(const AllocatedImage &image, void *pixelData, std::uint32_t layer = 0);
+	AllocatedImage createImageRaw(const vkutil::CreateImageInfo& createInfo) const;
+	ImageID createImage(const vkutil::CreateImageInfo& createInfo);
+	ImageID createDrawImage(VkFormat format, glm::ivec2 size);
+	AllocatedImage getImage(ImageID id);
+	void destroyImage(const AllocatedImage &image) const;
+
   private:
     void init();
     void initVulkan();
-	void initSwapchain();
 	void initCommands();
-	void initSyncStructures();
-	void initDescriptors();
-	void initImgui();
-    void cleanup();
-
-	void createSwapchain(uint32_t width, uint32_t height);
-	void destroySwapchain();
+    void checkDeviceCapabilities();
 
   private:
-	FrameData m_frames[MAX_FRAMES_IN_FLIGHT];
+	FrameData m_frames[gfx::FRAME_OVERLAP];
 	uint32_t m_frameNumber = 0;	
 	VkQueue m_graphicsQueue;
 	uint32_t m_graphicsQueueFamily;
 
-	// draw resources
-    AllocatedImage m_drawImage;
-	AllocatedImage m_depthImage;
-	float renderScale = 1.0f;
-    VkExtent2D m_drawExtent;
-
-	DescriptorAllocator globalDescriptorAllocator;
-
-	GPUSceneData m_sceneData;
-	VkDescriptorSetLayout m_gpuSceneDescriptorLayout;
-
   private:
-    VkInstance m_instance;// Vulkan library handle
-	VkDebugUtilsMessengerEXT m_debugMessenger;// Vulkan debug output handle
-	VkPhysicalDevice m_chosenGPU;// GPU chosen as the default device
-	VkDevice m_device; // Vulkan device for commands
-	VkSurfaceKHR m_surface;// Vulkan window surface
-
-    VkSwapchainKHR m_swapchain;
-	VkFormat m_swapchainImageFormat;
-
-	std::vector<VkImage> m_swapchainImages;
-	std::vector<VkImageView> m_swapchainImageViews;
-	VkExtent2D m_swapchainExtent;
-
-    bool m_isInitialized = false;
-	bool resizeRequested = false;
-    Window &m_window;
-
-	DeletionQueue m_mainDeletionQueue;
+    vkb::Instance m_instance;
+	vkb::PhysicalDevice m_physicalDevice;
+	vkb::Device m_device;
 	VmaAllocator m_allocator;
 
-	// imgui
+	VkDebugUtilsMessengerEXT m_debugMessenger;// Vulkan debug output handle
+	VkSurfaceKHR m_surface;// Vulkan window surface
+
+    gfx::Swapchain m_swapchain;
+	VkFormat m_swapchainFormat;
+
+	VkSampleCountFlagBits m_supportedSampleCounts;
+    VkSampleCountFlagBits m_highestSupportedSamples{VK_SAMPLE_COUNT_1_BIT};
+    float m_maxSamplerAnisotropy{1.f};
+
+    bool m_isInitialized = false;
+    Window &m_window;
+
+	ImGuiBackend m_imguiBackend;
+
+	gfx::ImageCache m_imageCache;
+    ImageID m_whiteImageId{NULL_IMAGE_ID};
+
+	// temp
     VkFence m_immFence;
     VkCommandBuffer m_immCommandBuffer;
     VkCommandPool m_immCommandPool;
-
-	Camera m_camera;
 };
 } // namespace sky

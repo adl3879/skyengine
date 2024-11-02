@@ -23,11 +23,24 @@ struct RenderInfo
     VkRenderingInfo renderingInfo;
 };
 
+struct CreateImageInfo
+{
+    VkFormat format;
+    VkImageUsageFlags usage;
+    VkImageCreateFlags flags;
+    VkExtent3D extent{};
+    std::uint32_t numLayers{1};
+    VkSampleCountFlagBits samples{VK_SAMPLE_COUNT_1_BIT};
+    bool mipMap{false};
+    bool isCubemap{false};
+};
+
 RenderInfo createRenderingInfo(const RenderingInfoParams &params);
 
 void clearColorImage(VkCommandBuffer cmd, VkExtent2D colorImageExtent, VkImageView colorImageView,
                      const glm::vec4 &clearColor);
 
 int sampleCountToInt(VkSampleCountFlagBits count);
+
 const char *sampleCountToString(VkSampleCountFlagBits count);
 } // namespace sky::vkutils

@@ -22,7 +22,9 @@ target_link_libraries(editor PRIVATE sky)
 set(SHADERS
     "gradient.comp"
     "triangle.vert"
-    "triangle.frag")
+    "triangle.frag"
+    "imgui.frag"
+    "imgui.vert")
 
 set(SKY_SHADERS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/res/shaders/")
 list(TRANSFORM SHADERS PREPEND "${SKY_SHADERS_DIR}")

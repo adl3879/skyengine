@@ -26,7 +26,12 @@
         }                                                               \
     } while (0)
 
-namespace sky::gfx
+namespace sky
+{
+using ImageID = uint32_t;
+static const auto NULL_IMAGE_ID = std::numeric_limits<std::uint32_t>::max();
+
+namespace gfx
 {
 struct AllocatedImage
 {
@@ -35,13 +40,19 @@ struct AllocatedImage
     VmaAllocation allocation;
     VkExtent3D imageExtent;
     VkFormat imageFormat;
+
+    VkExtent2D getExtent2D() const { return VkExtent2D{imageExtent.width, imageExtent.height}; }
 };
 
 struct AllocatedBuffer
 {
-	VkBuffer buffer;
-	VmaAllocation allocation;
+    VkBuffer buffer;
+    VmaAllocation allocation;
     VmaAllocationInfo info;
+
+    // Only for buffers created with VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+    // TODO: add check that this is not 0 if requesting address?
+    VkDeviceAddress address{0};
 };
 
 // holds the resources needed for a mesh
@@ -70,4 +81,5 @@ struct GPUSceneData
     glm::vec4 sunlightDirection; // w for sun power
     glm::vec4 sunlightColor;
 };
+} // namespace gfx
 } // namespace sky

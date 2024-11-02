@@ -22,6 +22,8 @@ class Window
 
     GLFWwindow *getGLFWwindow() const { return m_window; }
 
+    void destroy();
+
     bool shouldClose() const { return glfwWindowShouldClose(m_window); }
     VkExtent2D getExtent() const { return {static_cast<uint32_t>(m_data.width), static_cast<uint32_t>(m_data.height)}; }
     bool wasWindowResized() const { return m_framebufferResized; }

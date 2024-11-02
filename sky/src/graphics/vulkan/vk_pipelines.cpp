@@ -35,6 +35,7 @@ VkShaderModule loadShaderModule(const char *filePath, VkDevice device)
         std::cout << "Failed to load " << filePath << std::endl;
         std::exit(1);
     }
+    
     return shaderModule;
 }
 
@@ -141,11 +142,11 @@ PipelineBuilder &PipelineBuilder::setShaders(VkShaderModule vertexShader, VkShad
 
     if (vertexShader)
     {
-        shaderStages.push_back(vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, vertexShader));
+        shaderStages.push_back(vkinit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader));
     }
     if (fragmentShader)
     {
-        shaderStages.push_back(vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader));
+        shaderStages.push_back(vkinit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader));
     }
 
     return *this;
@@ -159,17 +160,17 @@ PipelineBuilder &PipelineBuilder::setShaders(VkShaderModule vertexShader, VkShad
     if (vertexShader)
     {
         shaderStages.push_back(
-            vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, vertexShader));
+            vkinit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader));
     }
     if (geometryShader)
     {
         shaderStages.push_back(
-            vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_GEOMETRY_BIT, geometryShader));
+            vkinit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_GEOMETRY_BIT, geometryShader));
     }
     if (fragmentShader)
     {
         shaderStages.push_back(
-            vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader));
+            vkinit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader));
     }
 
     return *this;
