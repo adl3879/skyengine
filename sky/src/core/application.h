@@ -2,7 +2,6 @@
 
 #include "layer_stack.h"
 #include "window.h"
-#include "renderer/scene_renderer.h"
 
 int main(int argc, char** argv);
 
@@ -39,10 +38,6 @@ class Application
 
     LayerStack m_layerStack{};
     static Ref<Window> m_window;
-
-    Ref<gfx::Device> m_gfxDevice;
-    Ref<SceneRenderer> m_renderer;
-    MeshCache m_meshCache;
 };
 
 Application *CreateApplication();

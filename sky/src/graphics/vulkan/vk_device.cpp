@@ -64,7 +64,7 @@ void Device::init()
     m_isInitialized = true;
 }
 
-void Device::initVulkan() 
+void Device::initVulkan()
 {
     vkb::InstanceBuilder builder;
 

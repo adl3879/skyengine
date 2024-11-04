@@ -21,6 +21,7 @@ target_include_directories(sky
     vendor/spdlog/include
     vendor/vma
     vendor/vk-bootstrap/src
+    vendor/entt/single_include
     vendor/assimp/include)
 
 target_link_libraries(sky
@@ -28,5 +29,6 @@ target_link_libraries(sky
         Vulkan::Vulkan 
         glfw 
         vk-bootstrap::vk-bootstrap
+        EnTT::EnTT
         ${CMAKE_CURRENT_SOURCE_DIR}/vendor/assimp/assimp-vc143-mt.lib
     PUBLIC glm imgui)

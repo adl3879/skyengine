@@ -15,18 +15,6 @@ Application::Application()
 {
     m_window = CreateRef<Window>(1280, 720, "Sky");
 	m_window->setEventCallback(std::bind(&Application::onEvent, this, std::placeholders::_1));
-
-    m_gfxDevice = CreateRef<gfx::Device>(*m_window);
-    m_renderer = CreateRef<SceneRenderer>(*m_gfxDevice, m_meshCache);
-    
-    auto extent = m_window->getExtent();
-    m_renderer->init({extent.width, extent.height});
-
-    AssimpModelLoader modelLoader("res/models/monkey.glb");
-    auto meshId = m_meshCache.addMesh(*m_gfxDevice, modelLoader.getMeshes()[0]);
-    m_renderer->addDrawCommand(MeshDrawCommand{
-        .meshId = meshId, .modelMatrix = glm::mat4{}
-    });
 }
 
 Application::~Application() {}
@@ -65,19 +53,9 @@ void Application::run()
         // make imgui calculate internal draw structures
         ImGui::Render();
 
-        auto cmd = m_gfxDevice->beginFrame();
-        m_renderer->render(cmd);
-        m_gfxDevice->endFrame(cmd, m_renderer->getDrawImage());
-        
-        if (m_gfxDevice->needsSwapchainRecreate())
-        {
-            auto extent = m_window->getExtent();
-            m_gfxDevice->recreateSwapchain(cmd, extent.width, extent.height);
-        }
-
         for (Layer *layer : m_layerStack) 
         {
-            layer->onUpdate(0.0f);
+            layer->onUpdate(frameTime);
         }
     }
     m_window->destroy();

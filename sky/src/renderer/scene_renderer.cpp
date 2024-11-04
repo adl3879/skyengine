@@ -5,18 +5,23 @@
 
 namespace sky
 {
-SceneRenderer::SceneRenderer(gfx::Device &device, MeshCache &meshCache)
-	: m_device(device), m_meshCache(meshCache)
+SceneRenderer::SceneRenderer(gfx::Device &device, Scene &scene)
+	: m_device(device), m_scene(scene)
 {
 }
 
 SceneRenderer::~SceneRenderer() {}
 
 void SceneRenderer::init(glm::ivec2 size) 
-{ 
+{
     createDrawImage(size);
 
     m_forwardRenderer.init(m_device);
+}
+
+MeshId SceneRenderer::addMeshToCache(const Mesh& mesh)
+{
+    return m_meshCache.addMesh(m_device, mesh);
 }
 
 void SceneRenderer::destroy() 
@@ -97,10 +102,9 @@ void SceneRenderer::render(gfx::CommandBuffer cmd)
         m_device,
         cmd,
         drawImage.getExtent2D(),
-        m_camera,
+        m_scene.getCamera(),
         m_meshCache,
-        m_meshDrawCommands
-    );
+        m_meshDrawCommands);
 
     vkCmdEndRendering(cmd);
 }

@@ -58,3 +58,6 @@ std::unique_ptr<T> CreateScope(Args &&... args)
 #ifndef SKY_INLINE
     #define SKY_INLINE __forceinline
 #endif // SKY_INLINE
+
+#define SKY_BIND_EVENT_FN(fn)                                                                                           \
+    [this](auto &&...args) -> decltype(auto) { return this->fn(std::forward<decltype(args)>(args)...); }

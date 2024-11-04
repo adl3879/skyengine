@@ -5,13 +5,14 @@
 #include "renderer/camera/camera.h"
 #include "renderer/passes/forward_renderer.h"
 #include "graphics/vulkan/vk_device.h"
+#include "scene/scene.h"
 
 namespace sky
 {
 class SceneRenderer
 {
   public:
-    SceneRenderer(gfx::Device &device, MeshCache &meshCache);
+    SceneRenderer(gfx::Device &device, Scene &scene);
     ~SceneRenderer();
 
     SceneRenderer(SceneRenderer &) = delete;
@@ -20,6 +21,7 @@ class SceneRenderer
     void init(glm::ivec2 size);
     void render(gfx::CommandBuffer cmd);
     void addDrawCommand(MeshDrawCommand drawCmd);
+    MeshId addMeshToCache(const Mesh &mesh);
 
     gfx::AllocatedImage getDrawImage();
 
@@ -29,8 +31,8 @@ class SceneRenderer
 
   private:
     gfx::Device &m_device;
-    MeshCache &m_meshCache;
-    Camera m_camera;
+    Scene &m_scene;
+    MeshCache m_meshCache;
     std::vector<MeshDrawCommand> m_meshDrawCommands;
 
   private:

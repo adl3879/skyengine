@@ -53,82 +53,82 @@ void Window::initWindow()
 
     // set key callback
     glfwSetKeyCallback(m_window,
-                       [](GLFWwindow *window, int key, int scancode, int action, int mods)
-                       {
-                           WindowData &data = *(WindowData *)glfwGetWindowUserPointer(window);
+        [](GLFWwindow *window, int key, int scancode, int action, int mods)
+        {
+            WindowData &data = *(WindowData *)glfwGetWindowUserPointer(window);
 
-                           switch (action)
-                           {
-                               case GLFW_PRESS:
-                               {
-                                   KeyPressedEvent event(key, 0);
-                                   data.eventCallback(event);
-                                   break;
-                               }
-                               case GLFW_RELEASE:
-                               {
-                                   KeyReleasedEvent event(key);
-                                   data.eventCallback(event);
-                                   break;
-                               }
-                               case GLFW_REPEAT:
-                               {
-                                   KeyPressedEvent event(key, true);
-                                   data.eventCallback(event);
-                                   break;
-                               }
-                           }
-                       });
+            switch (action)
+            {
+                case GLFW_PRESS:
+                {
+                    KeyPressedEvent event(key, 0);
+                    data.eventCallback(event);
+                    break;
+                }
+                case GLFW_RELEASE:
+                {
+                    KeyReleasedEvent event(key);
+                    data.eventCallback(event);
+                    break;
+                }
+                case GLFW_REPEAT:
+                {
+                    KeyPressedEvent event(key, true);
+                    data.eventCallback(event);
+                    break;
+                }
+            }
+        });
 
     glfwSetCharCallback(m_window,
-                        [](GLFWwindow *window, unsigned int keycode)
-                        {
-                            WindowData &data = *(WindowData *)glfwGetWindowUserPointer(window);
+        [](GLFWwindow *window, unsigned int keycode)
+        {
+            WindowData &data = *(WindowData *)glfwGetWindowUserPointer(window);
 
-                            KeyTypedEvent event(keycode);
-                            data.eventCallback(event);
-                        });
+            KeyTypedEvent event(keycode);
+            data.eventCallback(event);
+        });
 
     // set mouse button callback
     glfwSetMouseButtonCallback(m_window,
-                               [](GLFWwindow *window, int button, int action, int mods)
-                               {
-                                   WindowData &data = *(WindowData *)glfwGetWindowUserPointer(window);
+        [](GLFWwindow *window, int button, int action, int mods)
+        {
+            WindowData &data = *(WindowData *)glfwGetWindowUserPointer(window);
 
-                                   switch (action)
-                                   {
-                                       case GLFW_PRESS:
-                                       {
-                                           MouseButtonPressedEvent event(button);
-                                           data.eventCallback(event);
-                                           break;
-                                       }
-                                       case GLFW_RELEASE:
-                                       {
-                                           MouseButtonReleasedEvent event(button);
-                                           data.eventCallback(event);
-                                           break;
-                                       }
-                                   }
-                               });
+            switch (action)
+            {
+                case GLFW_PRESS:
+                {
+                    MouseButtonPressedEvent event(button);
+                    data.eventCallback(event);
+                    break;
+                }
+                case GLFW_RELEASE:
+                {
+                    MouseButtonReleasedEvent event(button);
+                    data.eventCallback(event);
+                    break;
+                }
+            }
+        });
 
     glfwSetScrollCallback(m_window,
-                          [](GLFWwindow *window, double xOffset, double yOffset)
-                          {
-                              WindowData &data = *(WindowData *)glfwGetWindowUserPointer(window);
+        [](GLFWwindow *window, double xOffset, double yOffset)
+        {
+            WindowData &data = *(WindowData *)glfwGetWindowUserPointer(window);
 
-                              MouseScrolledEvent event((float)xOffset, (float)yOffset);
-                              data.eventCallback(event);
-                          });
+            MouseScrolledEvent event((float)xOffset, (float)yOffset);
+            data.eventCallback(event);
+        });
 
     glfwSetCursorPosCallback(m_window,
-                             [](GLFWwindow *window, double xPos, double yPos)
-                             {
-                                 WindowData &data = *(WindowData *)glfwGetWindowUserPointer(window);
+        [](GLFWwindow *window, double xPos, double yPos)
+        {
+            WindowData &data = *(WindowData *)glfwGetWindowUserPointer(window);
 
-                                 MouseMovedEvent event((float)xPos, (float)yPos);
-                                 data.eventCallback(event);
-                             });
+            MouseMovedEvent event((float)xPos, (float)yPos);
+            data.eventCallback(event);
+        });
 }
 
 bool Input::isKeyPressed(const KeyCode key)
@@ -168,5 +168,16 @@ glm::vec2 Input::getMouseDelta()
     lastY = mousePos.y;
 
     return delta;
+}
+
+void Input::setMousePosition(const std::uint32_t &x, const std::uint32_t &y)
+{
+    auto *window = static_cast<GLFWwindow *>(Application::getWindow()->getGLFWwindow());
+    glfwSetCursorPos(window, x, y);
+}
+void Input::showMouseCursor(const bool &show)
+{
+    auto *window = static_cast<GLFWwindow *>(Application::getWindow()->getGLFWwindow());
+    glfwSetInputMode(window, GLFW_CURSOR, show ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 }
 } // namespace sky
