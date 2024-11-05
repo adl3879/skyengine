@@ -42,7 +42,6 @@ void Device::init()
     m_imageCache.bindlessSetManager.init(m_device, getMaxAnisotropy());
 
     initCommands();
-    //initImgui();
 
     { // create white texture
         std::uint32_t pixel = 0xFFFFFFFF;
@@ -57,7 +56,7 @@ void Device::init()
     ImGui::CreateContext();
     auto &io = ImGui::GetIO();
     io.ConfigWindowsMoveFromTitleBarOnly = true;
-    io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 22.0f);
+    io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 25.0f);
     m_imguiBackend.init(*this, m_swapchainFormat);
     ImGui_ImplGlfw_InitForVulkan(m_window.getGLFWwindow(), true);
 

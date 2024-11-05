@@ -48,15 +48,13 @@ void Application::run()
         ImGui::NewFrame();
 
         // some imgui UI to test
-        ImGui::ShowDemoWindow();
+        // ImGui::ShowDemoWindow();
+        for (Layer *layer : m_layerStack) layer->onImGuiRender();
 
         // make imgui calculate internal draw structures
         ImGui::Render();
 
-        for (Layer *layer : m_layerStack) 
-        {
-            layer->onUpdate(frameTime);
-        }
+        for (Layer *layer : m_layerStack) layer->onUpdate(frameTime);
     }
     m_window->destroy();
 }

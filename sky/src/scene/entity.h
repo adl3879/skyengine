@@ -15,23 +15,22 @@ class Entity
     Entity(const Entity &other) = default;
 
     void addChild(Entity &child);
+    void removeChild(Entity &child);
+    void reparentChild(Entity &child);
 
     template <typename T, typename... Args> T &addComponent(Args &&...args)
     {
-        //if (hasComponent<T>()) throw std::runtime_error("Entity already has component!");
         return m_scene->m_registry.emplace<T>(m_entityHandle, std::forward<Args>(args)...);
     }
 
     template <typename T, typename... Args> T &addOrReplaceComponent(Args &&...args)
     {
         T &component = m_scene->m_registry.emplace_or_replace<T>(m_entityHandle, std::forward<Args>(args)...);
-        // m_scene->OnComponentAdded<T>(*this, component);
         return component;
     }
 
     template <typename T> T &getComponent()
     {
-        //if (!hasComponent<T>()) throw std::runtime_error("Entity does not have component!");
         return m_scene->m_registry.get<T>(m_entityHandle);
     }
 
@@ -39,7 +38,6 @@ class Entity
 
     template <typename T> void removeComponent()
     {
-        //if (!hasComponent<T>()) throw std::runtime_error("Entity does not have component!");
         m_scene->m_registry.remove<T>(m_entityHandle);
     }
 

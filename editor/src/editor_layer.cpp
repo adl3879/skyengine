@@ -9,7 +9,7 @@ namespace sky
 {
 EditorLayer::EditorLayer()
 {
-    auto window = Application::getWindow();
+    const auto window = Application::getWindow();
     m_activeScene = SceneManager::get().getActiveScene();
     m_activeScene->init();
 
@@ -33,7 +33,7 @@ EditorLayer::EditorLayer()
 
 void EditorLayer::onAttach() 
 {
-    std::cout << "EditorLayer::onAttach" << std::endl;
+    m_sceneHierarchyPanel.setContext(m_activeScene);
 }
 
 void EditorLayer::onDetach() 
@@ -63,5 +63,8 @@ void EditorLayer::onEvent(Event &e)
 
 void EditorLayer::onFixedUpdate(float dt) {}
 
-void EditorLayer::onImGuiRender() {}
+void EditorLayer::onImGuiRender() 
+{
+    m_sceneHierarchyPanel.render();
+}
 } // namespace sky
