@@ -32,6 +32,12 @@ EditorLayer::EditorLayer()
             .meshId = meshId, 
             .modelMatrix = monkey.getComponent<TransformComponent>().getModelMatrix()
         });
+
+    if (!ProjectManager::isProjectOpen())
+    {
+        if (ProjectManager::getProjectsList().size() > 0) m_projectManagerPanel.showOpen();
+        else m_projectManagerPanel.showCreate();
+    }
 }
 
 void EditorLayer::onAttach() 

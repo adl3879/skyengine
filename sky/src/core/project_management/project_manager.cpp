@@ -112,6 +112,8 @@ void ProjectManager::serializeProjectsList()
 void ProjectManager::deserializeProjectsList()
 {
     const auto path = fs::current_path() / "res/projects.yaml";
+    if (!fs::exists(path)) return;
+    
     m_projectsList.clear();
 
     YAML::Node data;

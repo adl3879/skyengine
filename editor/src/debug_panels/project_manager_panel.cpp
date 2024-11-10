@@ -109,7 +109,8 @@ void ProjectManagerPanel::render()
         ImGui::Dummy(ImVec2(0, 20));
 
         auto select = selectedProjectIndex != -1;
-        if (helper::imguiButton("Open", buttonSize, select && projectList[selectedProjectIndex].isValid))
+        auto isOpenBtnDisabled = select && projectList[selectedProjectIndex].isValid;
+        if (helper::imguiButton("Open", buttonSize, !isOpenBtnDisabled))
         {
             ProjectManager::loadProject(projectList[selectedProjectIndex].projectConfigPath);
             m_showOpen = false;
@@ -117,7 +118,15 @@ void ProjectManagerPanel::render()
             ImGui::CloseCurrentPopup();
         }
         ImGui::SameLine();
-        if (helper::imguiButton("Remove", buttonSize, select))
+        if (helper::imguiButton("Create New", buttonSize))
+        {
+            m_showCreate = true;
+            m_showOpen = false;
+        }
+        ImGui::SameLine();
+        ImGui::Dummy({20, 0});
+        ImGui::SameLine();
+        if (helper::imguiButton("Remove", buttonSize, !select, "danger"))
         {
             ImGui::OpenPopup("Confirm Remove");
             m_confirmRemove = true;
