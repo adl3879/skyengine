@@ -16,3 +16,6 @@
 [submodule "sky/vendor/entt"]
 	path = sky/vendor/entt
 	url = https://github.com/skypjack/entt.git
+[submodule "sky/vendor/yaml-cpp"]
+	path = sky/vendor/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp.git

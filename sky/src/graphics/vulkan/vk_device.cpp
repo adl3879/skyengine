@@ -56,7 +56,8 @@ void Device::init()
     ImGui::CreateContext();
     auto &io = ImGui::GetIO();
     io.ConfigWindowsMoveFromTitleBarOnly = true;
-    io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 25.0f);
+    //io.ConfigFlags = ImGuiConfigFlags_DockingEnable;
+    io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 28.0f);
     m_imguiBackend.init(*this, m_swapchainFormat);
     ImGui_ImplGlfw_InitForVulkan(m_window.getGLFWwindow(), true);
 
@@ -488,17 +489,6 @@ void Device::endFrame(CommandBuffer cmd, const AllocatedImage &drawImage)
 
         const auto clearValue = VkClearColorValue{{1.f, 1.f, 1.f, 1.f}};
         vkCmdClearColorImage(cmd, swapchainImage, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
-    }
-
-    {
-        // copy from draw image into swapchain
-        vkutil::transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-        vkutil::transitionImage(cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        swapchainLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-
-        // will stretch image to swapchain
-        auto imageExtent = VkExtent2D{drawImage.imageExtent.width, drawImage.imageExtent.height};
-        vkutil::copyImageToImage(cmd, drawImage.image, swapchainImage, imageExtent, m_swapchain.getExtent());
     }
 
     {

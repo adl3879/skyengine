@@ -7,6 +7,7 @@
 #include "renderer/scene_renderer.h"
 #include "scene/scene.h"
 #include "debug_panels/scene_hierarchy_panel.h"
+#include "debug_panels/project_manager_panel.h"
 
 namespace sky
 {
@@ -28,6 +29,7 @@ class EditorLayer : public Layer
     Ref<SceneRenderer> m_renderer;
 
     SceneHierarchyPanel m_sceneHierarchyPanel;
+    ProjectManagerPanel m_projectManagerPanel;
 
     Ref<Scene> m_activeScene;
 }; 

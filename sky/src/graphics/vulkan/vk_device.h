@@ -20,7 +20,7 @@ class Window;
 
 namespace sky::gfx
 {
-static constexpr bool bUseValidationLayers = true;
+static constexpr bool bUseValidationLayers = false;
 
 struct DeletionQueue
 {

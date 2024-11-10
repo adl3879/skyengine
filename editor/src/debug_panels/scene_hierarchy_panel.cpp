@@ -19,7 +19,7 @@ void SceneHierarchyPanel::render()
 	{
         for (auto entId : m_context->getRegistry().view<entt::entity>())
         {
-            auto entity = Entity{ entId, m_context.get() };
+            auto entity = Entity{entId, m_context.get()};
             if (entity.getComponent<HierarchyComponent>().parent == NULL_UUID)
                 drawEntityNode(entity);
         }
@@ -30,7 +30,7 @@ void SceneHierarchyPanel::render()
 void SceneHierarchyPanel::drawEntityNode(Entity entity)
 {
     auto flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_FramePadding |
-                 ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanFullWidth |
+                 ImGuiTreeNodeFlags_SpanFullWidth |
                  ImGuiTreeNodeFlags_DefaultOpen;
 
     if (entity.getComponent<HierarchyComponent>().children.size() <= 0)
@@ -41,6 +41,7 @@ void SceneHierarchyPanel::drawEntityNode(Entity entity)
     const auto tag = entity.getComponent<TagComponent>();
     bool open = ImGui::TreeNodeEx((void *)(uint64_t)(uint32_t)entity, flags, "%s", tag.c_str());
 
+    bool isEntityDeleted = false;
     if (ImGui::BeginPopupContextItem())
     {
         if (ImGui::BeginMenu("Add child"))
@@ -48,6 +49,10 @@ void SceneHierarchyPanel::drawEntityNode(Entity entity)
             auto child = createEntityPopup();
             if (child) entity.addChild(child);
             ImGui::EndPopup();
+        }
+        if (ImGui::MenuItem("Delete entity"))
+        {
+            isEntityDeleted = true;
         }
         ImGui::EndPopup();
     }
@@ -61,6 +66,11 @@ void SceneHierarchyPanel::drawEntityNode(Entity entity)
             drawEntityNode(entity);
         }
         ImGui::TreePop();
+    }
+
+    if (isEntityDeleted)
+    {
+        m_context->destroyEntity(entity);
     }
 }
 

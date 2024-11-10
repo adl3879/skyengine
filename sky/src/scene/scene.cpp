@@ -10,7 +10,7 @@ namespace sky
 Scene::Scene(const std::string &name): m_sceneName(name) 
 {
 	newScene(name);
-    m_registry.on_destroy<entt::entity>().connect<&Scene::onEntityDestroyed>(*this);
+    m_registry.on_destroy<HierarchyComponent>().connect<&Scene::onEntityDestroyed>(*this);
 }
 
 void Scene::init() {}
@@ -20,10 +20,14 @@ void Scene::update(float dt)
     auto sceneState = SceneManager::get().getSceneState();
     if (sceneState == SceneState::Edit)
     {
-        auto extent = Application::getWindow()->getExtent();
-        m_editorCamera.setViewportSize(extent.width, extent.height);
+        m_editorCamera.setViewportSize(m_viewportInfo.size);
         m_editorCamera.update(dt);
     }
+}
+
+void Scene::onEvent(Event& e)
+{
+    if (m_viewportInfo.isFocus) m_editorCamera.onEvent(e);
 }
 
 void Scene::cleanup() {}
@@ -49,7 +53,14 @@ Entity Scene::createEntityWithUUID(UUID uuid, const std::string& name)
 
 void Scene::destroyEntity(Entity entity) 
 {
-    m_entityMap.erase(entity.getComponent<IDComponent>());
+    auto &hierarchy = entity.getComponent<HierarchyComponent>();
+    if (hierarchy.parent != NULL_UUID)
+    {
+        // remove child from parent's children list
+        auto parentEntity = getEntityFromUUID(hierarchy.parent);
+        parentEntity.removeChild(entity);
+    }
+
     m_registry.destroy(entity);
 }
 
@@ -71,14 +82,8 @@ void Scene::newScene(const std::string &name)
 
 void Scene::onEntityDestroyed(entt::registry &registry, entt::entity ent)
 {
-    auto entity = Entity{ ent, this };
+    auto entity = Entity{ent, this};
     auto &entityHierarchy = entity.getComponent<HierarchyComponent>();
-    
-    if (entityHierarchy.parent != NULL_UUID)
-    {
-        auto parentEntity = getEntityFromUUID(entityHierarchy.parent);
-        parentEntity.removeChild(entity);
-    }
 
     for (const auto childID : entityHierarchy.children)
     {

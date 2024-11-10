@@ -16,8 +16,6 @@ class UUID
     const std::string toString() const;
 
     operator uint64_t() const { return m_uuid; }
-    /*bool operator==(const UUID &other) const { return m_uuid == other.m_uuid; }
-    bool operator!=(const UUID &other) const { return m_uuid != other.m_uuid; }*/
 
   private:
     uint64_t m_uuid;

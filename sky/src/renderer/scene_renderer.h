@@ -23,6 +23,8 @@ class SceneRenderer
     void addDrawCommand(MeshDrawCommand drawCmd);
     MeshId addMeshToCache(const Mesh &mesh);
 
+    ImageID getDrawImageId() const { return m_drawImageID; }
+
     gfx::AllocatedImage getDrawImage();
 
   private:

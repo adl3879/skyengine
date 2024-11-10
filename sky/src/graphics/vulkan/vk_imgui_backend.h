@@ -4,6 +4,7 @@
 #include <glm/vec2.hpp>
 
 #include <vulkan/vulkan.h>
+#include <imgui.h>
 
 #include "vk_NBuffer.h"
 #include "vk_types.h"
@@ -28,6 +29,7 @@ class ImGuiBackend
     void draw(VkCommandBuffer cmd, Device &gfxDevice, VkImageView swapchainImageView, VkExtent2D swapchainExtent);
     void cleanup(Device &gfxDevice);
 
+    inline static std::map<std::string, ImFont*> s_fonts;
   private:
     void copyBuffers(VkCommandBuffer cmd, Device &gfxDevice) const;
 

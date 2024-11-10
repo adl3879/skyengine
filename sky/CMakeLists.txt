@@ -22,6 +22,7 @@ target_include_directories(sky
     vendor/vma
     vendor/vk-bootstrap/src
     vendor/entt/single_include
+    vendor/yaml-cpp/include
     vendor/assimp/include)
 
 target_link_libraries(sky
@@ -30,5 +31,6 @@ target_link_libraries(sky
         glfw 
         vk-bootstrap::vk-bootstrap
         EnTT::EnTT
+        yaml-cpp::yaml-cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/vendor/assimp/assimp-vc143-mt.lib
     PUBLIC glm imgui)

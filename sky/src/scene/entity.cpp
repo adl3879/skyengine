@@ -25,7 +25,8 @@ void Entity::removeChild(Entity& child)
 
 	// remove child from the parent's list of children
     auto &children = parentHierarchy.children;
-    children.erase(std::remove(children.begin(), children.end(), child.getComponent<IDComponent>()), children.end());
+    const auto uuid = child.getComponent<IDComponent>();
+    children.erase(std::remove(children.begin(), children.end(), uuid), children.end());
 
     // reset child's parent to indicate it has no parent
     childHierarchy.parent = NULL_UUID;

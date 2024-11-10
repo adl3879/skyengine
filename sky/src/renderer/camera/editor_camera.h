@@ -31,10 +31,10 @@ class EditorCamera : public Camera
     SKY_INLINE float getDistance() const { return m_distance; }
     SKY_INLINE void setDistance(float distance) { m_distance = distance; }
 
-    SKY_INLINE void setViewportSize(float width, float height)
+    SKY_INLINE void setViewportSize(glm::vec2 size)
     {
-        m_viewportWidth = width;
-        m_viewportHeight = height;
+        m_viewportWidth = size.x;
+        m_viewportHeight = size.y;
         updateProjection();
     }
 

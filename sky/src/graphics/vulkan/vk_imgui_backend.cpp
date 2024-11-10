@@ -23,7 +23,7 @@ static_assert(sizeof(ImDrawIdx) == sizeof(std::uint16_t) || sizeof(ImDrawIdx) ==
 
 std::uint32_t toBindlessTextureId(ImTextureID id)
 {
-    return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(id));
+    return static_cast<uint32_t>(id);
 }
 } // namespace
 
@@ -40,6 +40,11 @@ void ImGuiBackend::init(Device &gfxDevice, VkFormat swapchainFormat)
     io.BackendRendererName = "EDBR ImGui Backend";
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
 
+    s_fonts["h2"] = io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 55.0f);
+    s_fonts["h3"] = io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 45.0f);
+    s_fonts["h4"] = io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 35.0f);
+    s_fonts["sm"] = io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 25.0f);
+
     // upload font
     {
         auto *pixels = static_cast<std::uint8_t *>(nullptr);
@@ -52,7 +57,7 @@ void ImGuiBackend::init(Device &gfxDevice, VkFormat swapchainFormat)
                 .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                 .extent = VkExtent3D{(std::uint32_t)width, (std::uint32_t)height, 1},
             }, pixels);
-        io.Fonts->SetTexID(reinterpret_cast<ImTextureID>((std::uint64_t)fontTextureId));
+        io.Fonts->SetTexID(fontTextureId);
     }
 
     const auto &device = gfxDevice.getDevice();
@@ -315,5 +320,4 @@ void ImGuiBackend::cleanup(Device &gfxDevice)
     idxBuffer.cleanup(gfxDevice);
     vtxBuffer.cleanup(gfxDevice);
 }
-
 }
