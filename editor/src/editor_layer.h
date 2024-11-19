@@ -6,8 +6,11 @@
 #include "graphics/vulkan/vk_device.h"
 #include "renderer/scene_renderer.h"
 #include "scene/scene.h"
+
 #include "debug_panels/scene_hierarchy_panel.h"
 #include "debug_panels/project_manager_panel.h"
+#include "debug_panels/inspector_panel.h"
+#include "debug_panels/asset_browser_panel.h"
 
 namespace sky
 {
@@ -25,11 +28,12 @@ class EditorLayer : public Layer
     void onImGuiRender() override;
 
   private:
-    Ref<gfx::Device> m_gfxDevice;
     Ref<SceneRenderer> m_renderer;
 
     SceneHierarchyPanel m_sceneHierarchyPanel;
     ProjectManagerPanel m_projectManagerPanel;
+    InspectorPanel m_inspectorPanel;
+    AssetBrowserPanel m_assetBrowserPanel;
 
     Ref<Scene> m_activeScene;
 }; 

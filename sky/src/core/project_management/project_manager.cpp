@@ -29,6 +29,17 @@ void ProjectManager::createNewProject(ProjectConfig config)
 void ProjectManager::loadProject(const fs::path &path)
 {
     deserialize(path);
+
+    // update last opened
+    for (auto &project : m_projectsList)
+    {
+        if (project.projectConfigPath == m_config.getProjectConfigFilePath())
+        {
+            project.lastOpened = helper::getCurrentDate();
+            break;
+        }
+    }
+    serializeProjectsList();
     m_isProjectOpen = true;
 }
 
@@ -41,6 +52,16 @@ std::vector<ProjectManager::ProjectInfo> ProjectManager::getProjectsList()
 {
     deserializeProjectsList();
     return m_projectsList;
+}
+
+std::string ProjectManager::getProjectFullName()
+{
+    return std::format("{0} - {1} - SKY ENGINE", m_config.projectName, m_config.getProjectFilePath().string());
+}
+
+Ref<EditorAssetManager> ProjectManager::getEditorAssetManager()
+{
+    return std::static_pointer_cast<EditorAssetManager>(m_assetManager);
 }
 
 void ProjectManager::serialize(ProjectConfig config) 

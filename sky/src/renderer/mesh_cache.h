@@ -5,24 +5,23 @@
 #include "graphics/vulkan/vk_types.h"
 #include "graphics/vulkan/vk_device.h"
 #include "renderer/mesh.h"
+#include "core/uuid.h"
 
 namespace sky
 {
 struct Mesh;
-
-using MeshId = uint32_t;
 
 class MeshCache
 {
   public:
     void cleanup(gfx::Device &gfxDevice);
 
-    MeshId addMesh(gfx::Device &gfxDevice, const Mesh &mesh);
-    const gfx::GPUMeshBuffers &getMesh(MeshId id) const;
+    MeshID addMesh(gfx::Device &gfxDevice, const Mesh &mesh);
+    const gfx::GPUMeshBuffers &getMesh(MeshID id) const;
 
   private:
     void uploadMesh(gfx::Device &gfxDevice, const Mesh &mesh, gfx::GPUMeshBuffers &gpuMesh) const;
 
-    std::vector<gfx::GPUMeshBuffers> meshes;
+    std::unordered_map<MeshID, gfx::GPUMeshBuffers> m_meshes;
 };
 } // namespace sky

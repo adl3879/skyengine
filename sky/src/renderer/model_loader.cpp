@@ -6,6 +6,17 @@
 
 namespace sky
 {
+// Helper function to get a texture path
+static std::string getTexturePath(aiMaterial *material, aiTextureType type)
+{
+    aiString path;
+    if (material->GetTexture(type, 0, &path) == AI_SUCCESS)
+    {
+        return path.C_Str();
+    }
+    return ""; // Return an empty string if the texture is not found
+}
+
 AssimpModelLoader::AssimpModelLoader(const fs::path &path) 
 {
     loadModel(path);
@@ -25,27 +36,27 @@ void AssimpModelLoader::loadModel(const fs::path &path)
     }
 
     // Process the root node recursively
-    ProcessNode(scene->mRootNode, scene);
+    processNode(scene->mRootNode, scene);
     importer.FreeScene();
 }
 
-void AssimpModelLoader::ProcessNode(aiNode *node, const aiScene *scene) 
+void AssimpModelLoader::processNode(aiNode *node, const aiScene *scene) 
 {
     // Process all the node's meshes
 	for (unsigned int i = 0; i < node->mNumMeshes; i++) 
 	{
 		aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
-		meshes.push_back(ProcessMesh(mesh, scene));
+		m_meshes.push_back(processMesh(mesh, scene));
 	}
 
 	// Process all the node's children
 	for (unsigned int i = 0; i < node->mNumChildren; i++) 
 	{
-		ProcessNode(node->mChildren[i], scene);
+		processNode(node->mChildren[i], scene);
 	}
 }
 
-Mesh AssimpModelLoader::ProcessMesh(aiMesh *mesh, const aiScene *scene) 
+MeshLoaderReturn AssimpModelLoader::processMesh(aiMesh *mesh, const aiScene *scene) 
 {
     Mesh processedMesh;
     std::vector<Vertex> vertices;
@@ -101,6 +112,26 @@ Mesh AssimpModelLoader::ProcessMesh(aiMesh *mesh, const aiScene *scene)
     processedMesh.vertices = std::move(vertices);
     processedMesh.indices = std::move(indices);
 
-    return processedMesh;
+    MaterialPaths materialPaths;
+    if (mesh->mMaterialIndex >= 0)
+    {
+        aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
+        materialPaths = extractMaterialPaths(material);
+    }
+
+    return {.materialPaths = materialPaths, .mesh = processedMesh};
+}
+
+MaterialPaths AssimpModelLoader::extractMaterialPaths(aiMaterial* material)
+{
+    MaterialPaths materialPaths;
+    materialPaths.albedoTexture = getTexturePath(material, aiTextureType_DIFFUSE);
+    materialPaths.normalMapTexture = getTexturePath(material, aiTextureType_NORMALS);
+    materialPaths.metallicsTexture = getTexturePath(material, aiTextureType_METALNESS); // Requires Assimp 5.0+
+    materialPaths.roughnessTexture = getTexturePath(material, aiTextureType_DIFFUSE_ROUGHNESS);
+    materialPaths.roughnessTexture = getTexturePath(material, aiTextureType_DIFFUSE_ROUGHNESS);
+    materialPaths.ambientOcclusionTexture = getTexturePath(material, aiTextureType_LIGHTMAP);
+    materialPaths.emissiveTexture = getTexturePath(material, aiTextureType_EMISSIVE);
+    return materialPaths;
 }
 } // namespace sky

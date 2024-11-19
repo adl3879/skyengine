@@ -3,6 +3,9 @@
 #include <skypch.h>
 #include <glm/glm.hpp>
 
+#include "asset_management/asset.h"
+#include "material.h"
+
 namespace sky
 {
 struct Vertex
@@ -18,12 +21,22 @@ struct Mesh
 {
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
+	MaterialID materialID;
 };
-using MeshId = uint32_t;
+
+struct Model : public Asset
+{
+    Model(std::vector<Mesh> msh) : meshes(msh) {}
+
+    std::vector<Mesh> meshes;
+	AssetType getType() const override { return AssetType::Mesh; }
+};
+
+using MeshID = UUID;
 
 struct MeshDrawCommand
 {
-	MeshId meshId;
+	MeshID meshId;
 	glm::mat4 modelMatrix;
 };
 } // namespace sky

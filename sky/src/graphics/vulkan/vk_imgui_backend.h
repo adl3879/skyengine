@@ -32,6 +32,7 @@ class ImGuiBackend
     inline static std::map<std::string, ImFont*> s_fonts;
   private:
     void copyBuffers(VkCommandBuffer cmd, Device &gfxDevice) const;
+	void setDarkThemeColors();
 
     NBuffer idxBuffer;
     NBuffer vtxBuffer;

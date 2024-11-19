@@ -50,6 +50,7 @@ void Window::initWindow()
 
     glfwSetWindowUserPointer(m_window, &m_data);
     glfwSetFramebufferSizeCallback(m_window, framebufferResizeCallback);
+    glfwMaximizeWindow(m_window);
 
     // set key callback
     glfwSetKeyCallback(m_window,
@@ -175,6 +176,7 @@ void Input::setMousePosition(const std::uint32_t &x, const std::uint32_t &y)
     auto *window = static_cast<GLFWwindow *>(Application::getWindow()->getGLFWwindow());
     glfwSetCursorPos(window, x, y);
 }
+
 void Input::showMouseCursor(const bool &show)
 {
     auto *window = static_cast<GLFWwindow *>(Application::getWindow()->getGLFWwindow());

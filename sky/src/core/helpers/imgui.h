@@ -10,5 +10,6 @@ bool imguiButton(std::string text,
 	ImVec2 size, 
 	bool disabled = false, 
 	std::string type = "default");
+void imguiCenteredText(std::string text);
 }
 }

@@ -11,6 +11,5 @@ namespace sky
 namespace helper
 {
 std::string getCurrentDate();
-std::string getCurrentDateWithTime();
 }
 }

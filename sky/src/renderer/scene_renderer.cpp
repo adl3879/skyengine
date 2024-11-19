@@ -5,23 +5,34 @@
 
 namespace sky
 {
-SceneRenderer::SceneRenderer(gfx::Device &device, Scene &scene)
-	: m_device(device), m_scene(scene)
+SceneRenderer::SceneRenderer(gfx::Device &device)
+	: m_device(device)
 {
 }
 
 SceneRenderer::~SceneRenderer() {}
 
-void SceneRenderer::init(glm::ivec2 size) 
+void SceneRenderer::init(Ref<Scene> scene, glm::ivec2 size) 
 {
+    m_scene = scene;
     createDrawImage(size);
 
     m_forwardRenderer.init(m_device);
 }
 
-MeshId SceneRenderer::addMeshToCache(const Mesh& mesh)
+MeshID SceneRenderer::addMeshToCache(const Mesh& mesh)
 {
     return m_meshCache.addMesh(m_device, mesh);
+}
+
+MaterialID SceneRenderer::addMaterialToCache(const Material &material)
+{
+    return m_materialCache.addMaterial(m_device, material);
+}
+
+ImageID SceneRenderer::createImage(const gfx::vkutil::CreateImageInfo& createInfo, void* pixelData)
+{
+    return m_device.createImage(createInfo, pixelData);
 }
 
 void SceneRenderer::destroy() 
@@ -41,7 +52,7 @@ void SceneRenderer::createDrawImage(glm::ivec2 size)
         VkImageUsageFlags usages{};
         usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         usages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-        usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         usages |= VK_IMAGE_USAGE_SAMPLED_BIT;
 
         auto createImageInfo = gfx::vkutil::CreateImageInfo{
@@ -102,7 +113,7 @@ void SceneRenderer::render(gfx::CommandBuffer cmd)
         m_device,
         cmd,
         drawImage.getExtent2D(),
-        m_scene.getCamera(),
+        m_scene->getCamera(),
         m_meshCache,
         m_meshDrawCommands);
 

@@ -2,6 +2,7 @@
 
 #include <skypch.h>
 #include "core/filesystem.h"
+#include "asset_management/editor_asset_manager.h"
 
 namespace sky
 {
@@ -17,11 +18,13 @@ class ProjectManager
         std::string createdDate;
         std::string lastModifiedDate;
 
-        fs::path assetPath = "res/";
+        fs::path assetPath = "assets";
         fs::path startScene;
         
         fs::path getProjectFilePath() const { return projectPath / projectName; }
         fs::path getProjectConfigFilePath() const { return getProjectFilePath() / (projectName + ".skyproj"); }
+        fs::path getAssetRegistryPath() const { return getProjectFilePath() / assetPath / "assetRegistry.yaml"; }
+        fs::path getAssetDirectory() const { return getProjectFilePath() / assetPath; }
     };
 
     struct ProjectInfo
@@ -43,6 +46,9 @@ class ProjectManager
     static ProjectConfig getConfig() { return m_config; }
     static std::vector<ProjectInfo> getProjectsList();
     static bool isProjectOpen() { return m_isProjectOpen; }
+    static bool isProjectListEmpty() { return m_projectsList.size() < 0; }
+    static std::string getProjectFullName();
+    static Ref<EditorAssetManager> getEditorAssetManager();
 
   private:
     static void serialize(ProjectConfig config);
@@ -56,5 +62,6 @@ class ProjectManager
     inline static fs::path m_projectConfigPath;
     inline static std::vector<ProjectInfo> m_projectsList;
     inline static bool m_isProjectOpen = false;
+    inline static Ref<AssetManagerBase> m_assetManager;
 };
 }

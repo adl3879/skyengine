@@ -5,6 +5,7 @@
 #include "scene/entity.h"
 #include "scene/components.h"
 #include "core/project_management/project_manager.h"
+#include "core/helpers/imgui.h"
 
 #include <imgui.h>
 
@@ -16,16 +17,16 @@ EditorLayer::EditorLayer()
     m_activeScene = SceneManager::get().getActiveScene();
     m_activeScene->init();
 
-    m_gfxDevice = CreateRef<gfx::Device>(*window);
-    m_renderer = CreateRef<SceneRenderer>(*m_gfxDevice, *m_activeScene);
+    m_renderer = Application::getRenderer();
 
     auto extent = window->getExtent();
-    m_renderer->init({extent.width, extent.height});
+    m_renderer->init(m_activeScene, {extent.width, extent.height});
 
     AssimpModelLoader modelLoader("res/models/monkey.glb");
-    auto meshId = m_renderer->addMeshToCache(modelLoader.getMeshes()[0]);
+    auto meshId = m_renderer->addMeshToCache(modelLoader.getMeshes()[0].mesh);
     auto monkey = m_activeScene->createEntity("monkey");
-    monkey.addComponent<MeshComponent>() = meshId;
+    auto &msh = monkey.addComponent<MeshComponent>();
+    msh.meshID = meshId;
 
     m_renderer->addDrawCommand(
         MeshDrawCommand{
@@ -35,7 +36,7 @@ EditorLayer::EditorLayer()
 
     if (!ProjectManager::isProjectOpen())
     {
-        if (ProjectManager::getProjectsList().size() > 0) m_projectManagerPanel.showOpen();
+        if (!ProjectManager::isProjectListEmpty()) m_projectManagerPanel.showOpen();
         else m_projectManagerPanel.showCreate();
     }
 }
@@ -53,16 +54,6 @@ void EditorLayer::onDetach()
 void EditorLayer::onUpdate(float dt) 
 {
     m_activeScene->update(dt);
-
-    auto cmd = m_gfxDevice->beginFrame();
-    m_renderer->render(cmd);
-    m_gfxDevice->endFrame(cmd, m_renderer->getDrawImage());
-
-    if (m_gfxDevice->needsSwapchainRecreate())
-    {
-        auto extent = Application::getWindow()->getExtent();
-        m_gfxDevice->recreateSwapchain(cmd, extent.width, extent.height);
-    }
 }
 
 void EditorLayer::onEvent(Event &e) 
@@ -122,6 +113,8 @@ void EditorLayer::onImGuiRender()
 
     m_sceneHierarchyPanel.render();
     m_projectManagerPanel.render();
+    m_inspectorPanel.render();
+    m_assetBrowserPanel.render();
 
     if (ImGui::BeginMenuBar())
     {
@@ -137,6 +130,8 @@ void EditorLayer::onImGuiRender()
             }
             ImGui::EndMenu();
         }
+        
+        helper::imguiCenteredText(ProjectManager::getProjectFullName());
         ImGui::EndMenuBar();
     }
 

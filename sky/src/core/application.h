@@ -2,6 +2,8 @@
 
 #include "layer_stack.h"
 #include "window.h"
+#include "graphics/vulkan/vk_device.h"
+#include "renderer/scene_renderer.h"
 
 int main(int argc, char** argv);
 
@@ -26,6 +28,7 @@ class Application
     void pushOverlay(Layer *layer);
 
     static Ref<Window> getWindow() { return m_window; }
+    static Ref<SceneRenderer> getRenderer() { return m_renderer; }
 
   private:
     void run();
@@ -38,6 +41,8 @@ class Application
 
     LayerStack m_layerStack{};
     static Ref<Window> m_window;
+	static Ref<gfx::Device> m_gfxDevice;
+    static Ref<SceneRenderer> m_renderer;
 };
 
 Application *CreateApplication();

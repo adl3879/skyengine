@@ -20,6 +20,7 @@ target_include_directories(sky
     ${Vulkan_INCLUDE_DIR}
     vendor/spdlog/include
     vendor/vma
+    vendor/stb_image
     vendor/vk-bootstrap/src
     vendor/entt/single_include
     vendor/yaml-cpp/include

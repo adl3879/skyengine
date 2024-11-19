@@ -56,8 +56,8 @@ void Device::init()
     ImGui::CreateContext();
     auto &io = ImGui::GetIO();
     io.ConfigWindowsMoveFromTitleBarOnly = true;
-    //io.ConfigFlags = ImGuiConfigFlags_DockingEnable;
-    io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 28.0f);
+    io.ConfigFlags = ImGuiConfigFlags_DockingEnable;
+    io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 26.0f);
     m_imguiBackend.init(*this, m_swapchainFormat);
     ImGui_ImplGlfw_InitForVulkan(m_window.getGLFWwindow(), true);
 

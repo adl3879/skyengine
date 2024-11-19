@@ -29,5 +29,18 @@ bool imguiButton(std::string text, ImVec2 size, bool disabled, std::string type)
     }
     return btn;
 }
+
+void imguiCenteredText(std::string text)
+{
+    ImVec2 windowSize = ImGui::GetWindowSize();
+    ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
+
+    // Calculate the X position for centered text
+    float textX = (windowSize.x - textSize.x) / 2.0f;
+
+    // Apply the calculated position and render the text
+    ImGui::SetCursorPosX(textX);
+    ImGui::Text("%s", text.c_str());
+}
 }
 }

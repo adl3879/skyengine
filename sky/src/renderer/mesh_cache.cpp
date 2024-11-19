@@ -4,29 +4,29 @@ namespace sky
 {
 void MeshCache::cleanup(gfx::Device &device) 
 {
-    for (const auto &mesh : meshes)
+    for (const auto &[key, value] : m_meshes)
 	{
-		device.destroyBuffer(mesh.vertexBuffer);
-        device.destroyBuffer(mesh.indexBuffer);
+		device.destroyBuffer(value.vertexBuffer);
+        device.destroyBuffer(value.indexBuffer);
 	}
 }
 
-MeshId MeshCache::addMesh(gfx::Device &device, const Mesh &mesh) 
+MeshID MeshCache::addMesh(gfx::Device &device, const Mesh &mesh) 
 {
     auto gpuMesh = gfx::GPUMeshBuffers{
         .numIndices = static_cast<uint32_t>(mesh.indices.size()),
     };
 
     uploadMesh(device, mesh, gpuMesh);
-    const auto id = meshes.size();
-    meshes.push_back(gpuMesh);
+    const auto id = UUID::generate();
+    m_meshes[id] = gpuMesh;
 
     return id;
 }
 
-const gfx::GPUMeshBuffers &MeshCache::getMesh(MeshId id) const
+const gfx::GPUMeshBuffers &MeshCache::getMesh(MeshID id) const
 {
-    return meshes.at(id);
+    return m_meshes.at(id);
 }   
 
 void MeshCache::uploadMesh(gfx::Device &device, const Mesh &mesh, gfx::GPUMeshBuffers &gpuMesh) const 
@@ -37,7 +37,7 @@ void MeshCache::uploadMesh(gfx::Device &device, const Mesh &mesh, gfx::GPUMeshBu
     // create vertex buffer
     gpuMesh.vertexBuffer = device.createBuffer(vertexBufferSize,
                                            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-                                               VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+                                           VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
                                            VMA_MEMORY_USAGE_GPU_ONLY);
 
     // find the adress of the vertex buffer

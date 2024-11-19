@@ -6,22 +6,26 @@
 #include "renderer/passes/forward_renderer.h"
 #include "graphics/vulkan/vk_device.h"
 #include "scene/scene.h"
+#include "material_cache.h"
 
 namespace sky
 {
 class SceneRenderer
 {
   public:
-    SceneRenderer(gfx::Device &device, Scene &scene);
+    SceneRenderer(gfx::Device &device);
     ~SceneRenderer();
 
     SceneRenderer(SceneRenderer &) = delete;
     SceneRenderer operator=(SceneRenderer &) = delete;
 
-    void init(glm::ivec2 size);
+    void init(Ref<Scene> scene, glm::ivec2 size);
     void render(gfx::CommandBuffer cmd);
     void addDrawCommand(MeshDrawCommand drawCmd);
-    MeshId addMeshToCache(const Mesh &mesh);
+    
+    MeshID addMeshToCache(const Mesh &mesh);
+    MaterialID addMaterialToCache(const Material &material);
+    ImageID createImage(const gfx::vkutil::CreateImageInfo& createInfo, void* pixelData);
 
     ImageID getDrawImageId() const { return m_drawImageID; }
 
@@ -33,9 +37,11 @@ class SceneRenderer
 
   private:
     gfx::Device &m_device;
-    Scene &m_scene;
-    MeshCache m_meshCache;
+    Ref<Scene> m_scene;
     std::vector<MeshDrawCommand> m_meshDrawCommands;
+
+    MeshCache m_meshCache;
+    MaterialCache m_materialCache;
 
   private:
     ForwardRendererPass m_forwardRenderer;

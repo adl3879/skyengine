@@ -12,9 +12,12 @@ namespace sky
 using IDComponent = UUID;
 using TagComponent = std::string;
 using TransformComponent = Transform;
-using MeshComponent = MeshId;
 using CameraComponent = PerspectiveCamera;
 
+struct MeshComponent
+{
+    MeshID meshID;
+};
 struct HierarchyComponent
 {
     UUID parent;

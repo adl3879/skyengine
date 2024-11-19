@@ -99,7 +99,7 @@ void ProjectManagerPanel::render()
             // Display additional project details (e.g., path and last opened date)
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 65);
             ImGui::PushFont(gfx::ImGuiBackend::s_fonts["sm"]);
-            ImGui::Text("Path: %s", project.projectPath.string().c_str());
+            ImGui::Text("Location: %s", project.projectPath.string().c_str());
             ImGui::Text("Last Opened: %s", project.lastOpened.c_str());
             ImGui::PopFont();
             ImGui::PopStyleColor();
