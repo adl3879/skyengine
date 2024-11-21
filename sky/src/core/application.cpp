@@ -7,12 +7,12 @@
 #include <imgui_impl_vulkan.h>
 
 #include "renderer/model_loader.h"
-#include "log.h"
 
 namespace sky {
 Ref<Window>         Application::m_window       = nullptr;
 Ref<gfx::Device>    Application::m_gfxDevice    = nullptr;
 Ref<SceneRenderer>  Application::m_renderer     = nullptr;
+Ref<TaskManager>    Application::m_taskManager  = nullptr;
 
 Application::Application() 
 {
@@ -20,6 +20,7 @@ Application::Application()
 
     m_window = CreateRef<Window>(WIDTH, HEIGHT, "Sky");
 	m_window->setEventCallback(std::bind(&Application::onEvent, this, std::placeholders::_1));
+    m_taskManager = CreateRef<TaskManager>();
 
 	m_gfxDevice = CreateRef<gfx::Device>(*m_window);
     m_renderer = CreateRef<SceneRenderer>(*m_gfxDevice);
@@ -89,5 +90,10 @@ void Application::onEvent(Event &e)
         if (e.handled) break;
         (*it)->onEvent(e);
     }
+}
+
+void Application::quit()
+{
+    m_isRunning = false;
 }
 } // namespace sky

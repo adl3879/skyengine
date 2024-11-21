@@ -19,13 +19,13 @@ static ImageID createMaterialImage(Ref<Texture2D> tex, VkFormat format, VkImageU
                      VK_IMAGE_USAGE_TRANSFER_SRC_BIT,  // for generating mips
             .extent =
                 VkExtent3D{
-                    .width = (std::uint32_t)tex->getSpecs().width,
-                    .height = (std::uint32_t)tex->getSpecs().height,
+                    .width = (std::uint32_t)tex->width,
+                    .height = (std::uint32_t)tex->height,
                     .depth = 1,
                 },
             .mipMap = mipMap,
         },
-        tex->getData().data);
+        tex->pixels);
 }
 
 Ref<Model> MeshImporter::importAsset(AssetHandle handle, AssetMetadata &metadata) 

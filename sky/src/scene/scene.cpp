@@ -45,6 +45,7 @@ Entity Scene::createEntityWithUUID(UUID uuid, const std::string& name)
     entity.addComponent<TagComponent>() = name.empty() ? "Unnamed Entity" : name;
     entity.addComponent<TransformComponent>();
     entity.addComponent<HierarchyComponent>();
+    entity.addComponent<VisibilityComponent>() = true;
 
     m_entityMap[uuid] = entity;
 

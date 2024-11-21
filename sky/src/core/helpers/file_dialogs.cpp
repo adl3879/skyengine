@@ -1,4 +1,4 @@
-#pragma once
+#include "file_dialogs.h"
 
 #include <commdlg.h>
 #include <GLFW/glfw3.h>
@@ -105,5 +105,5 @@ std::string saveFile(const char *filter)
 
     return std::string();
 }
-}
-}
+} // namespace helper
+} // namespace sky

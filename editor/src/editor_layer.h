@@ -11,6 +11,7 @@
 #include "debug_panels/project_manager_panel.h"
 #include "debug_panels/inspector_panel.h"
 #include "debug_panels/asset_browser_panel.h"
+#include "debug_panels/logs_panel.h"
 
 namespace sky
 {
@@ -32,8 +33,9 @@ class EditorLayer : public Layer
 
     SceneHierarchyPanel m_sceneHierarchyPanel;
     ProjectManagerPanel m_projectManagerPanel;
-    InspectorPanel m_inspectorPanel;
-    AssetBrowserPanel m_assetBrowserPanel;
+    InspectorPanel      m_inspectorPanel;
+    AssetBrowserPanel   m_assetBrowserPanel;
+    LogsPanel           m_logPanel;
 
     Ref<Scene> m_activeScene;
 }; 

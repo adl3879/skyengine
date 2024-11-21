@@ -11,7 +11,6 @@ class TextureImporter
 {
   public:
     static Ref<Texture2D> importAsset(AssetHandle handle, AssetMetadata &metadata);
-
     static Ref<Texture2D> loadTexture(const fs::path &texturePath);
 };
 }

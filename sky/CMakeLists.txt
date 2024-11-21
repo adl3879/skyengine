@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(vendor)
 
-file(GLOB_RECURSE SOURCES "src/*.cpp")
+file(GLOB_RECURSE SOURCES "src/*.cpp" "vendor/stb_image/stb_image.cpp")
 file(GLOB_RECURSE HEADERS "src/*.h")
 
 add_library(sky STATIC ${SOURCES} ${HEADERS})
@@ -21,6 +21,7 @@ target_include_directories(sky
     vendor/spdlog/include
     vendor/vma
     vendor/stb_image
+    vendor/filewatch
     vendor/vk-bootstrap/src
     vendor/entt/single_include
     vendor/yaml-cpp/include

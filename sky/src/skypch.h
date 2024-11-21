@@ -53,7 +53,7 @@ std::unique_ptr<T> CreateScope(Args &&... args)
     return std::make_unique<T>(std::forward<Args>(args)...);
 }
 
-#include <core/Log.h>
+#include <core/log/log.h>
 
 #ifndef SKY_INLINE
     #define SKY_INLINE __forceinline

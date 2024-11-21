@@ -8,37 +8,27 @@
 
 namespace sky
 {
-enum class ImageFormat
+struct Texture2D : public Asset
 {
-    None = 0,
-    R8,
-    RGB8,
-    RGBA8,
-    RGBA32F
-};
-
-struct TextureSpecification
-{
-    uint32_t width = 1;
-    uint32_t height = 1;
-    ImageFormat format = ImageFormat::RGBA8;
-    bool generateMips = true;
-};
-
-class Texture2D : public Asset
-{
-  public:
     Texture2D() = default;
-    Texture2D(Buffer data, TextureSpecification specs);
+    ~Texture2D() = default;
 
-    ImageID imageID;
-    auto getData() const { return m_data; }
-    auto getSpecs() const { return m_specs; }
+    // move only
+    Texture2D(Texture2D &&o) = default;
+    Texture2D &operator=(Texture2D &&o) = default;
 
-    AssetType getType() const override { return AssetType::Texture2D; }
+    // no copies
+    Texture2D(const Texture2D &o) = delete;
+    Texture2D &operator=(const Texture2D &o) = delete;
 
-  private:
-    Buffer m_data;
-    TextureSpecification m_specs;
+    // data
+    unsigned char *pixels{nullptr};
+    int width{0};
+    int height{0};
+    int channels{0};
+
+	bool shouldSTBFree{false};
+
+	AssetType getType() const override { return AssetType::Texture2D; }
 };
 }

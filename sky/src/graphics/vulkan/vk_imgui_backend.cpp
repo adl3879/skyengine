@@ -43,7 +43,7 @@ void ImGuiBackend::init(Device &gfxDevice, VkFormat swapchainFormat)
     s_fonts["h2"] = io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 55.0f);
     s_fonts["h3"] = io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 45.0f);
     s_fonts["h4"] = io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 35.0f);
-    s_fonts["sm"] = io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 25.0f);
+    s_fonts["sm"] = io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 25.0f); 
 
     setDarkThemeColors();
 

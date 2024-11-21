@@ -4,6 +4,7 @@
 #include "window.h"
 #include "graphics/vulkan/vk_device.h"
 #include "renderer/scene_renderer.h"
+#include "tasks/task_manager.h"
 
 int main(int argc, char** argv);
 
@@ -29,6 +30,8 @@ class Application
 
     static Ref<Window> getWindow() { return m_window; }
     static Ref<SceneRenderer> getRenderer() { return m_renderer; }
+    static Ref<TaskManager> getTaskManager() { return m_taskManager; }
+    static void quit();
 
   private:
     void run();
@@ -37,12 +40,13 @@ class Application
     friend int ::main(int argc, char** argv);
 
   private:
-    bool m_isRunning = true;
+    inline static bool m_isRunning = true;
 
     LayerStack m_layerStack{};
     static Ref<Window> m_window;
 	static Ref<gfx::Device> m_gfxDevice;
     static Ref<SceneRenderer> m_renderer;
+    static Ref<TaskManager> m_taskManager;
 };
 
 Application *CreateApplication();

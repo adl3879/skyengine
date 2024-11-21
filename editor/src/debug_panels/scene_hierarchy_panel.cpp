@@ -1,13 +1,14 @@
 #include "scene_hierarchy_panel.h"
 
 #include <imgui.h>
+#include <IconsFontAwesome5.h>
 #include "scene/components.h"
 
 namespace sky
 {
 void SceneHierarchyPanel::render() 
 {
-	ImGui::Begin("Scene Hierarchy");
+	ImGui::Begin("Scene Hierarchy   ");
 
     if (ImGui::BeginPopupContextWindow())
     {
@@ -17,12 +18,27 @@ void SceneHierarchyPanel::render()
 
 	if (m_context)
 	{
-        for (auto entId : m_context->getRegistry().view<entt::entity>())
-        {
-            auto entity = Entity{entId, m_context.get()};
-            if (entity.getComponent<HierarchyComponent>().parent == NULL_UUID)
-                drawEntityNode(entity);
-        }
+		if (ImGui::BeginTable("shtable", 3, ImGuiTableFlags_Resizable | ImGuiTableFlags_NoBordersInBody))
+		{
+			// Set the padding for the header (first row)
+			ImVec2 headerPadding = ImVec2(20, 10); // Increase padding for header row
+			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, headerPadding);
+
+			ImGui::TableSetupColumn(" Label", ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn(" Type", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn(" Visibility", ImGuiTableColumnFlags_WidthFixed, 30.f);
+			ImGui::TableHeadersRow();
+			
+			ImGui::PopStyleVar();
+
+		for (auto entId : m_context->getRegistry().view<entt::entity>())
+		{
+			auto entity = Entity{entId, m_context.get()};
+			if (entity.getComponent<HierarchyComponent>().parent == NULL_UUID)
+				drawEntityNode(entity);
+		}
+			ImGui::EndTable();
+		}
 	}
     ImGui::End();
 }
@@ -39,6 +55,9 @@ void SceneHierarchyPanel::drawEntityNode(Entity entity)
     }
 
     const auto tag = entity.getComponent<TagComponent>();
+
+    ImGui::TableNextRow();
+	ImGui::TableNextColumn();
     bool open = ImGui::TreeNodeEx((void *)(uint64_t)(uint32_t)entity, flags, "%s", tag.c_str());
 
     bool isEntityDeleted = false;
@@ -57,14 +76,31 @@ void SceneHierarchyPanel::drawEntityNode(Entity entity)
         ImGui::EndPopup();
     }
 
+	ImGui::TableNextColumn();
+    ImGui::Text("");
+
+	ImGui::TableNextColumn();
+    float cellWidth = ImGui::GetContentRegionAvail().x;
+    float iconWidth = ImGui::CalcTextSize(ICON_FA_EYE).x;
+    float horizontalPadding = (cellWidth - iconWidth) * 0.5f;
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + horizontalPadding);
+
+    ImGui::PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
+    auto &visibility = entity.getComponent<VisibilityComponent>();
+    if (ImGui::Button(visibility ? ICON_FA_EYE : ICON_FA_EYE_SLASH))
+    {
+        visibility = !visibility;
+    }
+    ImGui::PopStyleColor();
+
     if (open)
     {
         const auto parent = entity.getComponent<HierarchyComponent>();
-        for (const auto child : parent.children)
-        {
-            auto entity = m_context->getEntityFromUUID(child);
-            drawEntityNode(entity);
-        }
+		for (const auto child : parent.children)
+		{
+			auto entity = m_context->getEntityFromUUID(child);
+			drawEntityNode(entity);
+		}
         ImGui::TreePop();
     }
 

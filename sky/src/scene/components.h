@@ -13,6 +13,7 @@ using IDComponent = UUID;
 using TagComponent = std::string;
 using TransformComponent = Transform;
 using CameraComponent = PerspectiveCamera;
+using VisibilityComponent = bool;
 
 struct MeshComponent
 {

@@ -9,6 +9,8 @@
 #include "core/events/key_event.h"
 #include "core/events/mouse_event.h"
 
+#include <vulkan/vulkan.h>
+
 namespace sky
 {
 class Window

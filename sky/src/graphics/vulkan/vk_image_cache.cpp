@@ -17,11 +17,11 @@ ImageID ImageCache::addImage(ImageID id, AllocatedImage image)
 {
     if (id != m_images.size())
     {
-        m_images[id] = std::move(image); // replacing existing image
+        m_images[id] = image; // replacing existing image
     }
     else
     {
-        m_images.push_back(std::move(image));
+        m_images.push_back(image);
     }
     bindlessSetManager.addImage(m_device.getDevice(), id, image.imageView);
 

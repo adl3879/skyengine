@@ -44,6 +44,11 @@ EditorLayer::EditorLayer()
 void EditorLayer::onAttach() 
 {
     m_sceneHierarchyPanel.setContext(m_activeScene);
+    SKY_CORE_INFO("Sky Engine v1 - Toyosi Adekanmbi");
+    SKY_CORE_WARN("Texture failed to load: missing file.");
+    SKY_CORE_INFO("Mesh loaded successfully: assets/monkey.obj");
+    SKY_CORE_INFO("Asset manager initialized with 500 assets.");
+    SKY_CORE_ERROR("Shader compilation failed due to syntax error");
 }
 
 void EditorLayer::onDetach() 
@@ -102,6 +107,7 @@ void EditorLayer::onImGuiRender()
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspaceFlags);
     }
 
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::Begin("Viewport");
     auto viewportSize = ImGui::GetContentRegionAvail();
     m_activeScene->setViewportInfo({
@@ -110,15 +116,23 @@ void EditorLayer::onImGuiRender()
     });
     ImGui::Image(m_renderer->getDrawImageId(), viewportSize);
     ImGui::End();
+    ImGui::PopStyleVar();
 
     m_sceneHierarchyPanel.render();
     m_projectManagerPanel.render();
     m_inspectorPanel.render();
     m_assetBrowserPanel.render();
+    m_logPanel.render();
 
     if (ImGui::BeginMenuBar())
     {
         if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("Quit")) Application::quit();
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Project"))
         {
             if (ImGui::MenuItem("New Project"))
             {

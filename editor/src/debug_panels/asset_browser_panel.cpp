@@ -3,30 +3,89 @@
 #include <imgui.h>
 #include <IconsFontAwesome5.h>
 #include <glm/glm.hpp>
+#include <stb_image.h>
+#include <FileWatch.h>
 
 #include "asset_management/asset_manager.h"
 #include "core/project_management/project_manager.h"
-//#include "core/helpers/file.h"
+#include "core/helpers/file_dialogs.h"
+#include "core/application.h"
+#include "asset_management/texture_importer.h"
 
 namespace sky
 {
 bool openCreateFilePopup = false;
 
 static char searchStr[128] = "";
-glm::vec2 thumbnailSize, defaultThumbnailSize = {120.0f, 120.0f};
+glm::vec2 thumbnailSize, defaultThumbnailSize = {120.0f * 1.27f, 120.0f * 1.27f};
 float dragRatio = 1.0f;
+
+struct ContentBrowserData
+{
+    std::unique_ptr<filewatch::FileWatch<std::string>> renameWatcher;
+    std::string currentRenamePath;
+};
+ContentBrowserData *s_data = new ContentBrowserData();
+
+static ImageID loadImageFromFile(const fs::path& path)
+{
+    auto renderer = Application::getRenderer();
+    auto tex = TextureImporter::loadTexture(path);
+    auto texture = renderer->createImage(
+        {
+            .format = VK_FORMAT_R8G8B8A8_SRGB,
+            .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+            .extent =
+                VkExtent3D{
+                    .width = static_cast<uint32_t>(tex->width),
+                    .height = static_cast<uint32_t>(tex->height),
+                    .depth = 1,
+                },
+            .mipMap = true,
+        },
+        tex->pixels);
+    return texture;
+}
 
 AssetBrowserPanel::AssetBrowserPanel() 
 {
+    m_icons["back"] =       loadImageFromFile("res/icons/content_browser/BackIcon.png");
+    m_icons["forward"] =    loadImageFromFile("res/icons/content_browser/ForwardIcon.png");
+    m_icons["directory"] =  loadImageFromFile("res/icons/content_browser/DirectoryIcon.png");
+    m_icons["file"] =       loadImageFromFile("res/icons/content_browser/FileIcon.png");
+    m_icons["scene"] =      loadImageFromFile("res/icons/content_browser/SceneIcon.png");
+    m_icons["model"] =      loadImageFromFile("res/icons/content_browser/3DModelIcon.png");
+}
+
+void AssetBrowserPanel::init()
+{
     m_baseDirectory = ProjectManager::getConfig().getAssetDirectory();
     m_currentDirectory = m_baseDirectory;
+
+	s_data->renameWatcher = std::make_unique<filewatch::FileWatch<std::string>>(
+	"C:\\dev\\3DEngine\\Sandbox\\SandboxProject\\Assets",
+	[](const std::string &path, const filewatch::Event change_type)
+	{
+		if (change_type == filewatch::Event::renamed_new)
+		{
+            // TODO: reimport asset
+		}
+	});
 }
 
 void AssetBrowserPanel::render()
 {
-    m_baseDirectory = ProjectManager::getConfig().getAssetDirectory();
+    if (ProjectManager::isProjectOpen()) 
+    {
+        static bool opened = true;
+        if (opened) 
+        {
+            init();
+            opened = false;
+        }
+    }
 
-    ImGui::Begin("Content Browser");
+    ImGui::Begin("Content Browser   ");
 
     float panelWidth = ImGui::GetContentRegionAvail().x;
     float dirTreeWidth = panelWidth * 0.17;
@@ -41,8 +100,7 @@ void AssetBrowserPanel::render()
 
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.05f, 0.05f, 0.05f, 0.54f));
     ImGui::BeginChild("Directory Tree", {0.0f, 0.f}, ImGuiChildFlags_ResizeX);
-    if (ImGui::TreeNodeEx(ICON_FA_HOME "  Root Directory",
-                          ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow))
+    if (ImGui::TreeNodeEx(ICON_FA_HOME "  Root Directory", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow))
     {
         if (ImGui::IsItemClicked())
         {
@@ -59,11 +117,10 @@ void AssetBrowserPanel::render()
     ImGui::SameLine();
 
     ImGui::BeginChild("Content Region", {0.f, 0.f}, false);
-    ImGui::BeginChild("ContentHeader", {0.f, 45.f}, false,
-                      ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+    ImGui::BeginChild("ContentHeader", {0.f, 45.f}, false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5);
-    if (ImGui::ImageButton("##", m_icons["back"], {28, 24}, {0, 1}, {1, 0}))
+    if (ImGui::ImageButton("##bk", m_icons["back"], {28, 24}, {0, 1}, {1, 0}))
     {
         if (m_currentDirectory != m_baseDirectory)
         {
@@ -73,7 +130,7 @@ void AssetBrowserPanel::render()
     }
     ImGui::SameLine();
 
-    if (ImGui::ImageButton("##", m_icons["forward"], {28, 24}, {0, 1}, {1, 0}))
+    if (ImGui::ImageButton("##fwd", m_icons["forward"], {28, 24}, {0, 1}, {1, 0}))
     {
         if (!m_DirectoryStack.empty())
         {
@@ -104,7 +161,8 @@ void AssetBrowserPanel::render()
     ImGui::SameLine();
     ImGui::SetCursorPosY(0);
     auto filepaths = std::filesystem::relative(m_currentDirectory, ProjectManager::getConfig().getAssetDirectory()).string();
-    filepaths = filepaths == "." ? "Assets" : ("Assets\\" + filepaths);
+    auto assetDirName = ProjectManager::getConfig().assetPath.string();
+    filepaths = filepaths == "." ? assetDirName : (assetDirName + "\\" + filepaths);
     ImGui::TextColored({0.5f, 0.5f, 0.5f, 1.0f}, "%s", filepaths.c_str());
 
     ImGui::SameLine();
@@ -138,12 +196,12 @@ void AssetBrowserPanel::render()
             if (ImGui::MenuItem(ICON_FA_IMAGE "   Texture"))
             {
                 // load texture file from path and copy to asset directory
-                //const auto path = helper::openFile("Image (*.png *.jpg *.jpeg)\0*.png;*.jpg;*.jpeg\0");
-                //std::filesystem::copy(path, m_currentDirectory / std::filesystem::path(path).filename());
+                const auto path = helper::openFile("Image (*.png *.jpg *.jpeg)\0*.png;*.jpg;*.jpeg\0");
+                std::filesystem::copy(path, m_currentDirectory / std::filesystem::path(path).filename());
             }
             if (ImGui::MenuItem(ICON_FA_CUBE "   3D Mesh"))
             {
-                //const auto path = helper::openFile("3D Model (*.fbx *.dae *.gltf)\0*.fbx;*.dae;*.gltf\0");
+                const auto path = helper::openFile("3D Model (*.fbx *.dae *.gltf)\0*.fbx;*.dae;*.gltf\0");
                 //MeshImporter::LoadModel(path, m_currentDirectory);
             }
             ImGui::EndPopup();
@@ -172,6 +230,8 @@ void AssetBrowserPanel::render()
     // TODO: status bar
     ImGui::EndChild();
     ImGui::End();
+
+    updateThumbnails();
 }
 
 void AssetBrowserPanel::addPathToTree(FileTreeNode &root, const fs::path &path) {}
@@ -214,8 +274,12 @@ void AssetBrowserPanel::displayFileHierarchy(const fs::path &directory)
             }
             if (isLeaf) flags |= ImGuiTreeNodeFlags_Leaf;
 
+            auto label = std::string(ICON_FA_FOLDER "  ") + path;
+            
+            ImGui::Spacing(); // Add vertical space
             const bool treeNodeOpen =
-                ImGui::TreeNodeEx(path.c_str(), flags, path.c_str());
+                ImGui::TreeNodeEx(path.c_str(), flags, label.c_str());
+            ImGui::Spacing();
 
             // ImGui::PopStyleColor(3);
 
@@ -298,8 +362,8 @@ void AssetBrowserPanel::drawFileAssetBrowser(std::filesystem::directory_entry di
 
     if (path.extension() == ".png" || path.extension() == ".jpg" || path.extension() == ".jpeg")
     {
-        //icon = m_ThumbnailCache->GetOrCreateThumbnail(relativePath);
-        if (!icon) icon = m_icons["file"];
+        icon = getOrCreateThumbnail(directoryEntry);
+        if (icon == NULL_IMAGE_ID) icon = m_icons["file"];
     }
 
     if (path.extension() == ".material")
@@ -307,7 +371,7 @@ void AssetBrowserPanel::drawFileAssetBrowser(std::filesystem::directory_entry di
         //icon = ThumbnailManager::Get().GetThumbnail(relativePath);
         if (!icon) icon = m_icons["file"];
     }
-    if (path.extension() == ".gltf" || path.extension() == ".fbx" || path.extension() == ".dae")
+    if (path.extension() == ".gltf" || path.extension() == ".fbx" || path.extension() == ".glb")
     {
         icon = m_icons["model"];
     }
@@ -319,10 +383,11 @@ void AssetBrowserPanel::drawFileAssetBrowser(std::filesystem::directory_entry di
     auto thumbnailPadding = 20;
 
     // change button color
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5, 0, 0, 0));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2, 0.2, 0.2, 0.2));
-
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(thumbnailPadding, 10));
     ImGui::ImageButton("##", icon, {thumbnailSize.x, thumbnailSize.y}, {0, 1}, {1, 0});
+    ImGui::PopStyleVar();
     ImGui::PopStyleColor(2);
 
     if (ImGui::BeginPopupContextItem())
@@ -398,16 +463,23 @@ void AssetBrowserPanel::drawFileAssetBrowser(std::filesystem::directory_entry di
         ImGui::PopStyleVar(2);
         ImGui::PopStyleColor(2);
         ImGui::PopItemWidth();
+
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+        {
+            m_renameRequested = false;
+            m_renamePath = "";
+        }
+
         if (ImGui::IsKeyPressed(ImGuiKey_Enter, false))
         {
             if (strlen(name) >= 2)
             {
-               /* s_data->CurrentRenamePath = path.string();
-                m_RenameRequested = false;
-                m_RenamePath = "";
+                s_data->currentRenamePath = path.string();
+                m_renameRequested = false;
+                m_renamePath = "";
                 auto extension = path.extension();
                 auto newName = extension.empty() ? name : name + extension.string();
-                std::filesystem::rename(path, path.parent_path() / newName);*/
+                std::filesystem::rename(path, path.parent_path() / newName);
             }
         }
     }
@@ -430,5 +502,56 @@ void AssetBrowserPanel::drawFileAssetBrowser(std::filesystem::directory_entry di
     ImGui::NextColumn();
 
     ImGui::PopID();
+}
+ImageID AssetBrowserPanel::getOrCreateThumbnail(const fs::path &path) 
+{
+    // 1. Read file timestamp
+    // 2. Compare hashed timestamp with existing cached image (in memory first, then from cache file)
+    // 3. If equal, return associated thumbnail, otherwise load asset from disk and generate thumbnail
+    // 4. If generated new thumbnail, store in cache obviously
+
+    std::filesystem::file_time_type lastWriteTime = std::filesystem::last_write_time(path);
+    uint64_t timestamp = std::chrono::duration_cast<std::chrono::seconds>(lastWriteTime.time_since_epoch()).count();
+
+    if (m_cachedImages.find(path) != m_cachedImages.end())
+    {
+        auto &cachedImage = m_cachedImages.at(path);
+        if (cachedImage.timestamp == timestamp) return cachedImage.image;
+    }
+    m_queue.push({path, timestamp});
+
+    return NULL_IMAGE_ID;
+}
+
+void AssetBrowserPanel::updateThumbnails() 
+{
+    while (!m_queue.empty())
+    {
+        const auto &thumbnailInfo = m_queue.front();
+
+        if (m_cachedImages.find(thumbnailInfo.assetPath) != m_cachedImages.end())
+        {
+            auto &cachedImage = m_cachedImages.at(thumbnailInfo.assetPath);
+            if (cachedImage.timestamp == thumbnailInfo.timestamp)
+            {
+                m_queue.pop();
+                continue;
+            }
+        }
+
+        auto image = loadImageFromFile(thumbnailInfo.assetPath);
+        if (image == NULL_IMAGE_ID)
+        {
+            m_queue.pop();
+            continue;
+        }
+
+        auto &cachedImage = m_cachedImages[thumbnailInfo.assetPath];
+        cachedImage.timestamp = thumbnailInfo.timestamp;
+        cachedImage.image = image;
+
+        m_queue.pop();
+        break;
+    }
 }
 } // namespace sky

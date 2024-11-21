@@ -13,36 +13,18 @@ Ref<Texture2D> TextureImporter::importAsset(AssetHandle handle, AssetMetadata &m
 
 Ref<Texture2D> TextureImporter::loadTexture(const fs::path &path) 
 {
-    int width, height, channels;
+    auto data = CreateRef<Texture2D>();
+    data->shouldSTBFree = true;
+
     stbi_set_flip_vertically_on_load(1);
-    Buffer data;
-
+	data->pixels = stbi_load(path.string().c_str(), &data->width, &data->height, &data->channels, 4);
+	if (!data->pixels)
     {
-        std::string pathStr = path.string();
-        data.data = stbi_load(pathStr.c_str(), &width, &height, &channels, 4);
-        channels = 4;
+        SKY_CORE_ERROR("Failed to load image {}: {}", path.string(), stbi_failure_reason());
+        return {};
     }
 
-    if (data.data == nullptr)
-    {
-        SKY_CORE_ERROR("TextureImporter::ImportTexture2D - Could not load texture from filepath: {}", path.string());
-        return nullptr;
-    }
-
-    // TODO: think about this
-    data.size = width * height * channels;
-
-    TextureSpecification spec;
-    spec.width = width;
-    spec.height = height;
-    switch (channels)
-    {
-        case 3: spec.format = ImageFormat::RGB8; break;
-        case 4: spec.format = ImageFormat::RGBA8; break;
-    }
-
-    Ref<Texture2D> texture = CreateRef<Texture2D>(data, spec);
-    data.release();
-    return texture;
+    data->channels = 4;
+    return data;
 }
 } // namespace sky
