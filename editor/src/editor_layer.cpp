@@ -24,7 +24,7 @@ EditorLayer::EditorLayer()
 
     AssimpModelLoader modelLoader("res/models/monkey.glb");
     auto meshId = m_renderer->addMeshToCache(modelLoader.getMeshes()[0].mesh);
-    auto monkey = m_activeScene->createEntity("monkey");
+    auto monkey = m_activeScene->createEntity("Monkey");
     auto &msh = monkey.addComponent<MeshComponent>();
     msh.meshID = meshId;
 
@@ -59,6 +59,7 @@ void EditorLayer::onDetach()
 void EditorLayer::onUpdate(float dt) 
 {
     m_activeScene->update(dt);
+    m_inspectorPanel.setContext(m_sceneHierarchyPanel.getSelectedEntity());
 }
 
 void EditorLayer::onEvent(Event &e) 

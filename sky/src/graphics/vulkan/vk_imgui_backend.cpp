@@ -1,6 +1,7 @@
 #include "vk_imgui_backend.h"
 
 #include <imgui.h>
+#include <IconsFontAwesome5.h>
 
 #include "vk_device.h"
 #include "vk_pipelines.h"
@@ -40,10 +41,25 @@ void ImGuiBackend::init(Device &gfxDevice, VkFormat swapchainFormat)
     io.BackendRendererName = "EDBR ImGui Backend";
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
 
+    s_fonts["bold"] =    io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Bold.ttf", 27.0f);
+    s_fonts["h4:bold"] = io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Bold.ttf", 35.0f);
+
     s_fonts["h2"] = io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 55.0f);
     s_fonts["h3"] = io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 45.0f);
-    s_fonts["h4"] = io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 35.0f);
     s_fonts["sm"] = io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 25.0f); 
+    
+	float iconFontSize = 33.f * 2.0f / 3.0f;
+    s_fonts["h4"] = io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 33.0f);
+	// Define the Font Awesome icon range
+    static const ImWchar icons_ranges[] = {ICON_MIN_FA, ICON_MAX_16_FA, 0};
+    ImFontConfig icons_config;
+    icons_config.MergeMode = true;
+    icons_config.PixelSnapH = true;
+    icons_config.GlyphMinAdvanceX = iconFontSize;
+
+    // Merge icons into the regular font
+    io.Fonts->AddFontFromFileTTF("res/fonts/" FONT_ICON_FILE_NAME_FAS, iconFontSize, &icons_config, icons_ranges);
+
 
     setDarkThemeColors();
 

@@ -14,6 +14,9 @@ class Entity
     Entity(entt::entity handle, Scene *scene);
     Entity(const Entity &other) = default;
 
+    bool isNull() { return m_entityHandle == entt::null; }
+    void setHandle(entt::entity handle) { m_entityHandle = handle; }
+
     void addChild(Entity &child);
     void removeChild(Entity &child);
     void reparentChild(Entity &child);

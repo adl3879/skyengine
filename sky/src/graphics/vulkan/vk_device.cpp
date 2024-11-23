@@ -56,7 +56,7 @@ void Device::init()
 
     ImGui::CreateContext();
 
-    float fontSize = 26.f;
+    float fontSize = 27.f;
     auto &io = ImGui::GetIO();
     io.ConfigWindowsMoveFromTitleBarOnly = true;
     io.ConfigFlags = ImGuiConfigFlags_DockingEnable;
