@@ -11,6 +11,7 @@ void ProjectManager::createNewProject(ProjectConfig config)
     // create folders
     fs::create_directory(config.getProjectFilePath());
     fs::create_directory(config.getProjectFilePath() / config.assetPath);
+    fs::create_directory(config.getImportedCachePath());
 
     serialize(config);
 
@@ -28,6 +29,9 @@ void ProjectManager::createNewProject(ProjectConfig config)
 
 void ProjectManager::loadProject(const fs::path &path)
 {
+	auto editorAssetManager = CreateRef<EditorAssetManager>();
+    m_assetManager = editorAssetManager;
+
     deserialize(path);
 
     // update last opened

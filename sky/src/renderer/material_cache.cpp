@@ -36,7 +36,9 @@ MaterialID MaterialCache::addMaterial(gfx::Device &gfxDevice, Material material)
     MaterialData *data = (MaterialData *)m_materialDataBuffer.info.pMappedData;
     auto whiteTextureID = gfxDevice.getWhiteTextureID();
     auto id = getFreeMaterialID();
+
     assert(id < MAX_MATERIALS);
+
     data[id] = MaterialData{
         .baseColor = material.baseColor,
         .metalRoughnessEmissive =
@@ -62,6 +64,6 @@ const Material &MaterialCache::getMaterial(MaterialID id) const
 
 MaterialID MaterialCache::getFreeMaterialID() const 
 {
-    return UUID::generate();
+    return m_materials.size();
 }
 } // namespace sky

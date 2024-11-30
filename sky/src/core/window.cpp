@@ -131,6 +131,16 @@ void Window::initWindow()
             MouseMovedEvent event((float)xPos, (float)yPos);
             data.eventCallback(event);
         });
+
+    // drag and drop
+    glfwSetDropCallback(m_window,
+        [](GLFWwindow *window, int count, const char** paths) {
+            for (int i = 0; i < count; ++i)
+            {               
+                SKY_CORE_INFO("File dropped: {}", paths[i]);
+                Application::getDroppedFiles().push_back(paths[i]);
+            }
+        });
 }
 
 bool Input::isKeyPressed(const KeyCode key)

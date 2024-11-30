@@ -8,23 +8,15 @@ struct aiNode;
 struct aiMesh;
 struct aiString;
 struct aiMaterial;
+enum aiTextureType;
 
 namespace sky
 {
-struct MaterialPaths
-{
-	std::string     albedoTexture;
-	std::string     normalMapTexture;
-	std::string     metallicsTexture;
-	std::string     roughnessTexture;
-	std::string     ambientOcclusionTexture;
-	std::string     emissiveTexture;
-};
-
 struct MeshLoaderReturn
 {
     MaterialPaths	materialPaths;
     Mesh			mesh;
+	std::string		materialName;
 };
 
 class AssimpModelLoader
@@ -40,8 +32,10 @@ class AssimpModelLoader
     void processNode(aiNode *node, const aiScene *scene);
     MeshLoaderReturn processMesh(aiMesh *mesh, const aiScene *scene);
 	MaterialPaths extractMaterialPaths(aiMaterial *material);
+	fs::path getTexturePath(aiMaterial *material, aiTextureType type);
 
   private:
 	std::vector<MeshLoaderReturn> m_meshes;
+	fs::path m_path;
 };
 } // namespace sky

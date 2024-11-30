@@ -9,12 +9,12 @@
 namespace sky
 {
 static std::map<fs::path, AssetType> s_assetExtensionMap = {
-    { ".glfw",  AssetType::Mesh },
+    { ".gltf",  AssetType::Mesh },
     { ".fbx",   AssetType::Mesh },
     { ".glb",   AssetType::Mesh },
 };
 
-static AssetType getAssetTypeFromFileExtension(const fs::path &extension)
+AssetType getAssetTypeFromFileExtension(const fs::path &extension)
 {
     auto it = s_assetExtensionMap.find(extension);
     if (it == s_assetExtensionMap.end())
@@ -52,6 +52,7 @@ Ref<Asset> EditorAssetManager::getAsset(AssetHandle handle)
             // Recursively load each dependency (if not loaded)
             if (!isAssetLoaded(dependencyHandle))
             {
+                SKY_CORE_WARN("Loading dependecies");
                 Ref<Asset> dependencyAsset = getAsset(dependencyHandle);
                 if (!dependencyAsset)
                 {
@@ -72,24 +73,30 @@ Ref<Asset> EditorAssetManager::getAsset(AssetHandle handle)
 
         // Store the loaded asset
         m_loadedAssets[handle] = asset;
+        serializeAssetRegistry();
     }
     // 3. return asset
     return asset;
 }
 
-AssetHandle EditorAssetManager::getOrCreateAssetHandle(fs::path path)
+AssetHandle EditorAssetManager::getOrCreateAssetHandle(fs::path path, AssetType assetType)
 {
     for (const auto& [key, value] : m_assetRegistry)
     {
         if (value.filepath == path) return key;
     }
 
-    return UUID::generate();
+    const auto handle = UUID::generate();
+    m_assetRegistry[handle] = AssetMetadata{
+        .type = assetType,
+        .filepath = path,
+    };
+    return handle;
 }
 
 bool EditorAssetManager::isAssetHandleValid(AssetHandle handle) const 
 {
-    return handle != 0 && m_assetRegistry.find(handle) != m_assetRegistry.end();
+    return handle != NULL_UUID && m_assetRegistry.find(handle) != m_assetRegistry.end();
 }
 
 AssetType EditorAssetManager::getAssetType(AssetHandle handle) const 
@@ -108,6 +115,7 @@ void EditorAssetManager::importAsset(const fs::path &filepath)
         .filepath = filepath,
     };
     assert(metadata.type != AssetType::None);
+
     Ref<Asset> asset = AssetImporter::importAsset(handle, metadata);
     if (asset)
     {
@@ -129,7 +137,7 @@ AssetMetadata &EditorAssetManager::getMetadata(AssetHandle handle)
 
 bool EditorAssetManager::isAssetLoaded(AssetHandle handle) 
 {
-	return getMetadata(handle).isLoaded;
+    return m_loadedAssets.find(handle) != m_loadedAssets.end();
 }
 
 const fs::path &EditorAssetManager::getFilePath(AssetHandle handle) 

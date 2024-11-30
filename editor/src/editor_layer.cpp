@@ -6,6 +6,7 @@
 #include "scene/components.h"
 #include "core/project_management/project_manager.h"
 #include "core/helpers/imgui.h"
+#include "asset_management/asset_manager.h"
 
 #include <imgui.h>
 
@@ -31,7 +32,8 @@ EditorLayer::EditorLayer()
     m_renderer->addDrawCommand(
         MeshDrawCommand{
             .meshId = meshId, 
-            .modelMatrix = monkey.getComponent<TransformComponent>().getModelMatrix()
+            .modelMatrix = monkey.getComponent<TransformComponent>().getModelMatrix(),
+            .isVisible = true
         });
 
     if (!ProjectManager::isProjectOpen())
@@ -44,11 +46,6 @@ EditorLayer::EditorLayer()
 void EditorLayer::onAttach() 
 {
     m_sceneHierarchyPanel.setContext(m_activeScene);
-    SKY_CORE_INFO("Sky Engine v1 - Toyosi Adekanmbi");
-    SKY_CORE_WARN("Texture failed to load: missing file.");
-    SKY_CORE_INFO("Mesh loaded successfully: assets/monkey.obj");
-    SKY_CORE_INFO("Asset manager initialized with 500 assets.");
-    SKY_CORE_ERROR("Shader compilation failed due to syntax error");
 }
 
 void EditorLayer::onDetach() 
@@ -60,6 +57,14 @@ void EditorLayer::onUpdate(float dt)
 {
     m_activeScene->update(dt);
     m_inspectorPanel.setContext(m_sceneHierarchyPanel.getSelectedEntity());
+
+    auto &droppedFiles = Application::getDroppedFiles();
+    while (!droppedFiles.empty())
+    {
+        auto filename = droppedFiles.back();
+        droppedFiles.pop_back();
+        m_assetBrowserPanel.handleDroppedFile(filename);
+    }
 }
 
 void EditorLayer::onEvent(Event &e) 
@@ -116,6 +121,12 @@ void EditorLayer::onImGuiRender()
         .isFocus = ImGui::IsWindowFocused(),
     });
     ImGui::Image(m_renderer->getDrawImageId(), viewportSize);
+
+    if (ImGui::BeginDragDropTarget())
+    {
+        handleViewportDrop();
+        ImGui::EndDragDropTarget(); 
+    }
     ImGui::End();
     ImGui::PopStyleVar();
 
@@ -151,5 +162,28 @@ void EditorLayer::onImGuiRender()
     }
 
     ImGui::End();
+}
+
+void EditorLayer::handleViewportDrop() 
+{
+    if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+    {
+        fs::path path = (const char *)payload->Data;
+        SKY_CORE_INFO("Dropped file: {}", path.string());
+        auto assetType = getAssetTypeFromFileExtension(path.extension());
+
+        switch (assetType)
+        {
+            case AssetType::Mesh:
+            {
+                auto handle = AssetManager::getOrCreateAssetHandle(path, assetType);
+                auto asset = AssetManager::getAsset<Model>(handle);
+				break;
+            }
+            case AssetType::Scene: break;
+            case AssetType::Material: break;
+            default: break;
+        }
+    }
 }
 } // namespace sky

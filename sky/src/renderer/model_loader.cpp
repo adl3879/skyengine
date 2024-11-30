@@ -4,15 +4,18 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 
+#include "core/project_management/project_manager.h"
+
 namespace sky
 {
 // Helper function to get a texture path
-static std::string getTexturePath(aiMaterial *material, aiTextureType type)
+fs::path AssimpModelLoader::getTexturePath(aiMaterial *material, aiTextureType type)
 {
     aiString path;
     if (material->GetTexture(type, 0, &path) == AI_SUCCESS)
     {
-        return path.C_Str();
+        auto p = fs::relative(m_path.parent_path(), ProjectManager::getConfig().getAssetDirectory());
+        return p / path.C_Str();
     }
     return ""; // Return an empty string if the texture is not found
 }
@@ -24,6 +27,7 @@ AssimpModelLoader::AssimpModelLoader(const fs::path &path)
 
 void AssimpModelLoader::loadModel(const fs::path &path)
 {
+    m_path = path;
     Assimp::Importer importer;
     const aiScene *scene =
         importer.ReadFile(path.string(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
@@ -111,6 +115,7 @@ MeshLoaderReturn AssimpModelLoader::processMesh(aiMesh *mesh, const aiScene *sce
     // Store the data in the mesh
     processedMesh.vertices = std::move(vertices);
     processedMesh.indices = std::move(indices);
+    processedMesh.name = mesh->mName.C_Str();
 
     MaterialPaths materialPaths;
     if (mesh->mMaterialIndex >= 0)
@@ -132,6 +137,7 @@ MaterialPaths AssimpModelLoader::extractMaterialPaths(aiMaterial* material)
     materialPaths.roughnessTexture = getTexturePath(material, aiTextureType_DIFFUSE_ROUGHNESS);
     materialPaths.ambientOcclusionTexture = getTexturePath(material, aiTextureType_LIGHTMAP);
     materialPaths.emissiveTexture = getTexturePath(material, aiTextureType_EMISSIVE);
+
     return materialPaths;
 }
 } // namespace sky

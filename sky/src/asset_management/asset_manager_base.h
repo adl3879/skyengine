@@ -11,7 +11,7 @@ class AssetManagerBase
 {
   public:
     virtual Ref<Asset> getAsset(AssetHandle handle) = 0;
-    virtual AssetHandle getOrCreateAssetHandle(fs::path path) = 0;
+    virtual AssetHandle getOrCreateAssetHandle(fs::path path, AssetType assetType) = 0;
     virtual AssetMetadata &getMetadata(AssetHandle handle) = 0;
 
     virtual bool isAssetHandleValid(AssetHandle handle) const = 0;

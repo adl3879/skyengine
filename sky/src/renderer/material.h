@@ -9,6 +9,16 @@
 
 namespace sky
 {
+struct MaterialPaths
+{
+	fs::path     albedoTexture;
+	fs::path     normalMapTexture;
+	fs::path     metallicsTexture;
+	fs::path     roughnessTexture;
+	fs::path     ambientOcclusionTexture;
+	fs::path     emissiveTexture;
+};
+
 struct MaterialData
 {
     LinearColor baseColor;
@@ -38,5 +48,5 @@ struct Material
     std::string name;
 };
 
-using MaterialID = UUID;
+using MaterialID = uint64_t;
 }

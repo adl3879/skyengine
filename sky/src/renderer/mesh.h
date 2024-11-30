@@ -19,24 +19,25 @@ struct Vertex
 
 struct Mesh
 {
-	std::vector<Vertex> vertices;
-	std::vector<uint32_t> indices;
-	MaterialID materialID;
-};
-
-struct Model : public Asset
-{
-    Model(std::vector<Mesh> msh) : meshes(msh) {}
-
-    std::vector<Mesh> meshes;
-	AssetType getType() const override { return AssetType::Mesh; }
+	std::vector<Vertex>		vertices;
+	std::vector<uint32_t>	indices;
+	MaterialID				material;
+	std::string				name;
 };
 
 using MeshID = UUID;
+struct Model : public Asset
+{
+    Model(std::vector<MeshID> msh) : meshes(msh) {}
+
+    std::vector<MeshID> meshes;
+	AssetType getType() const override { return AssetType::Mesh; }
+};
 
 struct MeshDrawCommand
 {
-	MeshID meshId;
-	glm::mat4 modelMatrix;
+	MeshID		meshId;
+	glm::mat4	modelMatrix;
+	bool		isVisible;
 };
 } // namespace sky

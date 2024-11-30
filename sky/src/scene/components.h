@@ -19,6 +19,11 @@ struct MeshComponent
 {
     MeshID meshID;
 };
+
+struct MaterialComponent
+{
+};
+
 struct HierarchyComponent
 {
     UUID parent;

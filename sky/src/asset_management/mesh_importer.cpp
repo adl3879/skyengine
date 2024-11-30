@@ -5,113 +5,79 @@
 #include "asset_manager.h"
 #include "renderer/texture.h"
 #include "core/application.h"
+#include "core/resource/import_data.h"
+#include "core/resource/mesh_serializer.h"
 
 namespace sky
 {
-static ImageID createMaterialImage(Ref<Texture2D> tex, VkFormat format, VkImageUsageFlags usage, bool mipMap) 
+static bool loadAssimpModel(const fs::path &src, const fs::path &dst) 
 {
-	auto renderer = Application::getRenderer();
-    return renderer->createImage(
-        {
-            .format = format,
-            .usage = usage |      //
-                     VK_IMAGE_USAGE_TRANSFER_DST_BIT | // for uploading pixel data to image
-                     VK_IMAGE_USAGE_TRANSFER_SRC_BIT,  // for generating mips
-            .extent =
-                VkExtent3D{
-                    .width = (std::uint32_t)tex->width,
-                    .height = (std::uint32_t)tex->height,
-                    .depth = 1,
-                },
-            .mipMap = mipMap,
-        },
-        tex->pixels);
+	AssimpModelLoader modelLoader(src);
+	MeshSerializer meshSerializer;
+	if (meshSerializer.serialize(dst, modelLoader.getMeshes()))
+    {  
+		SKY_CORE_INFO("Successfully wrote model: {} to disk", src.string());
+		return true;
+	}
+    else
+    {
+        SKY_CORE_ERROR("Failed to write model: {} to disk", src.string());
+		return false;
+	}
+}
+
+static bool createImportFile(const fs::path &path) 
+{
+	ImportData data;
+	data.id = UUID::generate();
+	data.type = AssetType::Mesh;
+	data.source = path;
+
+	auto uuid = UUID::generate();
+	std::string dstFileName = std::format("{0}-{1}.mesh", path.filename().string(), uuid.toString());
+	data.destination = ProjectManager::getConfig().getImportedCachePath() / dstFileName;
+
+	ImportDataSerializer dataSerializer(data);
+	dataSerializer.serialize(path.string() + ".import");
+
+	return loadAssimpModel(data.source, data.destination);
 }
 
 Ref<Model> MeshImporter::importAsset(AssetHandle handle, AssetMetadata &metadata) 
 {
     const auto path = ProjectManager::getConfig().getAssetDirectory() / metadata.filepath;
-	return loadModel(handle, path); 
+
+    auto importDataFile = metadata.filepath.string() + ".import";
+    if (!fs::exists(ProjectManager::getConfig().getAssetDirectory() / importDataFile))
+    {
+        createImportFile(path);
+    }
+
+	ImportData data;
+	ImportDataSerializer dataSerializer(data);
+	dataSerializer.deserialize(ProjectManager::getConfig().getAssetDirectory() / importDataFile);
+
+	if (!fs::exists(data.destination))
+    {
+		loadAssimpModel(data.source, data.destination);	
+    }
+
+	return loadModel(handle, data.destination);
 }
 
 Ref<Model> MeshImporter::loadModel(AssetHandle handle, const fs::path &path) 
 {
-	AssimpModelLoader modelLoader(path);
-    std::vector<Mesh> meshes;
+	MeshSerializer serializer;
+    std::vector<MeshID> meshes;
 	auto renderer = Application::getRenderer();
 
-	for (auto &mesh : modelLoader.getMeshes())
+	for (auto &mesh : serializer.deserialize(path, handle))
 	{
-		Material material;
-
-		// load textures
-		auto materialPaths = mesh.materialPaths;
-		if (materialPaths.albedoTexture != "")
-		{
-			auto textureHandle = AssetManager::getOrCreateAssetHandle(materialPaths.albedoTexture);
-
-			// add texture as a dependency
-			AssetManager::getMetadata(handle).dependencies.push_back(textureHandle);
-
-			auto tex = AssetManager::getAsset<Texture2D>(handle);
-			material.albedoTexture =
-				createMaterialImage(tex, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT, true);
-		}
-
-		if (materialPaths.normalMapTexture != "")
-		{
-			auto textureHandle = AssetManager::getOrCreateAssetHandle(materialPaths.normalMapTexture);
-			AssetManager::getMetadata(handle).dependencies.push_back(textureHandle);
-
-			auto tex = AssetManager::getAsset<Texture2D>(textureHandle);
-			material.normalMapTexture =
-				createMaterialImage(tex, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, true);
-		}
-
-		if (materialPaths.metallicsTexture != "")
-		{
-			auto textureHandle = AssetManager::getOrCreateAssetHandle(materialPaths.metallicsTexture);
-			AssetManager::getMetadata(handle).dependencies.push_back(textureHandle);
-
-			auto tex = AssetManager::getAsset<Texture2D>(textureHandle);
-			material.metallicTexture =
-				createMaterialImage(tex, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, true);
-		}
-
-		if (materialPaths.roughnessTexture != "")
-		{
-			auto textureHandle = AssetManager::getOrCreateAssetHandle(materialPaths.roughnessTexture);
-			AssetManager::getMetadata(handle).dependencies.push_back(textureHandle);
-
-			auto tex = AssetManager::getAsset<Texture2D>(textureHandle);
-			material.roughnessTexture =
-				createMaterialImage(tex, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, true);
-		}
-
-		if (materialPaths.ambientOcclusionTexture != "")
-		{
-			auto textureHandle = AssetManager::getOrCreateAssetHandle(materialPaths.ambientOcclusionTexture);
-			AssetManager::getMetadata(handle).dependencies.push_back(textureHandle);
-
-			auto tex = AssetManager::getAsset<Texture2D>(textureHandle);
-			material.ambientOcclusionTexture =
-				createMaterialImage(tex, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, true);
-		}
-
-		if (materialPaths.emissiveTexture != "")
-		{
-			auto textureHandle = AssetManager::getOrCreateAssetHandle(materialPaths.emissiveTexture);
-			AssetManager::getMetadata(handle).dependencies.push_back(textureHandle);
-
-			auto tex = AssetManager::getAsset<Texture2D>(textureHandle);
-			material.emissiveTexture =
-				createMaterialImage(tex, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT, true);
-		}
-
-		// create add material id to mesh
-		mesh.mesh.materialID = renderer->addMaterialToCache(material);
-		meshes.push_back(mesh.mesh);
+		// add mesh to cache
+		auto meshID = renderer->addMeshToCache(mesh);
+		meshes.push_back(meshID);
 	}
+	SKY_CORE_INFO("Model: {} loaded successfully", path.string());
 
 	return CreateRef<Model>(meshes);
 }

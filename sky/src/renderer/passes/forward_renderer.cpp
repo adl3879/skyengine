@@ -62,18 +62,21 @@ void ForwardRendererPass::draw(
 
     for (const auto &drawCommand : drawCommands)
 	{
-		const auto &mesh = meshCache.getMesh(drawCommand.meshId);
+        if (drawCommand.isVisible)
+        {    
+			const auto &mesh = meshCache.getMesh(drawCommand.meshId);
 
-		const auto pushConstants = PushConstants{
-			.worldMatrix = camera.getViewProjection(),
-			.vertexBuffer = mesh.vertexBufferAddress,
-		};
+			const auto pushConstants = PushConstants{
+				.worldMatrix = camera.getViewProjection(),
+				.vertexBuffer = mesh.vertexBufferAddress,
+			};
 
-		vkCmdPushConstants(cmd, m_pInfo.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, 
-            sizeof(PushConstants), &pushConstants);
-		vkCmdBindIndexBuffer(cmd, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdPushConstants(cmd, m_pInfo.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, 
+                sizeof(PushConstants), &pushConstants);
+			vkCmdBindIndexBuffer(cmd, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-		vkCmdDrawIndexed(cmd, mesh.numIndices, 1, 0, 0, 0);
+			vkCmdDrawIndexed(cmd, mesh.numIndices, 1, 0, 0, 0);
+        }
 	}
 }
 

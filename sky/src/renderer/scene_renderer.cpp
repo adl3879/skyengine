@@ -17,6 +17,7 @@ void SceneRenderer::init(Ref<Scene> scene, glm::ivec2 size)
     m_scene = scene;
     createDrawImage(size);
 
+    m_materialCache.init(m_device);
     m_forwardRenderer.init(m_device);
 }
 

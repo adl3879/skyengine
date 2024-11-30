@@ -49,12 +49,12 @@ static ImageID loadImageFromFile(const fs::path& path)
 
 AssetBrowserPanel::AssetBrowserPanel() 
 {
-    m_icons["back"] =       loadImageFromFile("res/icons/content_browser/BackIcon.png");
-    m_icons["forward"] =    loadImageFromFile("res/icons/content_browser/ForwardIcon.png");
-    m_icons["directory"] =  loadImageFromFile("res/icons/content_browser/DirectoryIcon.png");
-    m_icons["file"] =       loadImageFromFile("res/icons/content_browser/FileIcon.png");
-    m_icons["scene"] =      loadImageFromFile("res/icons/content_browser/SceneIcon.png");
-    m_icons["model"] =      loadImageFromFile("res/icons/content_browser/3DModelIcon.png");
+    m_icons["back"]         =       loadImageFromFile("res/icons/content_browser/BackIcon.png");
+    m_icons["forward"]      =    loadImageFromFile("res/icons/content_browser/ForwardIcon.png");
+    m_icons["directory"]    =   loadImageFromFile("res/icons/content_browser/DirectoryIcon.png");
+    m_icons["file"]         =       loadImageFromFile("res/icons/content_browser/FileIcon.png");
+    m_icons["scene"]        =      loadImageFromFile("res/icons/content_browser/SceneIcon.png");
+    m_icons["model"]        =      loadImageFromFile("res/icons/content_browser/3DModelIcon.png");
 }
 
 void AssetBrowserPanel::init()
@@ -191,21 +191,6 @@ void AssetBrowserPanel::render()
             if (ImGui::MenuItem(ICON_FA_FILE_CODE "   Shader")) openCreateFilePopup(AssetType::Shader);
             ImGui::EndPopup();
         }
-        if (ImGui::BeginMenu(ICON_FA_FILE_IMPORT "   Import"))
-        {
-            if (ImGui::MenuItem(ICON_FA_IMAGE "   Texture"))
-            {
-                // load texture file from path and copy to asset directory
-                const auto path = helper::openFile("Image (*.png *.jpg *.jpeg)\0*.png;*.jpg;*.jpeg\0");
-                std::filesystem::copy(path, m_currentDirectory / std::filesystem::path(path).filename());
-            }
-            if (ImGui::MenuItem(ICON_FA_CUBE "   3D Mesh"))
-            {
-                const auto path = helper::openFile("3D Model (*.fbx *.dae *.gltf)\0*.fbx;*.dae;*.gltf\0");
-                //MeshImporter::LoadModel(path, m_currentDirectory);
-            }
-            ImGui::EndPopup();
-        }
         if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN "   Open in File Browser"))
         {
             //?
@@ -232,6 +217,13 @@ void AssetBrowserPanel::render()
     ImGui::End();
 
     updateThumbnails();
+}
+
+void AssetBrowserPanel::handleDroppedFile(const fs::path &path) 
+{
+    fs::copy(path, m_currentDirectory / path.stem());
+
+    // TODO: scan through folder recursively and automatically import supported assets
 }
 
 void AssetBrowserPanel::addPathToTree(FileTreeNode &root, const fs::path &path) {}

@@ -13,6 +13,7 @@ class AssetBrowserPanel
     AssetBrowserPanel();
     void init();
 	void render();
+    void handleDroppedFile(const fs::path &path);
 
   private:
 	struct FileTreeNode

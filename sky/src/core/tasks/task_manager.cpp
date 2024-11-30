@@ -2,7 +2,7 @@
 
 namespace sky
 {
-TaskManager::TaskManager(size_t threadCount) : m_stop(false) 
+TaskManager::TaskManager(size_t threadCount) : m_stop(false)
 {
     for (size_t i = 0; i < threadCount; ++i)
     {
@@ -11,7 +11,7 @@ TaskManager::TaskManager(size_t threadCount) : m_stop(false)
             {
                 while (true)
                 {
-                    Task *task;
+                    std::shared_ptr<TaskBase> task;
                     {
                         std::unique_lock<std::mutex> lock(m_queueMutex);
                         m_condition.wait(lock, [this] { return m_stop || !m_tasks.empty(); });
@@ -25,29 +25,16 @@ TaskManager::TaskManager(size_t threadCount) : m_stop(false)
     }
 }
 
-TaskManager::~TaskManager() 
+TaskManager::~TaskManager()
 {
     {
         std::unique_lock<std::mutex> lock(m_queueMutex);
         m_stop = true;
     }
     m_condition.notify_all();
-    for (std::thread &worker : m_workers) worker.join();
-}
-
-void TaskManager::submitTask(const Ref<Task> &task) 
-{
+    for (std::thread &worker : m_workers)
     {
-        std::unique_lock<std::mutex> lock(m_queueMutex);
-        m_tasks.push(task.get());
+        worker.join();
     }
-    m_taskMap[task->getId()] = task;
-    m_condition.notify_one();
-}
-
-Ref<Task> TaskManager::getTask(const std::string &id) 
-{
-    std::unique_lock<std::mutex> lock(m_queueMutex);
-    return m_taskMap.count(id) ? m_taskMap[id] : nullptr;
 }
 } // namespace sky

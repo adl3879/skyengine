@@ -31,6 +31,7 @@ class Application
     static Ref<Window> getWindow() { return m_window; }
     static Ref<SceneRenderer> getRenderer() { return m_renderer; }
     static Ref<TaskManager> getTaskManager() { return m_taskManager; }
+    static std::vector<fs::path> &getDroppedFiles() { return m_droppedFiles; }
     static void quit();
 
   private:
@@ -41,6 +42,7 @@ class Application
 
   private:
     inline static bool m_isRunning = true;
+    inline static std::vector<fs::path> m_droppedFiles;
 
     LayerStack m_layerStack{};
     static Ref<Window> m_window;

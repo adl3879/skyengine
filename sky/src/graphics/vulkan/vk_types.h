@@ -17,13 +17,13 @@
 #include <glm/mat4x4.hpp>
 #include <glm/vec4.hpp>
 
-#define VK_CHECK(x)                                                     \
-    do {                                                                \
-        VkResult err = x;                                               \
-        if (err) {                                                      \
+#define VK_CHECK(x)                                                         \
+    do {                                                                    \
+        VkResult err = x;                                                   \
+        if (err) {                                                          \
              fmt::print("Detected Vulkan error: {}", string_VkResult(err)); \
-            abort();                                                    \
-        }                                                               \
+            abort();                                                        \
+        }                                                                   \
     } while (0)
 
 namespace sky

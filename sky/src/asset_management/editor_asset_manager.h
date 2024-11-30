@@ -9,11 +9,13 @@ namespace sky
 {
 using AssetRegistry = std::unordered_map<AssetHandle, AssetMetadata>;
 
+AssetType getAssetTypeFromFileExtension(const fs::path &extension);
+
 class EditorAssetManager : public AssetManagerBase
 {
   public:
     Ref<Asset> getAsset(AssetHandle handle) override;
-    AssetHandle getOrCreateAssetHandle(fs::path path) override;
+    AssetHandle getOrCreateAssetHandle(fs::path path, AssetType assetType) override;
     AssetMetadata &getMetadata(AssetHandle handle) override;
 
     bool isAssetHandleValid(AssetHandle handle) const override;

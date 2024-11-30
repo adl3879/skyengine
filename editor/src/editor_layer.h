@@ -29,6 +29,9 @@ class EditorLayer : public Layer
     void onImGuiRender() override;
 
   private:
+    void handleViewportDrop();
+
+  private:
     Ref<SceneRenderer> m_renderer;
 
     SceneHierarchyPanel m_sceneHierarchyPanel;
