@@ -15,9 +15,9 @@ using TransformComponent = Transform;
 using CameraComponent = PerspectiveCamera;
 using VisibilityComponent = bool;
 
-struct MeshComponent
+struct ModelComponent
 {
-    MeshID meshID;
+    AssetHandle handle = NULL_UUID;
 };
 
 struct MaterialComponent

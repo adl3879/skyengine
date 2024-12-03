@@ -14,6 +14,7 @@ AssetType getAssetTypeFromFileExtension(const fs::path &extension);
 class EditorAssetManager : public AssetManagerBase
 {
   public:
+
     Ref<Asset> getAsset(AssetHandle handle) override;
     AssetHandle getOrCreateAssetHandle(fs::path path, AssetType assetType) override;
     AssetMetadata &getMetadata(AssetHandle handle) override;
@@ -21,6 +22,7 @@ class EditorAssetManager : public AssetManagerBase
     bool isAssetHandleValid(AssetHandle handle) const override;
     bool isAssetLoaded(AssetHandle handle) override;
     AssetType getAssetType(AssetHandle handle) const override;
+    bool deserializeAssetRegistry() override;
 
     void importAsset(const fs::path &filepath);
 
@@ -30,7 +32,6 @@ class EditorAssetManager : public AssetManagerBase
 
   private:
     void serializeAssetRegistry();
-    bool deserializeAssetRegistry();
 
   private:
     AssetRegistry m_assetRegistry;

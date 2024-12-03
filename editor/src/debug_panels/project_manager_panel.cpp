@@ -72,7 +72,7 @@ void ProjectManagerPanel::render()
 
     static int selectedProjectIndex = -1; // Track the selected project index
     auto projectList = ProjectManager::getProjectsList();
-    ImGui::SetNextWindowSize(ImVec2(800, 500), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(800, 530), ImGuiCond_Always);
     if (ImGui::BeginPopupModal("Project Manager (Open)", &m_showOpen, ImGuiWindowFlags_AlwaysAutoResize))
     {
         ImGui::PushFont(gfx::ImGuiBackend::s_fonts["h2"]);
@@ -105,6 +105,28 @@ void ProjectManagerPanel::render()
             ImGui::PopStyleColor();
         }
         ImGui::EndChild();
+
+        const ImVec4 defaultColor(0.0f, 0.5f, 1.0f, 1.0f); // Light blue color
+        const ImVec4 hoverColor(0.0f, 0.7f, 1.0f, 1.0f);   // Brighter blue color
+        ImVec4 currentColor = defaultColor;
+        if (ImGui::IsItemHovered()) currentColor = hoverColor;
+
+        // Change text color to mimic a hyperlink
+        ImGui::PushStyleColor(ImGuiCol_Text, currentColor);
+        ImGui::Text("Open project file.");
+        ImGui::PopStyleColor();
+
+        if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); // Optional: Change cursor to hand
+        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
+        {
+            fs::path file = helper::openFile("Project (*.skyproj)\0*.skyproj\0");
+            if (fs::exists(file))
+            {
+				ProjectManager::loadProject(file);
+				m_showOpen = false;
+				ImGui::CloseCurrentPopup();
+            }
+        }
 
         ImGui::Dummy(ImVec2(0, 20));
 

@@ -25,14 +25,11 @@ EditorLayer::EditorLayer()
 
     AssimpModelLoader modelLoader("res/models/monkey.glb");
     auto meshId = m_renderer->addMeshToCache(modelLoader.getMeshes()[0].mesh);
-    auto monkey = m_activeScene->createEntity("Monkey");
-    auto &msh = monkey.addComponent<MeshComponent>();
-    msh.meshID = meshId;
 
     m_renderer->addDrawCommand(
         MeshDrawCommand{
             .meshId = meshId, 
-            .modelMatrix = monkey.getComponent<TransformComponent>().getModelMatrix(),
+            .modelMatrix = glm::mat4{1.f},
             .isVisible = true
         });
 
@@ -46,6 +43,7 @@ EditorLayer::EditorLayer()
 void EditorLayer::onAttach() 
 {
     m_sceneHierarchyPanel.setContext(m_activeScene);
+    m_titlebarPanel.setContext(m_activeScene);
 }
 
 void EditorLayer::onDetach() 
@@ -76,44 +74,45 @@ void EditorLayer::onFixedUpdate(float dt) {}
 
 void EditorLayer::onImGuiRender()
 {
-    static bool dockspaceOpen = true;
-    static bool optFullscreen = true;
-    static bool optPadding = false;
     static ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags_None;
 
-    ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-    if (optFullscreen)
-    {
-        const ImGuiViewport *viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(viewport->WorkPos);
-        ImGui::SetNextWindowSize(viewport->WorkSize);
-        ImGui::SetNextWindowViewport(viewport->ID);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
-                        ImGuiWindowFlags_NoMove;
-        windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-    }
-    else
-        dockspaceFlags &= ~ImGuiDockNodeFlags_PassthruCentralNode;
+    ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDocking;
+	const ImGuiViewport *viewport = ImGui::GetMainViewport();
+	ImGui::SetNextWindowPos(viewport->WorkPos);
+	ImGui::SetNextWindowSize(viewport->WorkSize);
+	ImGui::SetNextWindowViewport(viewport->ID);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+	windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+    windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoScrollbar;
 
     if (dockspaceFlags & ImGuiDockNodeFlags_PassthruCentralNode) windowFlags |= ImGuiWindowFlags_NoBackground;
 
-    if (!optPadding) ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::Begin("DockSpace", &dockspaceOpen, windowFlags);
-    if (!optPadding) ImGui::PopStyleVar();
+    auto isMaximized = Application::getWindow()->isWindowMaximized();
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 1.f));
+    ImGui::PushStyleColor(ImGuiCol_MenuBarBg, {0.f, 0.f, 0.f, 0.f});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, isMaximized ? ImVec2(6.0f, 6.0f) : ImVec2(1.0f, 1.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 3.0f);
+    ImGui::Begin("DockSpace", nullptr, windowFlags);
+    ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleVar(2);
 
-    if (optFullscreen) ImGui::PopStyleVar(2);
-
-    // Submit the DockSpace
-    ImGuiIO &io = ImGui::GetIO();
-    if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
     {
-        ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
-        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspaceFlags);
+        float titleBarHeight;
+        m_titlebarPanel.render(titleBarHeight);
+        ImGui::SetCursorPosY(titleBarHeight);
     }
 
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    // Dockspace
+    ImGuiIO &io = ImGui::GetIO();
+    ImGuiStyle &style = ImGui::GetStyle();
+    float minWinSizeX = style.WindowMinSize.x;
+    style.WindowMinSize.x = 370.0f;
+    ImGui::DockSpace(ImGui::GetID("MyDockspace"));
+    style.WindowMinSize.x = minWinSizeX;
+
+  	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::Begin("Viewport");
     auto viewportSize = ImGui::GetContentRegionAvail();
     m_activeScene->setViewportInfo({
@@ -136,31 +135,6 @@ void EditorLayer::onImGuiRender()
     m_assetBrowserPanel.render();
     m_logPanel.render();
 
-    if (ImGui::BeginMenuBar())
-    {
-        if (ImGui::BeginMenu("File"))
-        {
-            if (ImGui::MenuItem("Quit")) Application::quit();
-            ImGui::EndMenu();
-        }
-
-        if (ImGui::BeginMenu("Project"))
-        {
-            if (ImGui::MenuItem("New Project"))
-            {
-                m_projectManagerPanel.showCreate();
-            }
-            if (ImGui::MenuItem("Open Project"))
-            {
-                m_projectManagerPanel.showOpen();
-            }
-            ImGui::EndMenu();
-        }
-        
-        helper::imguiCenteredText(ProjectManager::getProjectFullName());
-        ImGui::EndMenuBar();
-    }
-
     ImGui::End();
 }
 
@@ -169,7 +143,6 @@ void EditorLayer::handleViewportDrop()
     if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
     {
         fs::path path = (const char *)payload->Data;
-        SKY_CORE_INFO("Dropped file: {}", path.string());
         auto assetType = getAssetTypeFromFileExtension(path.extension());
 
         switch (assetType)
@@ -177,7 +150,10 @@ void EditorLayer::handleViewportDrop()
             case AssetType::Mesh:
             {
                 auto handle = AssetManager::getOrCreateAssetHandle(path, assetType);
-                auto asset = AssetManager::getAsset<Model>(handle);
+                auto asset = AssetManager::loadAssetAsync<Model>(handle);
+
+                auto entity = m_activeScene->createEntity(path.stem().string());
+                entity.addComponent<ModelComponent>().handle = handle;
 				break;
             }
             case AssetType::Scene: break;

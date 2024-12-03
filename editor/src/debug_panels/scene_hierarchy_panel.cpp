@@ -18,6 +18,12 @@ static bool matchesSearch(const std::string &entityName, const char *query)
     return lowerName.find(lowerQuery) != std::string::npos;
 }
 
+static std::string getEntityType(Entity &entity) 
+{
+    if (entity.hasComponent<ModelComponent>()) return "Model";
+    return "";
+}
+
 bool SceneHierarchyPanel::matchesSearchRecursively(Entity &entity, const char *query)
 {
     if (matchesSearch(entity.getComponent<TagComponent>(), query))
@@ -140,7 +146,9 @@ void SceneHierarchyPanel::drawEntityNode(Entity entity, const char *query)
     }
 
 	ImGui::TableNextColumn();
-    ImGui::Text("");
+    ImGui::PushStyleColor(ImGuiCol_Text, {1, 1, 1, 0.6});
+    ImGui::Text(getEntityType(entity).c_str());
+    ImGui::PopStyleColor();
 
 	ImGui::TableNextColumn();
     float cellWidth = ImGui::GetContentRegionAvail().x;

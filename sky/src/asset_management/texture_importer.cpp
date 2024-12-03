@@ -16,7 +16,7 @@ static bool loadTextureFromSrc(const fs::path &src, const fs::path &dst)
 	TextureSerializer serializer;
 	if (serializer.serialize(dst, texture))
     {  
-		SKY_CORE_INFO("Successfully wrote texture: {} to disk", src.string());
+		//SKY_CORE_INFO("Successfully wrote texture: {} to disk", src.string());
 		return true;
 	}
     else
@@ -79,10 +79,20 @@ Ref<Texture2D> TextureImporter::loadTexture(const fs::path &path)
     if (!data->pixels)
     {
         SKY_CORE_ERROR("Failed to load image {}: {}", path.string(), stbi_failure_reason());
-        return {};
+        return nullptr;
     }
 
     data->channels = 4;
+    return data;
+}
+
+Ref<Texture2D> TextureImporter::loadTexture(const void *buffer, uint64_t length) 
+{
+	auto data = CreateRef<Texture2D>();
+
+    data->pixels = stbi_load_from_memory((const stbi_uc *)buffer, length, &data->width, &data->height, &data->channels, 4);
+    
+	data->channels = 4;
     return data;
 }
 } // namespace sky

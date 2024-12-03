@@ -45,7 +45,7 @@ void Window::initWindow()
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    //glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+    glfwWindowHint(GLFW_TITLEBAR, GLFW_FALSE);
 
     m_window = glfwCreateWindow(m_data.width, m_data.height, m_data.windowName.c_str(), nullptr, nullptr);
 
@@ -141,6 +141,11 @@ void Window::initWindow()
                 Application::getDroppedFiles().push_back(paths[i]);
             }
         });
+}
+
+bool Window::isWindowMaximized() 
+{ 
+    return (bool)glfwGetWindowAttrib(m_window, GLFW_MAXIMIZED);
 }
 
 bool Input::isKeyPressed(const KeyCode key)

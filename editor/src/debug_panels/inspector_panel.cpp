@@ -94,7 +94,7 @@ void InspectorPanel::render()
 		}
 		if (ImGui::BeginPopup("add_component"))
         {
-			ADD_COMPONENT_MENU(MeshComponent, ICON_FA_CUBE "  Mesh");
+			ADD_COMPONENT_MENU(ModelComponent, ICON_FA_CUBE "  Mesh");
 			//ADD_COMPONENT_MENU(CameraComponent, "Camera");
 
 			ImGui::EndPopup();        
@@ -107,7 +107,7 @@ void InspectorPanel::render()
 
 		helper::imguiCollapsingHeaderStyle("MESH", [&](){
 			drawMeshComponent();	
-		}, m_context.hasComponent<MeshComponent>());
+		}, m_context.hasComponent<ModelComponent>());
 	}
 
 	ImGui::End();

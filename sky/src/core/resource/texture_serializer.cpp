@@ -4,6 +4,8 @@ namespace sky
 {
 bool TextureSerializer::serialize(const fs::path &path, Ref<Texture2D> texture) 
 {
+    if (texture == nullptr) return false;
+
     std::ofstream file(path, std::ios::binary);
     if (!file.is_open())
     {

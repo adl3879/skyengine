@@ -21,11 +21,11 @@ class AssetManager
     }
 
 	template <typename T> 
-    static Ref<Task<T>> loadAssetAsync(AssetHandle handle, std::function<void()> callback = nullptr)
+    static Ref<Task<Ref<T>>> loadAssetAsync(AssetHandle handle, std::function<void(const Ref<T> &)> callback = nullptr)
     {
-         auto task = CreateRef<Task<T>>(
+         auto task = CreateRef<Task<Ref<T>>>(
 			"AsyncAssetTask_" + std::to_string(handle),
-			[handle]() -> T {
+			[handle]() -> Ref<T> {
 				// Perform the import
 				Ref<Asset> asset = ProjectManager::getEditorAssetManager()->getAsset(handle);
 				return std::static_pointer_cast<T>(asset);

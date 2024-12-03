@@ -12,7 +12,8 @@ class TaskBase
     virtual const std::string &getId() const = 0;
 };
 
-template <typename Result> class Task
+template <typename Result> 
+class Task : public TaskBase
 {
   public:
     enum class Status
@@ -25,7 +26,7 @@ template <typename Result> class Task
 
     Task(const std::string &id, std::function<Result()> func) : m_id(id), m_func(func), m_status(Status::Pending) {}
 
-    void run()
+    void run() override
     {
         m_status = Status::Running;
         try
@@ -45,10 +46,10 @@ template <typename Result> class Task
         }
     }
 
-    void setCallback(std::function<void()> callback) { m_callback = callback; }
+    void setCallback(std::function<void(const Result &)> callback) { m_callback = callback; }
 
     Status getStatus() const { return m_status; }
-    const std::string &getId() const { return m_id; }
+    const std::string &getId() const override { return m_id; }
 
     std::optional<Result> getResult() const
     {
@@ -61,7 +62,8 @@ template <typename Result> class Task
     std::string m_id;
     std::function<Result()> m_func;
     std::optional<Result> m_result; // Store the result.
-    std::function<void()> m_callback;
+    std::function<void(const Result &)> m_callback;
     Status m_status;
 };
-} // namespace sky
+} 
+// namespace sky

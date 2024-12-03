@@ -34,6 +34,8 @@ class ProjectManager
         fs::path    projectConfigPath;
         std::string lastOpened;
         bool        isValid;
+
+        bool operator==(const ProjectInfo &other) const { return projectPath == other.projectPath; }
     };
 
   public:

@@ -12,6 +12,7 @@
 #include "debug_panels/inspector_panel.h"
 #include "debug_panels/asset_browser_panel.h"
 #include "debug_panels/logs_panel.h"
+#include "debug_panels/titlebar_panel.h"
 
 namespace sky
 {
@@ -39,6 +40,7 @@ class EditorLayer : public Layer
     InspectorPanel      m_inspectorPanel;
     AssetBrowserPanel   m_assetBrowserPanel;
     LogsPanel           m_logPanel;
+    TitlebarPanel       m_titlebarPanel;
 
     Ref<Scene> m_activeScene;
 }; 

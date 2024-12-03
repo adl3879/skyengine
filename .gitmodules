@@ -1,6 +1,3 @@
-[submodule "sky/vendor/glfw"]
-	path = sky/vendor/glfw
-	url = https://github.com/glfw/glfw.git
 [submodule "sky/vendor/glm"]
 	path = sky/vendor/glm
 	url = https://github.com/g-truc/glm.git
@@ -19,3 +16,6 @@
 [submodule "sky/vendor/yaml-cpp"]
 	path = sky/vendor/yaml-cpp
 	url = https://github.com/jbeder/yaml-cpp.git
+[submodule "sky/vendor/glfw"]
+	path = sky/vendor/glfw
+	url = https://github.com/TheCherno/glfw.git

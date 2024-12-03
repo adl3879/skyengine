@@ -52,6 +52,8 @@ void LogsPanel::render()
         ImGui::EndGroup();
         ImGui::Dummy({0, 3});
 
+        ImGui::BeginChild("logTable");
+
         // Logs table
         if (ImGui::BeginTable("LogTable", 3,
                               ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable))
@@ -108,7 +110,7 @@ void LogsPanel::render()
             ImGui::PopStyleVar();
             ImGui::EndTable();
         }
-
+        ImGui::EndChild();
         if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
         {
             ImGui::SetScrollHereY(1.0f); // Auto-scroll to the bottom

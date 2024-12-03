@@ -11,20 +11,21 @@ class TaskManager
     TaskManager(size_t threadCount = std::thread::hardware_concurrency());
     ~TaskManager();
    
-    template <typename Result> void submitTask(const std::shared_ptr<Task<Result>> &task)
+    template <typename Result> void submitTask(const Ref<Task<Result>> &task)
     {
+        Ref<TaskBase> baseTask = std::static_pointer_cast<TaskBase>(task);
         {
             std::unique_lock<std::mutex> lock(m_queueMutex);
-            m_tasks.push(task);
+            m_tasks.push(baseTask);
         }
         {
             std::unique_lock<std::mutex> lock(m_taskMapMutex);
-            m_taskMap[task->getId()] = task;
+            m_taskMap[task->getId()] = std::static_pointer_cast<TaskBase>(task);
         }
         m_condition.notify_one();
     }
 
-    template <typename Result> std::shared_ptr<Task<Result>> getTask(const std::string &id)
+    template <typename Result> Ref<Task<Result>> getTask(const std::string &id)
     {
         std::unique_lock<std::mutex> lock(m_taskMapMutex);
         if (m_taskMap.count(id))
@@ -37,8 +38,8 @@ class TaskManager
   private:
     bool m_stop;
     std::vector<std::thread> m_workers;
-    std::queue<std::shared_ptr<TaskBase>> m_tasks;
-    std::unordered_map<std::string, std::shared_ptr<TaskBase>> m_taskMap;
+    std::queue<Ref<TaskBase>> m_tasks;
+    std::unordered_map<std::string, Ref<TaskBase>> m_taskMap;
     std::mutex m_queueMutex;
     std::mutex m_taskMapMutex;
     std::condition_variable m_condition;

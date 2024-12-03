@@ -146,5 +146,19 @@ void imguiCollapsingHeaderStyle(const char* label, std::function<void()> fn, boo
 		style.Colors[ImGuiCol_HeaderActive] = originalHeaderActiveColor;
     }
 }
+
+void drawButtonImage(ImageID img, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed) 
+{
+    auto *drawList = ImGui::GetForegroundDrawList();
+    auto rectMin = ImGui::GetItemRectMin();
+    auto rectMax = ImGui::GetItemRectMax();
+
+    if (ImGui::IsItemActive())
+        drawList->AddImage(img, rectMin, rectMax, ImVec2(0, 1), ImVec2(1, 0), tintPressed);
+    else if (ImGui::IsItemHovered())
+        drawList->AddImage(img, rectMin, rectMax, ImVec2(0, 1), ImVec2(1, 0), tintHovered);
+    else 
+        drawList->AddImage(img, rectMin, rectMax, ImVec2(0, 1), ImVec2(1, 0), tintNormal);
+}
 }
 }

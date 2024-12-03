@@ -16,7 +16,7 @@ static bool loadAssimpModel(const fs::path &src, const fs::path &dst)
 	MeshSerializer meshSerializer;
 	if (meshSerializer.serialize(dst, modelLoader.getMeshes()))
     {  
-		SKY_CORE_INFO("Successfully wrote model: {} to disk", src.string());
+		//SKY_CORE_INFO("Successfully wrote model: {} to disk", src.string());
 		return true;
 	}
     else

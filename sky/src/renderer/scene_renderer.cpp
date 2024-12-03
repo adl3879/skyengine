@@ -2,6 +2,7 @@
 
 #include "core/application.h"
 #include "graphics/vulkan/vk_images.h"
+#include "asset_management/texture_importer.h"
 
 namespace sky
 {

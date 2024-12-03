@@ -33,6 +33,17 @@ void ProjectManager::loadProject(const fs::path &path)
     m_assetManager = editorAssetManager;
 
     deserialize(path);
+    m_assetManager->deserializeAssetRegistry();
+
+    // push to project list if not found
+    auto currentProject = ProjectInfo{
+        .projectName = m_config.projectName,
+        .projectPath = m_config.projectPath,
+        .projectConfigPath = m_config.getProjectConfigFilePath(),
+        .lastOpened = helper::getCurrentDate(),
+    }; 
+    if (std::find(m_projectsList.begin(), m_projectsList.end(), currentProject) == m_projectsList.end())
+        m_projectsList.push_back(currentProject);
 
     // update last opened
     for (auto &project : m_projectsList)
@@ -60,7 +71,7 @@ std::vector<ProjectManager::ProjectInfo> ProjectManager::getProjectsList()
 
 std::string ProjectManager::getProjectFullName()
 {
-    return std::format("{0} - {1} - SKY ENGINE", m_config.projectName, m_config.getProjectFilePath().string());
+    return std::format("{0} - {1} - [SKY ENGINE]", m_config.projectName, m_config.getProjectFilePath().string());
 }
 
 Ref<EditorAssetManager> ProjectManager::getEditorAssetManager()

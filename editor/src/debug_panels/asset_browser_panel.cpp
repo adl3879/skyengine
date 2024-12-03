@@ -11,6 +11,8 @@
 #include "core/helpers/file_dialogs.h"
 #include "core/application.h"
 #include "asset_management/texture_importer.h"
+#include "core/tasks/task_manager.h"
+#include "core/helpers/image.h"
 
 namespace sky
 {
@@ -27,34 +29,14 @@ struct ContentBrowserData
 };
 ContentBrowserData *s_data = new ContentBrowserData();
 
-static ImageID loadImageFromFile(const fs::path& path)
-{
-    auto renderer = Application::getRenderer();
-    auto tex = TextureImporter::loadTexture(path);
-    auto texture = renderer->createImage(
-        {
-            .format = VK_FORMAT_R8G8B8A8_SRGB,
-            .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-            .extent =
-                VkExtent3D{
-                    .width = static_cast<uint32_t>(tex->width),
-                    .height = static_cast<uint32_t>(tex->height),
-                    .depth = 1,
-                },
-            .mipMap = true,
-        },
-        tex->pixels);
-    return texture;
-}
-
 AssetBrowserPanel::AssetBrowserPanel() 
 {
-    m_icons["back"]         =       loadImageFromFile("res/icons/content_browser/BackIcon.png");
-    m_icons["forward"]      =    loadImageFromFile("res/icons/content_browser/ForwardIcon.png");
-    m_icons["directory"]    =   loadImageFromFile("res/icons/content_browser/DirectoryIcon.png");
-    m_icons["file"]         =       loadImageFromFile("res/icons/content_browser/FileIcon.png");
-    m_icons["scene"]        =      loadImageFromFile("res/icons/content_browser/SceneIcon.png");
-    m_icons["model"]        =      loadImageFromFile("res/icons/content_browser/3DModelIcon.png");
+    m_icons["back"]=        helper::loadImageFromFile("res/icons/content_browser/BackIcon.png");
+    m_icons["forward"]=     helper::loadImageFromFile("res/icons/content_browser/ForwardIcon.png");
+    m_icons["directory"]=   helper::loadImageFromFile("res/icons/content_browser/DirectoryIcon.png");
+    m_icons["file"]=        helper::loadImageFromFile("res/icons/content_browser/FileIcon.png");
+    m_icons["scene"]=       helper::loadImageFromFile("res/icons/content_browser/SceneIcon.png");
+    m_icons["model"]=       helper::loadImageFromFile("res/icons/content_browser/3DModelIcon.png");
 }
 
 void AssetBrowserPanel::init()
@@ -531,19 +513,37 @@ void AssetBrowserPanel::updateThumbnails()
             }
         }
 
-        auto image = loadImageFromFile(thumbnailInfo.assetPath);
-        if (image == NULL_IMAGE_ID)
+       // Check if a task for this asset already exists
+        auto existingTask =
+            Application::getTaskManager()->getTask<ImageID>("LoadImage_" + thumbnailInfo.assetPath.string());
+        if (!existingTask)
         {
-            m_queue.pop();
-            continue;
+            // Create a new task to load the image asynchronously
+            auto task =
+                CreateRef<Task<ImageID>>("LoadImage_" + thumbnailInfo.assetPath.string(),
+                                         [&]() -> ImageID { return helper::loadImageFromFile(thumbnailInfo.assetPath); });
+
+            Application::getTaskManager()->submitTask(task);
         }
 
-        auto &cachedImage = m_cachedImages[thumbnailInfo.assetPath];
-        cachedImage.timestamp = thumbnailInfo.timestamp;
-        cachedImage.image = image;
-
-        m_queue.pop();
-        break;
+        // Get the task's status and result
+        auto task = Application::getTaskManager()->getTask<ImageID>("LoadImage_" + thumbnailInfo.assetPath.string());
+        if (task->getStatus() == Task<ImageID>::Status::Completed)
+        {
+            auto result = task->getResult();
+            if (result != NULL_IMAGE_ID)
+            {
+                auto &cachedImage = m_cachedImages[thumbnailInfo.assetPath];
+                cachedImage.timestamp = thumbnailInfo.timestamp;
+                cachedImage.image = result.value();
+            }
+            m_queue.pop(); // Task completed; remove it from the queue
+        }
+        else
+        {
+            // Task not completed; defer processing this item
+            break;
+        }
     }
 }
 } // namespace sky

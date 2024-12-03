@@ -47,12 +47,12 @@ Ref<Asset> EditorAssetManager::getAsset(AssetHandle handle)
     {
         // Load dependencies first
         auto metadata = getMetadata(handle);
+		if (metadata.dependencies.size() > 0) SKY_CORE_INFO("Loading asset dependecies");
         for (const auto &dependencyHandle : metadata.dependencies) // Assuming metadata contains a list of dependencies
         {
             // Recursively load each dependency (if not loaded)
             if (!isAssetLoaded(dependencyHandle))
             {
-                SKY_CORE_WARN("Loading dependecies");
                 Ref<Asset> dependencyAsset = getAsset(dependencyHandle);
                 if (!dependencyAsset)
                 {
@@ -196,6 +196,7 @@ bool EditorAssetManager::deserializeAssetRegistry()
     auto rootNode = data["assetRegistry"];
     if (!rootNode) return false;
 
+    SKY_CORE_INFO("Deserializing assset registry");
     for (const auto &node : rootNode)
     {
         AssetHandle handle = node["handle"].as<uint64_t>();
