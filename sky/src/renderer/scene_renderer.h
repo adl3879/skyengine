@@ -7,6 +7,7 @@
 #include "graphics/vulkan/vk_device.h"
 #include "scene/scene.h"
 #include "material_cache.h"
+#include "core/transform/transform.h"
 
 namespace sky
 {
@@ -19,8 +20,8 @@ class SceneRenderer
     SceneRenderer(SceneRenderer &) = delete;
     SceneRenderer operator=(SceneRenderer &) = delete;
 
-    void init(Ref<Scene> scene, glm::ivec2 size);
-    void render(gfx::CommandBuffer cmd);
+    void init(glm::ivec2 size);
+    void render(gfx::CommandBuffer cmd, Ref<Scene> scene);
     void addDrawCommand(MeshDrawCommand drawCmd);
     
     MeshID addMeshToCache(const Mesh &mesh);
@@ -28,12 +29,15 @@ class SceneRenderer
     ImageID createImage(const gfx::vkutil::CreateImageInfo& createInfo, void* pixelData);
 
     ImageID getDrawImageId() const { return m_drawImageID; }
+    gfx::Device &getDevice() const { return m_device; }
 
     gfx::AllocatedImage getDrawImage();
 
   private:
     void destroy();
     void createDrawImage(glm::ivec2 size);
+    void initSceneData();
+    void updateLights(Ref<Scene> scene);
 
   private:
     gfx::Device &m_device;
@@ -42,6 +46,28 @@ class SceneRenderer
 
     MeshCache m_meshCache;
     MaterialCache m_materialCache;
+
+  private:
+    struct GPUSceneData
+    {
+        // camera
+        glm::mat4 view;
+        glm::mat4 proj;
+        glm::mat4 viewProj;
+        glm::vec4 cameraPos;
+
+        // ambient
+        LinearColorNoAlpha ambientColor;
+        float ambientIntensity;
+
+        VkDeviceAddress lightsBuffer;
+        std::uint32_t numLights;
+        std::int32_t sunlightIndex;
+
+        VkDeviceAddress materialsBuffer;
+    };
+
+    gfx::NBuffer m_sceneDataBuffer; 
 
   private:
     ForwardRendererPass m_forwardRenderer;

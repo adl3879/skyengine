@@ -23,6 +23,7 @@ class EditorAssetManager : public AssetManagerBase
     bool isAssetLoaded(AssetHandle handle) override;
     AssetType getAssetType(AssetHandle handle) const override;
     bool deserializeAssetRegistry() override;
+    void serializeAssetRegistry() override;
 
     void importAsset(const fs::path &filepath);
 
@@ -31,7 +32,6 @@ class EditorAssetManager : public AssetManagerBase
     const AssetRegistry &getAssetRegistry() const { return m_assetRegistry; }
 
   private:
-    void serializeAssetRegistry();
 
   private:
     AssetRegistry m_assetRegistry;

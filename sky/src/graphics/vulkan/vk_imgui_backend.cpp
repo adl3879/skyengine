@@ -107,9 +107,6 @@ void ImGuiBackend::init(Device &gfxDevice, VkFormat swapchainFormat)
                    .disableDepthTest()
                    .build(device);
     //vkutil::addDebugLabel(device, pipeline, "ImGui pipeline");
-
-    vkDestroyShaderModule(device, vertexShader, nullptr);
-    vkDestroyShaderModule(device, fragShader, nullptr);
 }
 
 void ImGuiBackend::draw(VkCommandBuffer cmd, Device &gfxDevice, VkImageView swapchainImageView,

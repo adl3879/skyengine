@@ -13,7 +13,10 @@ Scene::Scene(const std::string &name): m_sceneName(name)
     m_registry.on_destroy<HierarchyComponent>().connect<&Scene::onEntityDestroyed>(*this);
 }
 
-void Scene::init() {}
+void Scene::init() 
+{
+    m_lightCache.init(Application::getRenderer()->getDevice());
+}
 
 void Scene::update(float dt) 
 {
@@ -91,5 +94,20 @@ void Scene::onEntityDestroyed(entt::registry &registry, entt::entity ent)
         auto childEntity = getEntityFromUUID(childID);
         destroyEntity(childEntity);
     }
+}
+
+Entity Scene::getSelectedEntity() 
+{
+    return Entity{m_selectedEntity, this};
+}
+
+void Scene::setSelectedEntity(Entity entity) 
+{
+    m_selectedEntity = entity.getEntityID();
+}
+
+LightID Scene::addLightToCache(const Light &light, const Transform &transform)
+{
+    return m_lightCache.addLight(light, transform);
 }
 }

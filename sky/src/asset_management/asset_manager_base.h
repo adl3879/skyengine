@@ -14,6 +14,7 @@ class AssetManagerBase
     virtual AssetHandle getOrCreateAssetHandle(fs::path path, AssetType assetType) = 0;
     virtual AssetMetadata &getMetadata(AssetHandle handle) = 0;
     virtual bool deserializeAssetRegistry() = 0;
+    virtual void serializeAssetRegistry() = 0;
 
     virtual bool isAssetHandleValid(AssetHandle handle) const = 0;
     virtual bool isAssetLoaded(AssetHandle handle) = 0;

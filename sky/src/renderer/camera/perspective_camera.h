@@ -31,19 +31,19 @@ class PerspectiveCamera : public Camera
      * @brief Get the view matrix.
      * @return View matrix.
      */
-    SKY_INLINE glm::mat4 getView() const { return glm::lookAt(m_position, m_position + m_forward, m_up); }
+    SKY_INLINE const glm::mat4 &getView() const override { return glm::lookAt(m_position, m_position + m_forward, m_up); }
 
     /**
      * @brief Get the projection matrix.
      * @return Projection matrix.
      */
-    SKY_INLINE const glm::mat4 &getProjection() const { return m_perpective; }
+    SKY_INLINE const glm::mat4 &getProjection() const override { return m_perpective; }
 
     /**
      * @brief Get the combined view-projection matrix.
      * @return View-projection matrix.
      */
-    SKY_INLINE glm::mat4 getViewProjection() const override { return m_perpective * getView(); }
+    SKY_INLINE const glm::mat4 &getViewProjection() override { return m_perpective * getView(); }
 
     /**
      * @brief Get a modifiable reference to the projection matrix.
@@ -79,13 +79,13 @@ class PerspectiveCamera : public Camera
      * @brief Get a modifiable reference to the position.
      * @return Reference to the position vector.
      */
-    SKY_INLINE glm::vec3 &getPosition() { return m_position; }
+    SKY_INLINE glm::vec3 &getPosition()  { return m_position; }
 
     /**
      * @brief Get a constant reference to the position.
      * @return Constant reference to the position vector.
      */
-    SKY_INLINE const glm::vec3 &getPosition() const { return m_position; }
+    SKY_INLINE const glm::vec4 &getPosition() const override { return glm::vec4{m_position, 1.f}; }
 
     /**
      * @brief Set the camera view using a view matrix.
@@ -360,13 +360,13 @@ class PerspectiveCamera : public Camera
      * @brief Get the camera frustum.
      * @return CameraFrustum object representing the frustum.
      */
-    SKY_INLINE CameraFrustum getCameraFrustum() const { return CameraFrustum(getViewProjection()); }
+    SKY_INLINE CameraFrustum getCameraFrustum() { return CameraFrustum(getViewProjection()); }
 
     /**
      * @brief Get camera render data.
      * @return RenderData structure containing camera data.
      */
-    SKY_INLINE RenderData getRenderData() const override
+    SKY_INLINE RenderData getRenderData() override
     {
         return {getViewProjection(),
                 getView(),

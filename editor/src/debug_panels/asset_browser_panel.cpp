@@ -13,14 +13,16 @@
 #include "asset_management/texture_importer.h"
 #include "core/tasks/task_manager.h"
 #include "core/helpers/image.h"
+#include "core/helpers/imgui.h"
+#include "scene/scene_manager.h"
 
 namespace sky
 {
 bool openCreateFilePopup = false;
 
 static char searchStr[128] = "";
-glm::vec2 thumbnailSize, defaultThumbnailSize = {120.0f * 1.27f, 120.0f * 1.27f};
-float dragRatio = 1.0f;
+glm::vec2 thumbnailSize, defaultThumbnailSize = {120.0f, 110.0f};
+float dragRatio = 1.35f;
 
 struct ContentBrowserData
 {
@@ -67,7 +69,8 @@ void AssetBrowserPanel::render()
         }
     }
 
-    ImGui::Begin("Content Browser   ");
+    ImGui::Begin("Asset Browser   ");
+    if (m_showConfirmDelete) ImGui::OpenPopup("Confirm Delete");
 
     float panelWidth = ImGui::GetContentRegionAvail().x;
     float dirTreeWidth = panelWidth * 0.17;
@@ -82,6 +85,7 @@ void AssetBrowserPanel::render()
 
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.05f, 0.05f, 0.05f, 0.54f));
     ImGui::BeginChild("Directory Tree", {0.0f, 0.f}, ImGuiChildFlags_ResizeX);
+    ImGui::Dummy({0, 5}); // Add vertical space
     if (ImGui::TreeNodeEx(ICON_FA_HOME "  Root Directory", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow))
     {
         if (ImGui::IsItemClicked())
@@ -161,24 +165,22 @@ void AssetBrowserPanel::render()
     ImGui::Columns(columnCount, nullptr, false);
 
     // Right-click on blank space
+	auto originalSpace = ImGui::GetStyle().ItemSpacing.x;
+    ImGui::GetStyle().ItemSpacing.y = 12;
     if (ImGui::BeginPopupContextWindow())
     {
-        if (ImGui::BeginMenu(ICON_FA_PLUS "  Add Item"))
-        {
-            if (ImGui::MenuItem(ICON_FA_FOLDER "   New Folder")) openCreateFilePopup(AssetType::Folder);
-            if (ImGui::MenuItem(ICON_FA_FILE "   New File")) openCreateFilePopup(AssetType::None);
-            ImGui::Separator();
-            if (ImGui::MenuItem(ICON_FA_PHOTO_VIDEO "   Scene")) openCreateFilePopup(AssetType::Scene);
-            if (ImGui::MenuItem(ICON_FA_PAINT_BRUSH "   Material")) openCreateFilePopup(AssetType::Material);
-            if (ImGui::MenuItem(ICON_FA_FILE_CODE "   Shader")) openCreateFilePopup(AssetType::Shader);
-            ImGui::EndPopup();
-        }
+		if (ImGui::MenuItem(ICON_FA_PHOTO_VIDEO "   New Scene")) openCreateFilePopup(AssetType::Scene);
+        if (ImGui::MenuItem(ICON_FA_PAINT_BRUSH "   New Material")) openCreateFilePopup(AssetType::Material);
+        if (ImGui::MenuItem(ICON_FA_FILE_CODE "   New Shader")) openCreateFilePopup(AssetType::Shader);
+		ImGui::Separator();
+		if (ImGui::MenuItem(ICON_FA_FOLDER "   New Folder")) openCreateFilePopup(AssetType::Folder);
         if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN "   Open in File Browser"))
         {
-            //?
+            helper::openFolderInExplorer(ProjectManager::getConfig().getAssetDirectory() / m_currentDirectory);
         }
         ImGui::EndPopup();
     }
+    ImGui::GetStyle().ItemSpacing.y = originalSpace;
 
     if (m_CurrentDirectoryEntries.empty())
     { 
@@ -196,6 +198,9 @@ void AssetBrowserPanel::render()
 
     // TODO: status bar
     ImGui::EndChild();
+
+    confirmDeletePopup();
+ 
     ImGui::End();
 
     updateThumbnails();
@@ -250,12 +255,8 @@ void AssetBrowserPanel::displayFileHierarchy(const fs::path &directory)
 
             auto label = std::string(ICON_FA_FOLDER "  ") + path;
             
-            ImGui::Spacing(); // Add vertical space
-            const bool treeNodeOpen =
-                ImGui::TreeNodeEx(path.c_str(), flags, label.c_str());
-            ImGui::Spacing();
-
-            // ImGui::PopStyleColor(3);
+            ImGui::Dummy({0, 4}); // Add vertical space
+            const bool treeNodeOpen = ImGui::TreeNodeEx(path.c_str(), flags, label.c_str());
 
             // if treenode is selected
             bool clickedOnArrow =
@@ -284,7 +285,7 @@ void AssetBrowserPanel::openCreateFilePopup(AssetType type)
     }
     else
     {
-        std::string defaultName = type == AssetType::Scene       ? "Scene.scene"
+        std::string defaultName = type == AssetType::Scene       ? "New Scene.scene"
                                   : type == AssetType::Material  ? "New Material.material"
                                   : type == AssetType::Shader    ? "New Shader.shader"
                                                                  : "New File.txt";
@@ -294,6 +295,43 @@ void AssetBrowserPanel::openCreateFilePopup(AssetType type)
         m_renameRequested = true;
         m_renamePath = m_currentDirectory / defaultName;
 	}
+}
+
+void AssetBrowserPanel::confirmDeletePopup() 
+{
+    ImGui::SetNextWindowSize(ImVec2(800, 0), ImGuiCond_Always);
+    if (ImGui::BeginPopupModal("Confirm Delete", NULL))
+    {
+        ImGui::Separator();
+        ImGui::Text("Are you sure you want to delete the following file?");
+        ImGui::Spacing();
+        auto path = ProjectManager::getConfig().getAssetDirectory() / m_filePathToDelete;
+        ImGui::TextWrapped("%s", path.string().c_str());
+        ImGui::Spacing();
+
+        // Confirmation buttons
+        if (helper::imguiButton("Delete", {120, 0}, false, "danger"))
+        {
+            try
+            {
+                fs::remove_all(m_filePathToDelete);
+            }
+            catch (const std::filesystem::filesystem_error &e)
+            {
+                ImGui::OpenPopup("Error");
+            }
+            m_showConfirmDelete = false; // Close the confirmation modal
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(120, 0)))
+        {
+            m_showConfirmDelete = false; // Close the confirmation modal
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
 }
 
 void AssetBrowserPanel::search(const std::string &query) 
@@ -359,16 +397,20 @@ void AssetBrowserPanel::drawFileAssetBrowser(std::filesystem::directory_entry di
     // change button color
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5, 0, 0, 0));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2, 0.2, 0.2, 0.2));
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(thumbnailPadding, 10));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(thumbnailPadding, 5));
     ImGui::ImageButton("##", icon, {thumbnailSize.x, thumbnailSize.y}, {0, 1}, {1, 0});
     ImGui::PopStyleVar();
     ImGui::PopStyleColor(2);
 
+    auto originalSpace = ImGui::GetStyle().ItemSpacing.x;
+    ImGui::GetStyle().ItemSpacing.y = 12;
     if (ImGui::BeginPopupContextItem())
     {
         if (ImGui::MenuItem(ICON_FA_TRASH "   Delete"))
         {
-            std::filesystem::remove(path);
+            m_filePathToDelete = path;       // Set the path of the file to delete
+            m_showConfirmDelete = true; // Show the confirmation dialog
+			ImGui::OpenPopup("Confirm Delete");
         }
         // Rename
         if (ImGui::MenuItem(ICON_FA_PEN "   Rename"))
@@ -378,6 +420,7 @@ void AssetBrowserPanel::drawFileAssetBrowser(std::filesystem::directory_entry di
         }
         ImGui::EndPopup();
     }
+    ImGui::GetStyle().ItemSpacing.y = originalSpace;
 
     if (ImGui::BeginDragDropSource())
     {
@@ -392,19 +435,10 @@ void AssetBrowserPanel::drawFileAssetBrowser(std::filesystem::directory_entry di
         m_CurrentDirectoryEntries.clear();
         strcpy(searchStr, "");
 
-        if (directoryEntry.is_directory())
-            m_currentDirectory /= path.filename();
+        if (directoryEntry.is_directory()) m_currentDirectory /= path.filename();
         else
         {
-            if (path.extension() == ".material")
-            {
-                //auto materialHandle = AssetManager::GetAssetHandleFromPath(relativePath);
-                //MaterialEditorPanel::OpenMaterialEditor(materialHandle);
-            }
-            else if (path.extension() == ".lua" || path.extension() == ".shader")
-            {
-                //m_Context->InitTextEditor(path);
-            }
+            if (path.extension() == ".scene") SceneManager::get().openScene(relativePath);
         }
     }
 
@@ -417,7 +451,6 @@ void AssetBrowserPanel::drawFileAssetBrowser(std::filesystem::directory_entry di
     auto ps = ImGui::GetCursorPosX() +
               (thumbnailSize.x + (thumbnailPadding * 2) - ImGui::CalcTextSize(truncatedName.c_str()).x) / 2;
     ImGui::SetCursorPosX(ps);
-    // ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
 
     if (m_renameRequested && m_renamePath == path)
     {
@@ -477,6 +510,7 @@ void AssetBrowserPanel::drawFileAssetBrowser(std::filesystem::directory_entry di
 
     ImGui::PopID();
 }
+
 ImageID AssetBrowserPanel::getOrCreateThumbnail(const fs::path &path) 
 {
     // 1. Read file timestamp

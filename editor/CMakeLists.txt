@@ -20,7 +20,8 @@ target_include_directories(editor PRIVATE
 target_link_libraries(editor PRIVATE sky)
 
 set(SHADERS
-    "gradient.comp"
+    "mesh.vert"
+    "mesh.frag"
     "triangle.vert"
     "triangle.frag"
     "imgui.frag"

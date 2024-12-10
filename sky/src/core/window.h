@@ -30,8 +30,10 @@ class Window
     VkExtent2D getExtent() const { return {static_cast<uint32_t>(m_data.width), static_cast<uint32_t>(m_data.height)}; }
     bool wasWindowResized() const { return m_framebufferResized; }
     bool isWindowMinimized() const { return m_data.width == 0 || m_data.height == 0; }
-    bool isWindowMaximized();
     void resetWindowResizedFlag() { m_framebufferResized = false; }
+    bool isWindowMaximized();
+
+    void setTitlebarHitTestCallback(std::function<void(bool &hit)> callback);
     void setEventCallback(const std::function<void(Event &)> &callback) { m_data.eventCallback = callback; }
 
     void createWindowSurface(VkInstance instance, VkSurfaceKHR *surface);
@@ -48,6 +50,7 @@ class Window
         int width, height;
 
         std::function<void(Event &)> eventCallback;
+		std::function<void(bool &hit)> titleBarHitTestCallback;
     };
     WindowData m_data;
 

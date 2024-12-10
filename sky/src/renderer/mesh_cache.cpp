@@ -15,6 +15,7 @@ MeshID MeshCache::addMesh(gfx::Device &device, const Mesh &mesh)
 {
     auto gpuMesh = gfx::GPUMeshBuffers{
         .numIndices = static_cast<uint32_t>(mesh.indices.size()),
+        .materialId = mesh.material,
     };
 
     uploadMesh(device, mesh, gpuMesh);
@@ -40,13 +41,6 @@ void MeshCache::uploadMesh(gfx::Device &device, const Mesh &mesh, gfx::GPUMeshBu
                                            VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
                                            VMA_MEMORY_USAGE_GPU_ONLY);
 
-    // find the adress of the vertex buffer
-    VkBufferDeviceAddressInfo deviceAdressInfo {
-        .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-        .buffer = gpuMesh.vertexBuffer.buffer
-    };
-    gpuMesh.vertexBufferAddress = vkGetBufferDeviceAddress(device.getDevice(), &deviceAdressInfo);
-
     // create index buffer
     gpuMesh.indexBuffer =
         device.createBuffer(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -57,7 +51,6 @@ void MeshCache::uploadMesh(gfx::Device &device, const Mesh &mesh, gfx::GPUMeshBu
 
     // ?         staging.allocation.GetMappedData()   
     void *data = staging.info.pMappedData;
-
     memcpy(data, mesh.vertices.data(), vertexBufferSize);
     memcpy((char *)data + vertexBufferSize, mesh.indices.data(), indexBufferSize);
 

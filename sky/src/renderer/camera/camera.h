@@ -20,7 +20,10 @@ class Camera
     };
 
   public:
-    virtual SKY_INLINE glm::mat4 getViewProjection() const = 0;
-    virtual SKY_INLINE RenderData getRenderData() const = 0;
+    virtual SKY_INLINE const glm::mat4 &getView() const = 0;
+    virtual SKY_INLINE const glm::mat4 &getProjection() const = 0;
+    virtual SKY_INLINE const glm::vec4 &getPosition() const = 0;
+    virtual SKY_INLINE const glm::mat4 &getViewProjection() = 0;
+    virtual SKY_INLINE RenderData getRenderData() = 0;
 };
 }

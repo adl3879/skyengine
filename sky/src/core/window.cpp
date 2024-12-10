@@ -40,6 +40,12 @@ void Window::framebufferResizeCallback(GLFWwindow *window, int width, int height
     wnd->height = height;
 }
 
+
+void Window::setTitlebarHitTestCallback(std::function<void(bool &hit)> callback) 
+{
+    m_data.titleBarHitTestCallback = callback;
+}
+
 void Window::initWindow()
 {
     glfwInit();
@@ -141,6 +147,16 @@ void Window::initWindow()
                 Application::getDroppedFiles().push_back(paths[i]);
             }
         });
+
+    glfwSetTitlebarHitTestCallback(m_window,
+	   [](GLFWwindow *window, int x, int y, int *hit)
+	   {
+		   bool isHit = false;
+		   WindowData &data = *(WindowData *)(glfwGetWindowUserPointer(window));
+
+           data.titleBarHitTestCallback(isHit);
+		   *hit = isHit;
+	   });
 }
 
 bool Window::isWindowMaximized() 

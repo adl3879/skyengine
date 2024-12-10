@@ -162,7 +162,7 @@ void ProjectManagerPanel::render()
         ImGui::Text("Are you sure you want to remove this project?");
         ImGui::Separator();
 
-        if (ImGui::Button("Yes", ImVec2(120, 0)))
+        if (helper::imguiButton("Yes", {120, 0}, false, "danger"))
         {
             ProjectManager::removeProjectFromList(projectList[selectedProjectIndex]);
             ImGui::CloseCurrentPopup();

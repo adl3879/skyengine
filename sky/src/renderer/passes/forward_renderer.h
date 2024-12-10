@@ -16,10 +16,11 @@ class ForwardRendererPass : public Pass
 
     void init(const gfx::Device &device);
     void draw(
-        const gfx::Device &device, 
+        gfx::Device &device, 
         gfx::CommandBuffer cmd, 
         VkExtent2D extent,
         const Camera &camera,
+        const gfx::AllocatedBuffer &sceneDataBuffer,
         const MeshCache &meshCache,
         const std::vector<MeshDrawCommand> &drawCommands);
     void cleanup(const gfx::Device &device);
@@ -27,8 +28,11 @@ class ForwardRendererPass : public Pass
   private:
     struct PushConstants
 	{
-        glm::mat4 worldMatrix;
+        glm::mat4 transform;
+        VkDeviceAddress sceneDataBuffer;
         VkDeviceAddress vertexBuffer;
+        MaterialID materialId;
+        std::uint32_t padding;
 	};
 };
 } // namespace sky

@@ -3,6 +3,9 @@
 #include "core/application.h"
 #include "graphics/vulkan/vk_images.h"
 #include "asset_management/texture_importer.h"
+#include "scene/components.h"
+#include "asset_management/asset_manager.h"
+#include "core/color.h"
 
 namespace sky
 {
@@ -13,13 +16,24 @@ SceneRenderer::SceneRenderer(gfx::Device &device)
 
 SceneRenderer::~SceneRenderer() {}
 
-void SceneRenderer::init(Ref<Scene> scene, glm::ivec2 size) 
+void SceneRenderer::init(glm::ivec2 size) 
 {
-    m_scene = scene;
     createDrawImage(size);
 
     m_materialCache.init(m_device);
+    initSceneData();
+
     m_forwardRenderer.init(m_device);
+}
+
+void SceneRenderer::initSceneData() 
+{
+    m_sceneDataBuffer.init(
+        m_device,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+        sizeof(GPUSceneData),
+        gfx::FRAME_OVERLAP,
+        "scene data");
 }
 
 MeshID SceneRenderer::addMeshToCache(const Mesh& mesh)
@@ -90,10 +104,54 @@ void SceneRenderer::addDrawCommand(MeshDrawCommand drawCmd)
     m_meshDrawCommands.push_back(drawCmd);
 }
 
-void SceneRenderer::render(gfx::CommandBuffer cmd) 
+void SceneRenderer::render(gfx::CommandBuffer cmd, Ref<Scene> scene) 
 {
     auto drawImage = m_device.getImage(m_drawImageID);
     auto depthImage = m_device.getImage(m_depthImageID);
+
+    {
+		auto view = scene->getRegistry().view<TransformComponent, ModelComponent, VisibilityComponent>();
+		for (auto &e : view)
+		{
+			auto [transform, model, visibility] = view.get<TransformComponent, ModelComponent, VisibilityComponent>(e);
+			
+			AssetManager::getAssetAsync<Model>(model.handle, [=](const Ref<Model> &model){
+				for (const auto &mesh : model->meshes) 
+				{
+					addDrawCommand({
+						.meshId = mesh,
+						.modelMatrix = transform.getModelMatrix(),
+						.isVisible = visibility,
+					});
+				}
+			});
+		}
+    }
+    updateLights(scene);
+
+    auto &camera = scene->getCamera();
+    auto &lightCache = scene->getLightCache();
+    {
+        const auto gpuSceneData = GPUSceneData{
+            .view = camera.getView(),
+            .proj = camera.getProjection(),
+            .viewProj = camera.getViewProjection(),
+            .cameraPos = camera.getPosition(),
+            .ambientColor = LinearColorNoAlpha::white(),
+            .ambientIntensity = 0.0f,
+            .lightsBuffer = lightCache.getBuffer().address,
+            .numLights = (uint32_t)lightCache.getSize(),
+            .sunlightIndex = lightCache.getSunlightIndex(), 
+            .materialsBuffer = m_materialCache.getMaterialDataBufferAddress(),
+        };
+        m_sceneDataBuffer.uploadNewData(
+            cmd, 
+            m_device.getCurrentFrameIndex(), 
+            (void *)&gpuSceneData,
+            sizeof(GPUSceneData));
+
+        lightCache.upload(m_device, cmd);
+	}
 
     const auto renderInfo = gfx::vkutil::createRenderingInfo({
         .renderExtent = drawImage.getExtent2D(),
@@ -101,7 +159,6 @@ void SceneRenderer::render(gfx::CommandBuffer cmd)
         .colorImageClearValue = glm::vec4{0.f, 0.f, 0.f, 1.f},
         .depthImageView = depthImage.imageView,
         .depthImageClearValue = 0.f,
-        //.resolveImageView = isMultisamplingEnabled() ? resolveImage.imageView : VK_NULL_HANDLE,
     });
 
     gfx::vkutil::transitionImage(cmd, 
@@ -115,10 +172,42 @@ void SceneRenderer::render(gfx::CommandBuffer cmd)
         m_device,
         cmd,
         drawImage.getExtent2D(),
-        m_scene->getCamera(),
+        camera,
+        m_sceneDataBuffer.getBuffer(),
         m_meshCache,
         m_meshDrawCommands);
 
     vkCmdEndRendering(cmd);
+
+    m_meshDrawCommands.clear();
+}
+
+void SceneRenderer::updateLights(Ref<Scene> scene) 
+{
+    auto &lightCache = scene->getLightCache();
+	{
+        auto view = scene->getRegistry().view<TransformComponent, DirectionalLightComponent>();
+		for (auto &e : view)
+		{
+			auto [transform, dl] = view.get<TransformComponent, DirectionalLightComponent>(e);
+            lightCache.updateLight(dl.light.id, dl.light, transform);
+		}
+    }
+	{
+        auto view = scene->getRegistry().view<TransformComponent, PointLightComponent>();
+		for (auto &e : view)
+		{
+			auto [transform, pl] = view.get<TransformComponent, PointLightComponent>(e);
+            lightCache.updateLight(pl.light.id, pl.light, transform);
+		}
+    }
+	{
+        auto view = scene->getRegistry().view<TransformComponent, SpotLightComponent>();
+		for (auto &e : view)
+		{
+			auto [transform, sl] = view.get<TransformComponent, SpotLightComponent>(e);
+            lightCache.updateLight(sl.light.id, sl.light, transform);
+		}
+    }
 }
 } // namespace sky

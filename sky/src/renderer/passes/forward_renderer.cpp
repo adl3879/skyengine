@@ -6,11 +6,11 @@ namespace sky
 {
 void ForwardRendererPass::init(const gfx::Device &device) 
 {
-    const auto vertexShader = gfx::vkutil::loadShaderModule("shaders/triangle.vert.spv", device.getDevice());
-    const auto fragShader = gfx::vkutil::loadShaderModule("shaders/triangle.frag.spv", device.getDevice());
+    const auto vertexShader = gfx::vkutil::loadShaderModule("shaders/mesh.vert.spv", device.getDevice());
+    const auto fragShader = gfx::vkutil::loadShaderModule("shaders/mesh.frag.spv", device.getDevice());
 
     const auto bufferRange = VkPushConstantRange{
-        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
         .offset = 0,
         .size = sizeof(PushConstants),
     };
@@ -34,14 +34,16 @@ void ForwardRendererPass::init(const gfx::Device &device)
 }
 
 void ForwardRendererPass::draw(
-    const gfx::Device &device,
+    gfx::Device &device,
     gfx::CommandBuffer cmd, 
     VkExtent2D extent,
     const Camera &camera,
+	const gfx::AllocatedBuffer &sceneDataBuffer,
     const MeshCache &meshCache,
     const std::vector<MeshDrawCommand> &drawCommands)
 {
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInfo.pipeline);
+    device.bindBindlessDescSet(cmd, m_pInfo.pipelineLayout);
 
     // set dynamic viewport and scissor
     const auto viewport = VkViewport{
@@ -60,19 +62,25 @@ void ForwardRendererPass::draw(
     };
     vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-    for (const auto &drawCommand : drawCommands)
+    for (const auto &dc : drawCommands)
 	{
-        if (drawCommand.isVisible)
+        if (dc.isVisible)
         {    
-			const auto &mesh = meshCache.getMesh(drawCommand.meshId);
+			const auto &mesh = meshCache.getMesh(dc.meshId);
 
 			const auto pushConstants = PushConstants{
-				.worldMatrix = camera.getViewProjection(),
-				.vertexBuffer = mesh.vertexBufferAddress,
+				.transform = dc.modelMatrix,
+                .sceneDataBuffer = sceneDataBuffer.address,
+				.vertexBuffer = mesh.vertexBuffer.address,
+                .materialId = mesh.materialId, 
 			};
 
-			vkCmdPushConstants(cmd, m_pInfo.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, 
-                sizeof(PushConstants), &pushConstants);
+			vkCmdPushConstants(cmd, 
+                m_pInfo.pipelineLayout, 
+                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 
+                0, 
+                sizeof(PushConstants), 
+                &pushConstants);
 			vkCmdBindIndexBuffer(cmd, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 			vkCmdDrawIndexed(cmd, mesh.numIndices, 1, 0, 0, 0);

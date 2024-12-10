@@ -24,6 +24,7 @@ class TitlebarPanel
 	Ref<Scene> m_context;
 
 	ImageID m_skyIcon, m_closeIcon, m_maximizeIcon, m_minimizeIcon, m_restoreIcon; 
+	ImageID m_playIcon, m_pauseIcon, m_stopIcon, m_stepForwardIcon;
 	bool m_titleBarHovered;
 };
 }

@@ -29,8 +29,9 @@ void AssimpModelLoader::loadModel(const fs::path &path)
 {
     m_path = path;
     Assimp::Importer importer;
-    const aiScene *scene =
-        importer.ReadFile(path.string(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+    auto importFlags = aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FixInfacingNormals |
+                       aiProcess_CalcTangentSpace | aiProcess_OptimizeGraph;
+    const aiScene *scene = importer.ReadFile(path.string(), importFlags);
 
     // Check for errors
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)

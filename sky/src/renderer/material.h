@@ -29,6 +29,8 @@ struct MaterialData
     uint32_t    roughnessTex;
     uint32_t    ambientOcclusionTex;
     uint32_t    emissiveTex;
+
+    uint32_t padding[2]; // Padding to ensure 16-byte alignment
 };
 
 struct Material
@@ -48,5 +50,5 @@ struct Material
     std::string name;
 };
 
-using MaterialID = uint64_t;
+using MaterialID = uint32_t;
 }

@@ -9,13 +9,17 @@ class InspectorPanel
 {
   public:
 	void render();
-	void setContext(Entity ent) { m_context = ent; }
+	void setContext(Ref<Scene> ctx) { m_context = ctx; }
 
   private:
 	void drawTransformComponent();
 	void drawMeshComponent();
+	void drawDirectionalLightComponent();
+	void drawPointLightComponent();
+	void drawSpotLightComponent();
 
   private:
-	Entity m_context;
+	Ref<Scene> m_context;
+	bool m_renameRequested = false;
 };
 }

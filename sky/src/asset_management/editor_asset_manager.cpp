@@ -12,6 +12,9 @@ static std::map<fs::path, AssetType> s_assetExtensionMap = {
     { ".gltf",  AssetType::Mesh },
     { ".fbx",   AssetType::Mesh },
     { ".glb",   AssetType::Mesh },
+    { ".png",   AssetType::Texture2D },
+    { ".jpg",   AssetType::Texture2D },
+    { ".scene", AssetType::Scene },
 };
 
 AssetType getAssetTypeFromFileExtension(const fs::path &extension)
@@ -72,6 +75,7 @@ Ref<Asset> EditorAssetManager::getAsset(AssetHandle handle)
         }
 
         // Store the loaded asset
+        asset->handle = handle;
         m_loadedAssets[handle] = asset;
         serializeAssetRegistry();
     }

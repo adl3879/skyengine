@@ -30,6 +30,8 @@ struct LinearColorNoAlpha
     LinearColorNoAlpha() = default;
     LinearColorNoAlpha(const LinearColor &c) : r(c.r), g(c.g), b(c.b) {}
 
+    static LinearColor white() { return {1.f, 1.f, 1.f, 1.f}; }
+
     float r{0.f};
     float g{0.f};
     float b{0.f};

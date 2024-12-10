@@ -13,6 +13,7 @@
 #include "debug_panels/asset_browser_panel.h"
 #include "debug_panels/logs_panel.h"
 #include "debug_panels/titlebar_panel.h"
+#include "debug_panels/viewport_panel.h"
 
 namespace sky
 {
@@ -30,7 +31,7 @@ class EditorLayer : public Layer
     void onImGuiRender() override;
 
   private:
-    void handleViewportDrop();
+    void setPanelContexts();
 
   private:
     Ref<SceneRenderer> m_renderer;
@@ -41,6 +42,7 @@ class EditorLayer : public Layer
     AssetBrowserPanel   m_assetBrowserPanel;
     LogsPanel           m_logPanel;
     TitlebarPanel       m_titlebarPanel;
+    ViewportPanel       m_viewportPanel;
 
     Ref<Scene> m_activeScene;
 }; 

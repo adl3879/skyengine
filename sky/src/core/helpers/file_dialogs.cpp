@@ -5,6 +5,7 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 #include <ShlObj.h>
+#include <shellapi.h>
 
 #include "core/application.h"
 
@@ -104,6 +105,11 @@ std::string saveFile(const char *filter)
     if (GetSaveFileNameA(&ofn) == TRUE) return ofn.lpstrFile;
 
     return std::string();
+}
+
+void openFolderInExplorer(const fs::path &path)
+{
+    ShellExecuteA(NULL, "open", path.string().c_str(), NULL, NULL, SW_SHOW);
 }
 } // namespace helper
 } // namespace sky

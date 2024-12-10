@@ -29,6 +29,7 @@ class AssetBrowserPanel
     void refreshAssetTree();
     void displayFileHierarchy(const fs::path &directory);
     void openCreateFilePopup(AssetType type);
+    void confirmDeletePopup();
 
     // Search
     void search(const std::string &query);
@@ -59,6 +60,9 @@ class AssetBrowserPanel
 	std::string m_searchQuery;
     bool m_renameRequested = false;
     std::filesystem::path m_renamePath;
+
+    bool m_showConfirmDelete = false;
+	fs::path m_filePathToDelete;
 
     std::unordered_map<std::string, ImageID> m_icons;
 };

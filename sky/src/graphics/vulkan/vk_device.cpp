@@ -496,7 +496,7 @@ void Device::endFrame(CommandBuffer cmd, const AllocatedImage &drawImage)
     // Fences are reset here to prevent the deadlock in case swapchain becomes dirty
     m_swapchain.resetFences(m_device, getCurrentFrameIndex());
 
-    auto swapchainLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    auto swapchainLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     {
         // clear swapchain image
         VkImageSubresourceRange clearRange = vkinit::imageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
@@ -505,6 +505,23 @@ void Device::endFrame(CommandBuffer cmd, const AllocatedImage &drawImage)
 
         const auto clearValue = VkClearColorValue{{1.f, 1.f, 1.f, 1.f}};
         vkCmdClearColorImage(cmd, swapchainImage, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
+    }
+    {
+        vkutil::transitionImage(
+            cmd,
+            drawImage.image,
+            VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+        vkutil::transitionImage(
+            cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        swapchainLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+
+        vkutil::copyImageToImage(
+                cmd,
+                drawImage.image,
+                swapchainImage,
+                drawImage.getExtent2D(),
+                m_swapchain.getExtent());
     }
 
     {
@@ -536,7 +553,13 @@ VkDescriptorSetLayout Device::getBindlessDescSetLayout() const
 
 void Device::bindBindlessDescSet(VkCommandBuffer cmd, VkPipelineLayout layout)
 {
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1,
-                            &m_imageCache.bindlessSetManager.getDescSet(), 0, nullptr);
+    vkCmdBindDescriptorSets(cmd, 
+        VK_PIPELINE_BIND_POINT_GRAPHICS, 
+        layout, 
+        0, 
+        1,
+        &m_imageCache.bindlessSetManager.getDescSet(), 
+        0, 
+        nullptr);
 }
 } // namespace sky

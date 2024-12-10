@@ -9,6 +9,7 @@
 #include "renderer/scene_renderer.h"
 #include "core/helpers/image.h"
 #include "embed/window_images.embed";
+#include "scene/scene_manager.h"
 
 namespace sky
 {
@@ -19,15 +20,25 @@ TitlebarPanel::TitlebarPanel() : m_titleBarHovered(false)
     m_minimizeIcon = helper::loadImageFromFile("res/icons/minimize-icon.png");
     m_maximizeIcon = helper::loadImageFromData(g_WindowMaximizeIcon, sizeof(g_WindowMaximizeIcon));
     m_restoreIcon =  helper::loadImageFromData(g_WindowRestoreIcon, sizeof(g_WindowRestoreIcon));
+
+    m_playIcon =    helper::loadImageFromFile("res/icons/play.png");
+    m_pauseIcon =   helper::loadImageFromFile("res/icons/pause.png");
+    m_stopIcon =    helper::loadImageFromFile("res/icons/stop.png");
+    m_stepForwardIcon = helper::loadImageFromFile("res/icons/step.png");
+
+    Application::getWindow()->setTitlebarHitTestCallback([&](bool& hit) {
+        hit = m_titleBarHovered;
+    });
 }
 
 void TitlebarPanel::render(float &outTitlebarHeight)
 {
     const bool isMaximized = Application::getWindow()->isWindowMaximized();
-    const float titlebarHeight = 70.f;
+    const float titlebarHeight = 90.f;
     float titlebarVerticalOffset = 0.0f;
     const ImVec2 windowPadding = ImGui::GetCurrentWindow()->WindowPadding;
 
+    auto curPos = ImGui::GetCursorPos();
     ImGui::SetCursorPos(ImVec2(windowPadding.x, windowPadding.y + titlebarVerticalOffset));
     const ImVec2 titlebarMin = ImGui::GetCursorScreenPos();
     const ImVec2 titlebarMax = {ImGui::GetCursorScreenPos().x + ImGui::GetWindowWidth() - windowPadding.y * 2.0f,
@@ -65,7 +76,7 @@ void TitlebarPanel::render(float &outTitlebarHeight)
             m_titleBarHovered = true; // Account for the top-most pixels which don't register
     }
 
-    auto curPos = ImGui::GetCursorPos();
+    //auto curPos = ImGui::GetCursorPos();
     bool isOnMenu = false;
     {
         const float logoHorizontalOffset = 5.0f * 2.0f + 62.0f + windowPadding.x;
@@ -98,8 +109,8 @@ void TitlebarPanel::render(float &outTitlebarHeight)
     const ImU32 buttonColN = IM_COL32(192, 192, 192, 255);
     const ImU32 buttonColH = IM_COL32(192, 192, 192, 255);
     const ImU32 buttonColP = IM_COL32(192, 192, 192, 255);
-    const float buttonWidth = 20.0f;
-    const float buttonHeight = 20.0f;
+    const float buttonWidth = 22.0f;
+    const float buttonHeight = 22.0f;
 	const auto window = Application::getWindow()->getGLFWwindow();
 
     // Minimize Button
@@ -107,7 +118,7 @@ void TitlebarPanel::render(float &outTitlebarHeight)
 
     const float remaining = ImGui::GetContentRegionAvail().x;
     auto originalSpace = ImGui::GetStyle().ItemSpacing.x;
-    ImGui::GetStyle().ItemSpacing.x = 20;
+    ImGui::GetStyle().ItemSpacing.x = 24;
     ImGui::Dummy(ImVec2(remaining - ((buttonWidth + ImGui::GetStyle().ItemSpacing.x) * 3.5), 0));
     ImGui::SameLine();
     {
@@ -151,6 +162,40 @@ void TitlebarPanel::render(float &outTitlebarHeight)
     ImGui::Dummy({20, 0});
     ImGui::GetStyle().ItemSpacing.x = originalSpace;
 
+    // Second bar with play, stop, pause etc
+    ImGui::SetCursorPosX(windowPadding.x);
+    {
+		auto btnSize = ImVec2{30, 30}; 
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 6.f);
+		ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2.f - (btnSize.x * 3 / 2));
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.2f, 0.2f, 0.6f));
+		if (ImGui::ImageButton("##play", m_playIcon, btnSize))
+		{
+		}
+        ImGui::SameLine();
+		if (ImGui::ImageButton("##pause", m_pauseIcon, btnSize))
+		{
+		}
+		ImGui::SameLine();
+		if (ImGui::ImageButton("##step", m_stepForwardIcon, btnSize))
+		{
+		}
+        ImGui::PopStyleColor(2);
+        ImGui::SameLine();
+		ImGui::SetCursorPosX(ImGui::GetWindowWidth() - 130.f);
+        ImGui::Text("FPS %.2f", Application::getFPS());
+	}
+
+    ImGui::SetCursorPos(curPos);
+    ImGui::InvisibleButton("##titleBarDragZone", ImVec2(w - buttonsAreaWidth, titlebarHeight / 2));
+    m_titleBarHovered = ImGui::IsItemHovered();
+
+    if (isOnMenu) m_titleBarHovered = false;
+
+    ImGui::SetItemAllowOverlap();
+
     outTitlebarHeight = titlebarHeight;
 }
 
@@ -165,7 +210,7 @@ void TitlebarPanel::drawMenuBar()
     {
         if (ImGui::BeginMenu("File"))
         {
-			if (ImGui::BeginMenu("Project"))
+			if (ImGui::BeginMenu("Project   "))
 			{
 				if (ImGui::MenuItem("New Project"))
 				{
@@ -177,13 +222,31 @@ void TitlebarPanel::drawMenuBar()
 				}
 				ImGui::EndMenu();
 			}
-            if (ImGui::MenuItem("Quit")) Application::quit();
+            if (ImGui::MenuItem("Save Current Scene")) 
+            {
+                SceneManager::get().saveActiveScene();
+            }
+            if (ImGui::MenuItem("Save All")) {}
+            ImGui::Separator();
+            if (ImGui::MenuItem("Exit")) Application::quit();
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Edit")) {}
-        if (ImGui::BeginMenu("View")) {}
-        if (ImGui::BeginMenu("Tools")) {}
-        if (ImGui::BeginMenu("Help")) {}
+        if (ImGui::BeginMenu("Edit")) 
+        {
+			ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("View")) 
+        {
+			ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Tools")) 
+        {
+			ImGui::EndMenu();
+        }
+		if (ImGui::BeginMenu("Help")) 
+        {
+			ImGui::EndMenu();
+        }
 
         endMenubar();
     }

@@ -6,12 +6,15 @@
 #include "renderer/camera/perspective_camera.h"
 #include "renderer/camera/editor_camera.h"
 #include "core/uuid.h"
+#include "core/filesystem.h"
+#include "asset_management/asset.h"
+#include "renderer/light_cache.h"
 
 namespace sky
 {
 class Entity;
 
-class Scene
+class Scene : public Asset
 {
   public:
     struct ViewportInfo
@@ -37,9 +40,20 @@ class Scene
     Camera &getCamera();
     EditorCamera &getEditorCamera() { return m_editorCamera; }
     Entity getEntityFromUUID(UUID uuid);
-    //void setMainCamera(Camera &camera) { m_mainCamera = camera; }
+    LightCache &getLightCache() { return m_lightCache; }
+
+	LightID addLightToCache(const Light &light, const Transform &transform); 
+    bool hasDirectionalLight() const { return m_lightCache.getSunlightIndex() > -1; }
+
+	Entity getSelectedEntity();
+    void setSelectedEntity(Entity entity);
+
+    void setPath(const fs::path &path) { m_path = path; }
+    const fs::path &getPath() const { return m_path; }
 
     void setViewportInfo(ViewportInfo info) { m_viewportInfo = info; }
+
+	[[nodiscard]] AssetType getType() const override { return AssetType::Scene; }
 
   private:
     void newScene(const std::string &name);
@@ -52,7 +66,12 @@ class Scene
     std::unordered_map<UUID, entt::entity> m_entityMap;
     ViewportInfo m_viewportInfo;
 
+    entt::entity m_selectedEntity{entt::null};
+    fs::path m_path;
+
     PerspectiveCamera m_mainCamera;
     EditorCamera m_editorCamera;
+
+    LightCache m_lightCache;
 };
 }

@@ -5,6 +5,7 @@
 #include "graphics/vulkan/vk_device.h"
 #include "renderer/scene_renderer.h"
 #include "tasks/task_manager.h"
+#include "math/fps_counter.h"
 
 int main(int argc, char** argv);
 
@@ -33,6 +34,7 @@ class Application
     static Ref<TaskManager> getTaskManager() { return m_taskManager; }
     static std::vector<fs::path> &getDroppedFiles() { return m_droppedFiles; }
     static void quit();
+    static double getFPS() { return m_fps.getFPS(); }
 
   private:
     void run();
@@ -43,6 +45,7 @@ class Application
   private:
     inline static bool m_isRunning = true;
     inline static std::vector<fs::path> m_droppedFiles;
+    inline static FPSCounter m_fps;
 
     LayerStack m_layerStack{};
     static Ref<Window> m_window;

@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include <IconsFontAwesome5.h>
 #include "scene/components.h"
+#include "asset_management/asset_manager.h"
 
 namespace sky
 {
@@ -85,9 +86,35 @@ void SceneHierarchyPanel::render()
 			}
 			ImGui::EndTable();
 		}
+
         ImGui::EndChild();
         ImGui::PopStyleColor();
 	}
+
+	if (ImGui::BeginDragDropTarget())
+	{
+		if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+		{
+			fs::path path = (const char *)payload->Data;
+			auto assetType = getAssetTypeFromFileExtension(path.extension());
+
+			switch (assetType)
+			{
+				case AssetType::Mesh:
+				{
+					auto handle = AssetManager::getOrCreateAssetHandle(path, assetType);
+					auto entity = m_context->createEntity(path.stem().string());
+					entity.addComponent<ModelComponent>().handle = handle;
+                    m_context->setSelectedEntity(entity);
+					break;
+				}
+				default: break;
+			}
+		}
+
+		ImGui::EndDragDropTarget(); 
+	} 
+
     ImGui::End();
 }
 
@@ -119,14 +146,14 @@ void SceneHierarchyPanel::drawEntityNode(Entity entity, const char *query)
     ImGui::PopStyleColor(2);
 
     // Highlight the row if the entity is selected
-    if (ImGui::IsItemHovered() || m_selectedEntity == entity)
+    if (ImGui::IsItemHovered() || m_context->getSelectedEntity() == entity)
     {
         ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImGuiCol_Header));
     }
 
 	if (ImGui::IsItemClicked())
     {
-        m_selectedEntity = entity;
+        m_context->setSelectedEntity(entity);
     }
 
     bool isEntityDeleted = false;
@@ -183,7 +210,9 @@ void SceneHierarchyPanel::drawEntityNode(Entity entity, const char *query)
 
 Entity SceneHierarchyPanel::createEntityPopup() 
 {
-    const auto entity = Entity{entt::null, m_context.get()};
+    auto entity = Entity{entt::null, m_context.get()};
+    auto renderer = Application::getRenderer();
+
     if (ImGui::BeginMenu(ICON_FA_CUBE "  Mesh"))
     {
         if (ImGui::MenuItem(ICON_FA_CUBE "  Empty Mesh"))
@@ -191,11 +220,39 @@ Entity SceneHierarchyPanel::createEntityPopup()
         }
         ImGui::EndPopup();
     }
+    if (ImGui::BeginMenu(ICON_FA_LIGHTBULB "  Light"))
+    {
+        if (!m_context->hasDirectionalLight() && ImGui::MenuItem(ICON_FA_LIGHTBULB "  Directional Light")) 
+        {
+            entity = m_context->createEntity("Directional Light");
+            auto &dl = entity.addComponent<DirectionalLightComponent>().light;
+            dl.type = LightType::Directional;
+            dl.intensity = 2.f;
+            dl.color = LinearColor::white();
+            dl.id = m_context->addLightToCache(dl, entity.getComponent<TransformComponent>());
+        }
+        if (ImGui::MenuItem(ICON_FA_LIGHTBULB "  Point Light")) 
+        {
+			entity = m_context->createEntity("Point Light");
+            auto &pl = entity.addComponent<PointLightComponent>().light;
+            pl.type = LightType::Point;
+            pl.id = m_context->addLightToCache(pl, entity.getComponent<TransformComponent>());
+        }
+        if (ImGui::MenuItem(ICON_FA_LIGHTBULB "  Spot Light")) 
+        {
+			entity = m_context->createEntity("Spot Light");
+            auto &sl = entity.addComponent<SpotLightComponent>().light;
+            sl.type = LightType::Spot;
+            sl.id = m_context->addLightToCache(sl, entity.getComponent<TransformComponent>());
+        }
+        ImGui::EndPopup();
+    }
     ImGui::Separator();
     if (ImGui::MenuItem("Create empty entity"))
     {
-        return m_context->createEntity("Empty entity");
+        entity = m_context->createEntity("Empty entity");
     }
+    m_context->setSelectedEntity(entity);
     return entity;
 }
 } // namespace sky

@@ -9,6 +9,7 @@
 #include "asset_management/asset_manager.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
 namespace sky
 {
@@ -21,17 +22,7 @@ EditorLayer::EditorLayer()
     m_renderer = Application::getRenderer();
 
     auto extent = window->getExtent();
-    m_renderer->init(m_activeScene, {extent.width, extent.height});
-
-    AssimpModelLoader modelLoader("res/models/monkey.glb");
-    auto meshId = m_renderer->addMeshToCache(modelLoader.getMeshes()[0].mesh);
-
-    m_renderer->addDrawCommand(
-        MeshDrawCommand{
-            .meshId = meshId, 
-            .modelMatrix = glm::mat4{1.f},
-            .isVisible = true
-        });
+    m_renderer->init({extent.width, extent.height});
 
     if (!ProjectManager::isProjectOpen())
     {
@@ -42,8 +33,7 @@ EditorLayer::EditorLayer()
 
 void EditorLayer::onAttach() 
 {
-    m_sceneHierarchyPanel.setContext(m_activeScene);
-    m_titlebarPanel.setContext(m_activeScene);
+    setPanelContexts();
 }
 
 void EditorLayer::onDetach() 
@@ -53,8 +43,9 @@ void EditorLayer::onDetach()
 
 void EditorLayer::onUpdate(float dt) 
 {
+    m_activeScene = SceneManager::get().getActiveScene();
     m_activeScene->update(dt);
-    m_inspectorPanel.setContext(m_sceneHierarchyPanel.getSelectedEntity());
+    setPanelContexts();
 
     auto &droppedFiles = Application::getDroppedFiles();
     while (!droppedFiles.empty())
@@ -93,7 +84,7 @@ void EditorLayer::onImGuiRender()
     ImGui::PushStyleColor(ImGuiCol_MenuBarBg, {0.f, 0.f, 0.f, 0.f});
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, isMaximized ? ImVec2(6.0f, 6.0f) : ImVec2(1.0f, 1.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 3.0f);
-    ImGui::Begin("DockSpace", nullptr, windowFlags);
+    ImGui::Begin("MyDockSpace", nullptr, windowFlags);
     ImGui::PopStyleColor(2);
     ImGui::PopStyleVar(2);
     ImGui::PopStyleVar(2);
@@ -112,23 +103,7 @@ void EditorLayer::onImGuiRender()
     ImGui::DockSpace(ImGui::GetID("MyDockspace"));
     style.WindowMinSize.x = minWinSizeX;
 
-  	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    ImGui::Begin("Viewport");
-    auto viewportSize = ImGui::GetContentRegionAvail();
-    m_activeScene->setViewportInfo({
-        .size = {viewportSize.x, viewportSize.y},
-        .isFocus = ImGui::IsWindowFocused(),
-    });
-    ImGui::Image(m_renderer->getDrawImageId(), viewportSize);
-
-    if (ImGui::BeginDragDropTarget())
-    {
-        handleViewportDrop();
-        ImGui::EndDragDropTarget(); 
-    }
-    ImGui::End();
-    ImGui::PopStyleVar();
-
+    m_viewportPanel.render();
     m_sceneHierarchyPanel.render();
     m_projectManagerPanel.render();
     m_inspectorPanel.render();
@@ -138,28 +113,11 @@ void EditorLayer::onImGuiRender()
     ImGui::End();
 }
 
-void EditorLayer::handleViewportDrop() 
+void EditorLayer::setPanelContexts() 
 {
-    if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
-    {
-        fs::path path = (const char *)payload->Data;
-        auto assetType = getAssetTypeFromFileExtension(path.extension());
-
-        switch (assetType)
-        {
-            case AssetType::Mesh:
-            {
-                auto handle = AssetManager::getOrCreateAssetHandle(path, assetType);
-                auto asset = AssetManager::loadAssetAsync<Model>(handle);
-
-                auto entity = m_activeScene->createEntity(path.stem().string());
-                entity.addComponent<ModelComponent>().handle = handle;
-				break;
-            }
-            case AssetType::Scene: break;
-            case AssetType::Material: break;
-            default: break;
-        }
-    }
+	m_viewportPanel.setContext(m_activeScene);
+    m_sceneHierarchyPanel.setContext(m_activeScene);
+    m_titlebarPanel.setContext(m_activeScene);
+    m_inspectorPanel.setContext(m_activeScene);
 }
 } // namespace sky

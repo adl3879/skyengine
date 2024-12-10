@@ -12,11 +12,15 @@ class EditorCamera : public Camera
     EditorCamera() = default;
     EditorCamera(float fov, float aspectRatio, float nearClip, float farClip);
 
-    SKY_INLINE glm::mat4 getViewProjection() const override { return m_projectionMatrix * m_viewMatrix; }
-    SKY_INLINE RenderData getRenderData() const override 
+    SKY_INLINE const glm::mat4 &getView() const override { return m_viewMatrix; }
+    SKY_INLINE const glm::mat4 &getProjection() const override { return m_projectionMatrix; }
+    SKY_INLINE const glm::vec4 &getPosition() const override { return glm::vec4{m_position, 1.f}; };
+
+    SKY_INLINE const glm::mat4 &getViewProjection() override { return m_projectionMatrix * m_viewMatrix; }
+    SKY_INLINE RenderData getRenderData() override 
     {
         return {
-            getViewProjection(), 
+            m_projectionMatrix * m_viewMatrix, 
             m_viewMatrix, 
             m_projectionMatrix, 
             m_position,

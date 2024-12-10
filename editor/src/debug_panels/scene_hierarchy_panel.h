@@ -10,8 +10,7 @@ class SceneHierarchyPanel
   public:
     void render();
     void setContext(Ref<Scene> ctx) { m_context = ctx; }
-    Entity getSelectedEntity() { return m_selectedEntity; }
-
+    
   private:
     void drawEntityNode(Entity entity, const char *query = "");
     Entity createEntityPopup();
@@ -19,6 +18,5 @@ class SceneHierarchyPanel
   
   private:
     Ref<Scene> m_context;
-    Entity m_selectedEntity;
 };
 }

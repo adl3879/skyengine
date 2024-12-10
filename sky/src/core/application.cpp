@@ -7,6 +7,7 @@
 #include <imgui_impl_vulkan.h>
 
 #include "renderer/model_loader.h"
+#include "scene/scene_manager.h"
 
 namespace sky {
 Ref<Window>         Application::m_window       = nullptr;
@@ -42,16 +43,10 @@ void Application::pushOverlay(Layer *layer)
 
 void Application::run() 
 {
-    auto currentTime = std::chrono::high_resolution_clock::now();
-
     while (!m_window->shouldClose()) 
     {
         glfwPollEvents();
         if (m_window->isWindowMinimized()) continue;
-
-        auto newTime = std::chrono::high_resolution_clock::now();
-        float frameTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
-        currentTime = newTime;
 
         // imgui new frame
         ImGui_ImplGlfw_NewFrame();
@@ -66,7 +61,7 @@ void Application::run()
 
         {
             auto cmd = m_gfxDevice->beginFrame();
-            m_renderer->render(cmd);
+            m_renderer->render(cmd, SceneManager::get().getActiveScene());
             m_gfxDevice->endFrame(cmd, m_renderer->getDrawImage());
 
             if (m_gfxDevice->needsSwapchainRecreate())
@@ -76,7 +71,9 @@ void Application::run()
             }
         }
 
-        for (Layer *layer : m_layerStack) layer->onUpdate(frameTime);
+        for (Layer *layer : m_layerStack) layer->onUpdate(m_fps.getDeltaTime());
+
+        m_fps.frameRendered();
     }
     m_window->destroy();
 }
@@ -95,5 +92,6 @@ void Application::onEvent(Event &e)
 void Application::quit()
 {
     m_isRunning = false;
+	glfwSetWindowShouldClose(m_window->getGLFWwindow(), true);
 }
 } // namespace sky
