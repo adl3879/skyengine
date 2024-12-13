@@ -207,7 +207,7 @@ class Transform
      * @param forwardDirection The reference forward direction, default is (0, 0, 1, 1).
      * @return The current forward direction as a glm::vec3.
      */
-    SKY_INLINE glm::vec3 getForwardDirection(const glm::vec4 &worldForwardDirection = glm::vec4(0.f, 0.f, -1.f,1.f)) const
+    SKY_INLINE glm::vec3 getForwardDirection(const glm::vec4 &worldForwardDirection = glm::vec4(0.f, 0.f, -1.f, 1.f)) const
     {
         // TIP: Not sure if there should be normilize !
         return glm::normalize(getRotationQuaternion() * worldForwardDirection);

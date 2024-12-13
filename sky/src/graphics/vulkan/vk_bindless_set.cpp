@@ -46,7 +46,7 @@ void BindlessSetManager::init(VkDevice device, float maxAnisotropy)
             },
         }};
 
-        const VkDescriptorBindingFlags bindlessFlags =
+        const VkDescriptorBindingFlags bindlessFlags = 
             VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
         const auto bindingFlags = std::array{bindlessFlags, bindlessFlags};
 

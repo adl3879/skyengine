@@ -7,6 +7,13 @@
 #include "lighting.glsl"
 #include "mesh_pcs.glsl"
 
+#define DEPTH_ARRAY_SCALE 512
+
+layout(set = 1, binding = 0) buffer writeonly s_Write_t
+{
+    uint data[DEPTH_ARRAY_SCALE];
+} s_Write;
+
 layout (location = 0) in vec3 inPos;
 layout (location = 1) in vec2 inUV;
 layout (location = 2) in vec3 inNormal;
@@ -20,17 +27,14 @@ void main()
     MaterialData material = pcs.sceneData.materials.data[pcs.materialID];
 
     vec4 diffuse = sampleTexture2DLinear(material.diffuseTex, inUV);
-    if (diffuse.a < 0.1) {
-        discard;
-    }
+    // if (diffuse.a < 0.1) {
+    //     discard;
+    // }
 
     vec3 baseColor = material.baseColor.rgb * diffuse.rgb;
 
     vec3 normal = normalize(inNormal).rgb;
     if (inTangent != vec4(0.0)) {
-        // FIXME: sometimes Blender doesn't export tangents for some objects
-        // for some reason. When we will start computing tangents manually,
-        // this check can be removed
         normal = sampleTexture2DLinear(material.normalTex, inUV).rgb;
         // normal.y = 1 - normal.y; // flip to make OpenGL normal maps work
         normal = inTBN * normalize(normal * 2.0 - 1.0);
@@ -87,24 +91,15 @@ void main()
     // ambient
     fragColor += baseColor * pcs.sceneData.ambientColor * pcs.sceneData.ambientIntensity;
 
-#if 0
-    // CSM DEBUG
-    uint cascadeIndex = chooseCascade(inPos, cameraPos, pcs.sceneData.cascadeFarPlaneZs);
-    fragColor *= debugShadowsFactor(cascadeIndex);
-#endif
+    // get the depth and scale it up by
+    // the total number of buckets in depth array
+    uint zIndex = uint(gl_FragCoord.z * DEPTH_ARRAY_SCALE);
 
-#if 0
-    // TANGENT DEBUG
-    if (inTangent == vec4(0.0)) {
-        fragColor = vec3(1.0f, 0.0f, 0.0f);
+    if (length(pcs.sceneData.mousePos - gl_FragCoord.xy) < 1) {
+        s_Write.data[zIndex] = pcs.uniqueId;
     }
-#endif
-
-#if 1
-    // NORMAL DEBUG
-	// fragColor = normal;
-#endif
 
 	outFragColor = vec4(fragColor, 1.0f);
-    // outFragColor = vec4(1.0f, 0.f, 0.f, 1.f);
+    // outFragColor = vec4(pcs.uniqueId / 10.f, 0.f, 0.1f, 1.f);
+
 }

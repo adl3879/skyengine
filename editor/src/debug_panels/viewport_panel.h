@@ -17,5 +17,6 @@ class ViewportPanel
 
   private:
 	Ref<Scene> m_context;
+    glm::vec2 m_viewportBounds[2];
 };
 }

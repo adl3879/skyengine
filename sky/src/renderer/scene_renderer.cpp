@@ -6,6 +6,8 @@
 #include "scene/components.h"
 #include "asset_management/asset_manager.h"
 #include "core/color.h"
+#include "core/events/input.h"
+#include "scene/entity.h"
 
 namespace sky
 {
@@ -122,6 +124,7 @@ void SceneRenderer::render(gfx::CommandBuffer cmd, Ref<Scene> scene)
 						.meshId = mesh,
 						.modelMatrix = transform.getModelMatrix(),
 						.isVisible = visibility,
+                        .uniqueId = static_cast<uint32_t>(e) + 1,
 					});
 				}
 			});
@@ -137,6 +140,8 @@ void SceneRenderer::render(gfx::CommandBuffer cmd, Ref<Scene> scene)
             .proj = camera.getProjection(),
             .viewProj = camera.getViewProjection(),
             .cameraPos = camera.getPosition(),
+            .mousePos = scene->getViewportInfo().mousePos,
+            .viewportSize = scene->getViewportInfo().size,
             .ambientColor = LinearColorNoAlpha::white(),
             .ambientIntensity = 0.0f,
             .lightsBuffer = lightCache.getBuffer().address,
@@ -158,7 +163,7 @@ void SceneRenderer::render(gfx::CommandBuffer cmd, Ref<Scene> scene)
         .colorImageView = drawImage.imageView,
         .colorImageClearValue = glm::vec4{0.f, 0.f, 0.f, 1.f},
         .depthImageView = depthImage.imageView,
-        .depthImageClearValue = 0.f,
+        .depthImageClearValue = 1.f,
     });
 
     gfx::vkutil::transitionImage(cmd, 
@@ -177,6 +182,7 @@ void SceneRenderer::render(gfx::CommandBuffer cmd, Ref<Scene> scene)
         m_meshCache,
         m_meshDrawCommands);
 
+    mousePicking(scene);
     vkCmdEndRendering(cmd);
 
     m_meshDrawCommands.clear();
@@ -208,6 +214,46 @@ void SceneRenderer::updateLights(Ref<Scene> scene)
 			auto [transform, sl] = view.get<TransformComponent, SpotLightComponent>(e);
             lightCache.updateLight(sl.light.id, sl.light, transform);
 		}
+    }
+}
+
+void SceneRenderer::mousePicking(Ref<Scene> scene) 
+{
+    static bool wasButtonPressed = false; // Track previous state of the button
+
+    if (scene->getViewportInfo().isFocus && Input::isMouseButtonPressed(Mouse::ButtonLeft))
+    {
+        // Check if the button was not pressed previously (i.e., it's a new click)
+        if (!wasButtonPressed)
+        {
+            wasButtonPressed = true;
+
+            auto storageBuffer = m_device.getStorageBuffer();
+
+            void *mappedMemory = nullptr;
+            VK_CHECK(vmaMapMemory(m_device.getAllocator(), storageBuffer.allocation, (void **)&mappedMemory));
+            uint32_t *u = static_cast<uint32_t *>(mappedMemory);
+
+            int selectedID = -1;
+            for (int i = 0; i < gfx::DEPTH_ARRAY_SCALE; i++)
+            {
+                if (u[i] != 0)
+                {
+                    selectedID = u[i];
+                    Entity ent = Entity{(entt::entity)(selectedID - 1), scene.get()};
+                    scene->setSelectedEntity(ent);
+                    break;
+                }
+            }
+
+            std::memset(mappedMemory, 0, gfx::DEPTH_ARRAY_SCALE * sizeof(uint32_t));
+            vmaUnmapMemory(m_device.getAllocator(), storageBuffer.allocation); // Unmap memory using VMA
+        }
+    }
+    else
+    {
+        // Reset the button state when released
+        wasButtonPressed = false;
     }
 }
 } // namespace sky

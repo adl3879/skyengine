@@ -137,7 +137,10 @@ void ImGuiBackend::draw(VkCommandBuffer cmd, Device &gfxDevice, VkImageView swap
     vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-    gfxDevice.bindBindlessDescSet(cmd, pipelineLayout);
+	VkDescriptorSet descriptorSets[] = {
+        gfxDevice.getBindlessDescSet(),
+    };
+    gfxDevice.bindDescriptorSets(cmd, pipelineLayout, descriptorSets);
 
     const auto targetWidth = (float)swapchainExtent.width;
     const auto targetHeight = (float)swapchainExtent.height;

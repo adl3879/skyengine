@@ -20,6 +20,7 @@ class Scene : public Asset
     struct ViewportInfo
     {
         glm::vec2 size;
+        glm::vec2 mousePos;
         bool isFocus;
     };
 
@@ -52,6 +53,7 @@ class Scene : public Asset
     const fs::path &getPath() const { return m_path; }
 
     void setViewportInfo(ViewportInfo info) { m_viewportInfo = info; }
+    ViewportInfo getViewportInfo() const { return m_viewportInfo; }
 
 	[[nodiscard]] AssetType getType() const override { return AssetType::Scene; }
 
@@ -70,7 +72,7 @@ class Scene : public Asset
     fs::path m_path;
 
     PerspectiveCamera m_mainCamera;
-    EditorCamera m_editorCamera;
+    EditorCamera m_editorCamera{45.f, 16/9, 0.1f, 1000.f};
 
     LightCache m_lightCache;
 };

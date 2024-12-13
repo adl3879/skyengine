@@ -38,6 +38,7 @@ class SceneRenderer
     void createDrawImage(glm::ivec2 size);
     void initSceneData();
     void updateLights(Ref<Scene> scene);
+    void mousePicking(Ref<Scene> scene);
 
   private:
     gfx::Device &m_device;
@@ -55,6 +56,8 @@ class SceneRenderer
         glm::mat4 proj;
         glm::mat4 viewProj;
         glm::vec4 cameraPos;
+        glm::vec2 mousePos;
+        glm::vec2 viewportSize;
 
         // ambient
         LinearColorNoAlpha ambientColor;

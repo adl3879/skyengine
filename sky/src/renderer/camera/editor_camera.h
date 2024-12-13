@@ -11,23 +11,11 @@ class EditorCamera : public Camera
   public:
     EditorCamera() = default;
     EditorCamera(float fov, float aspectRatio, float nearClip, float farClip);
-
+ 
     SKY_INLINE const glm::mat4 &getView() const override { return m_viewMatrix; }
     SKY_INLINE const glm::mat4 &getProjection() const override { return m_projectionMatrix; }
     SKY_INLINE const glm::vec4 &getPosition() const override { return glm::vec4{m_position, 1.f}; };
-
     SKY_INLINE const glm::mat4 &getViewProjection() override { return m_projectionMatrix * m_viewMatrix; }
-    SKY_INLINE RenderData getRenderData() override 
-    {
-        return {
-            m_projectionMatrix * m_viewMatrix, 
-            m_viewMatrix, 
-            m_projectionMatrix, 
-            m_position,
-            getForwardDirection(),
-            m_nearClip, 
-            m_farClip};
-    }
 
     void update(float ts);
     void onEvent(Event &e);
@@ -72,7 +60,7 @@ class EditorCamera : public Camera
     float zoomSpeed() const;
 
   private:
-    float m_fov = 45.0f, m_aspectRatio = 1.778f, m_nearClip = 0.1f, m_farClip = 1000.0f;
+    float m_fov, m_aspectRatio, m_nearClip, m_farClip;
 
     glm::mat4 m_viewMatrix, m_projectionMatrix;
     glm::vec3 m_position = {0.0f, 0.0f, 0.0f};
@@ -82,8 +70,6 @@ class EditorCamera : public Camera
 
     float m_distance = 10.0f;
     float m_pitch = 0.0f, m_yaw = 0.0f;
-
     float m_viewportWidth = 1280, m_viewportHeight = 720;
-    float m_deltaTime = 0.0f;
 };
 } // namespace sky

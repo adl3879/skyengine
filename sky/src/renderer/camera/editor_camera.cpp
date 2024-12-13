@@ -9,10 +9,10 @@
 namespace sky
 {
 EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
-    : m_fov(45.0f), m_aspectRatio(16/9), m_nearClip(0.1f), m_farClip(1000.f)
+    : m_fov(fov), m_aspectRatio(aspectRatio), m_nearClip(nearClip), m_farClip(farClip)
 {
     // set pitch to show the scene from an angle that looks like a floor
-    m_pitch = 0.2613f;
+    //m_pitch = 0.2613f;
     updateView();
 }
 
@@ -24,7 +24,7 @@ void EditorCamera::updateProjection()
 
 void EditorCamera::updateView()
 {
-    // m_Yaw = m_pitch = 0.0f; // Lock the camera's rotation
+     //m_yaw = m_pitch = 0.0f; // Lock the camera's rotation
     m_position = calculatePosition();
 
     glm::quat orientation = getOrientation();
@@ -56,7 +56,6 @@ float EditorCamera::zoomSpeed() const
 
 void EditorCamera::update(float ts)
 {
-    m_deltaTime = ts;
     auto mousePos = Input::getMousePosition();
     const glm::vec2 &mouse{mousePos.x, mousePos.y};
     if (Input::isKeyPressed(Key::LeftAlt))
@@ -110,7 +109,7 @@ void EditorCamera::mouseZoom(float delta)
     }
 }
 
-glm::vec3 EditorCamera::getUpDirection() const { return glm::rotate(getOrientation(), glm::vec3(0.0f, 1.0f, 0.0f)); }
+glm::vec3 EditorCamera::getUpDirection() const { return glm::rotate(getOrientation(), glm::vec3(0.0f, -1.0f, 0.0f)); }
 
 glm::vec3 EditorCamera::getRightDirection() const { return glm::rotate(getOrientation(), glm::vec3(1.0f, 0.0f, 0.0f)); }
 

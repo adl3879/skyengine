@@ -1,6 +1,7 @@
 #include "forward_renderer.h"
 
 #include "graphics/vulkan/vk_pipelines.h"
+#include "core/events/input.h"
 
 namespace sky
 {
@@ -16,7 +17,10 @@ void ForwardRendererPass::init(const gfx::Device &device)
     };
 
     const auto pushConstantRanges = std::array{bufferRange};
-    const auto layouts = std::array{device.getBindlessDescSetLayout()};
+    const auto layouts = std::array<VkDescriptorSetLayout, 2>{
+        device.getBindlessDescSetLayout(), 
+        device.getStrorageBufferLayout()
+    };
 
     m_pInfo.pipelineLayout = gfx::vkutil::createPipelineLayout(device.getDevice(), layouts, pushConstantRanges);
 
@@ -27,7 +31,7 @@ void ForwardRendererPass::init(const gfx::Device &device)
                          .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
                          .setMultisamplingNone()
                          .disableBlending()
-                         .enableDepthTest(true, VK_COMPARE_OP_GREATER_OR_EQUAL)
+                         .enableDepthTest(true, VK_COMPARE_OP_LESS)
                          .setColorAttachmentFormat(VK_FORMAT_R16G16B16A16_SFLOAT)
                          .setDepthFormat(VK_FORMAT_D32_SFLOAT)
                          .build(device.getDevice());
@@ -43,7 +47,11 @@ void ForwardRendererPass::draw(
     const std::vector<MeshDrawCommand> &drawCommands)
 {
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInfo.pipeline);
-    device.bindBindlessDescSet(cmd, m_pInfo.pipelineLayout);
+    VkDescriptorSet descriptorSets[] = {
+        device.getBindlessDescSet(),
+        device.getStorageBufferDescSet(),
+    };
+    device.bindDescriptorSets(cmd, m_pInfo.pipelineLayout, descriptorSets);
 
     // set dynamic viewport and scissor
     const auto viewport = VkViewport{
@@ -70,6 +78,7 @@ void ForwardRendererPass::draw(
 
 			const auto pushConstants = PushConstants{
 				.transform = dc.modelMatrix,
+                .uniqueId = dc.uniqueId,
                 .sceneDataBuffer = sceneDataBuffer.address,
 				.vertexBuffer = mesh.vertexBuffer.address,
                 .materialId = mesh.materialId, 

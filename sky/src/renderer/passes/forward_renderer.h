@@ -29,10 +29,10 @@ class ForwardRendererPass : public Pass
     struct PushConstants
 	{
         glm::mat4 transform;
+        uint32_t uniqueId;
         VkDeviceAddress sceneDataBuffer;
         VkDeviceAddress vertexBuffer;
         MaterialID materialId;
-        std::uint32_t padding;
 	};
 };
 } // namespace sky

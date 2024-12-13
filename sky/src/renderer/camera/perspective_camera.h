@@ -362,21 +362,6 @@ class PerspectiveCamera : public Camera
      */
     SKY_INLINE CameraFrustum getCameraFrustum() { return CameraFrustum(getViewProjection()); }
 
-    /**
-     * @brief Get camera render data.
-     * @return RenderData structure containing camera data.
-     */
-    SKY_INLINE RenderData getRenderData() override
-    {
-        return {getViewProjection(),
-                getView(),
-                getProjection(),
-                getPosition(),
-                getForwardDirection(), /*-m_perpective[3][2], m_perpective[2][2]*/
-                getNear(),
-                getFar()};
-    }
-
   private:
     const glm::vec3 UP = glm::vec3(0.0f, 1.0f, 0.0f); // Y is up
     glm::mat4 m_perpective;
@@ -385,7 +370,4 @@ class PerspectiveCamera : public Camera
     // TODO: make it like component
     bool m_isPrimary = false;
 };
-#ifndef CAMERA_DATA_SIZE
-#define CAMERA_DATA_SIZE (sizeof(Camera::RenderData))
-#endif // !CAMERA_DATA_SIZE
 } // namespace sky

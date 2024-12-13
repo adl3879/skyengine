@@ -21,6 +21,7 @@ class Window;
 namespace sky::gfx
 {
 static constexpr bool bUseValidationLayers = false;
+static constexpr unsigned int DEPTH_ARRAY_SCALE = 512;
 
 struct DeletionQueue
 {
@@ -71,9 +72,14 @@ class Device
 
 	FrameData &getCurrentFrame() { return m_frames[m_frameNumber % gfx::FRAME_OVERLAP]; }
     uint32_t getCurrentFrameIndex() { return m_frameNumber % gfx::FRAME_OVERLAP; }
-	VkDevice getDevice() const const { return m_device; }
+	VkDevice getDevice() const { return m_device; }
+	VmaAllocator getAllocator() { return m_allocator; }
     ImageID getWhiteTextureID() const { return m_whiteImageId; }
 	VkDescriptorSetLayout getBindlessDescSetLayout() const;
+	VkDescriptorSetLayout getStrorageBufferLayout() const { return m_storageBufferLayout; }
+	VkDescriptorSet getBindlessDescSet() const { return m_imageCache.bindlessSetManager.getDescSet(); }
+	VkDescriptorSet getStorageBufferDescSet() const { return m_storageBufferDescriptorSet; }
+	AllocatedBuffer getStorageBuffer() const { return m_storageBuffer; }
     float getMaxAnisotropy() const { return m_maxSamplerAnisotropy; }
 
 	CommandBuffer beginFrame();
@@ -87,12 +93,15 @@ class Device
 	bool isInitialized() const { return m_isInitialized; }
 	bool needsSwapchainRecreate() const { return m_swapchain.needsRecreation(); }
 	void recreateSwapchain(CommandBuffer cmd, int width, int height);
-    void bindBindlessDescSet(VkCommandBuffer cmd, VkPipelineLayout layout);
+
+	template <size_t N>
+	void bindDescriptorSets(VkCommandBuffer cmd, VkPipelineLayout layout, const VkDescriptorSet (&descriptorSets)[N])
+	{
+		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, N, descriptorSets, 0, nullptr);
+	}
 	
   public:
-    ImageID createImage(const vkutil::CreateImageInfo &createInfo,
-        void *pixelData, 
-		ImageID imageId = NULL_IMAGE_ID);
+    ImageID createImage(const vkutil::CreateImageInfo &createInfo, void *pixelData, ImageID imageId = NULL_IMAGE_ID);
     void uploadImageData(const AllocatedImage &image, void *pixelData, std::uint32_t layer = 0);
 	AllocatedImage createImageRaw(const vkutil::CreateImageInfo& createInfo) const;
 	ImageID createImage(const vkutil::CreateImageInfo& createInfo);
@@ -105,6 +114,8 @@ class Device
     void initVulkan();
 	void initCommands();
     void checkDeviceCapabilities();
+
+	void createStorageBufferDescriptor();
 
   private:
 	FrameData m_frames[gfx::FRAME_OVERLAP];
@@ -135,6 +146,11 @@ class Device
 
 	gfx::ImageCache m_imageCache;
     ImageID m_whiteImageId{NULL_IMAGE_ID};
+
+	// mouse picker storage buffer
+    AllocatedBuffer m_storageBuffer;
+    VkDescriptorSetLayout m_storageBufferLayout;
+    VkDescriptorSet m_storageBufferDescriptorSet;
 
 	// temp
     VkFence m_immFence;

@@ -82,11 +82,11 @@ MeshLoaderReturn AssimpModelLoader::processMesh(aiMesh *mesh, const aiScene *sce
         }
         if (mesh->mTangents)
         {
-            vertex.tangent = {mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z, 1.0f};
+            vertex.tangent = {mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z, 0.0f};
         }
         if (mesh->mBitangents)
         {
-            //vertex.bitangent = {mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z};
+            //vertex.bitangent = {mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z, 0.0f};
         }
         // Texture coordinates
         if (mesh->mTextureCoords[0])

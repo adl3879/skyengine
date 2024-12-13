@@ -7,8 +7,8 @@
 layout (push_constant) uniform constants
 {
     mat4 transform;
+    uint uniqueId;
     SceneDataBuffer sceneData;
     VertexBuffer vertexBuffer;
     uint materialID;
-    uint padding;
 } pcs;

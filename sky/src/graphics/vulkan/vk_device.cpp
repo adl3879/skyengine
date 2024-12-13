@@ -41,6 +41,7 @@ void Device::init()
     m_swapchain.create(m_device, m_swapchainFormat, extent.width, extent.height, false);
 
     m_imageCache.bindlessSetManager.init(m_device, getMaxAnisotropy());
+	createStorageBufferDescriptor();
 
     initCommands();
 
@@ -100,6 +101,7 @@ void Device::initVulkan()
         //.geometryShader = VK_TRUE, // for im3d
         .depthClamp = VK_TRUE,
         .samplerAnisotropy = VK_TRUE,
+        .fragmentStoresAndAtomics = VK_TRUE,
     };
     const auto features12 = VkPhysicalDeviceVulkan12Features{
         .descriptorIndexing = true,
@@ -225,6 +227,66 @@ AllocatedBuffer Device::createBuffer(size_t allocSize, VkBufferUsageFlags usage,
     }
 
     return newBuffer;
+}
+
+
+void Device::createStorageBufferDescriptor() 
+{
+    VkDescriptorPoolSize poolSize = {};
+    poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    poolSize.descriptorCount = 1; // For simplicity, we allocate one descriptor for now
+
+    VkDescriptorPoolCreateInfo poolCreateInfo = {};
+    poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolCreateInfo.poolSizeCount = 1;
+    poolCreateInfo.pPoolSizes = &poolSize;
+    poolCreateInfo.maxSets = 1; // Allocate one descriptor set
+
+    VkDescriptorPool descriptorPool;
+    VK_CHECK(vkCreateDescriptorPool(m_device, &poolCreateInfo, nullptr, &descriptorPool));
+
+    auto bufferSize = DEPTH_ARRAY_SCALE * sizeof(unsigned int);
+    m_storageBuffer = createBuffer(bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                                   VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+    VkDescriptorSetLayoutBinding binding = {};
+    binding.binding = 0;
+    binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    binding.descriptorCount = 1;
+    binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
+    binding.pImmutableSamplers = nullptr;
+
+    VkDescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+    layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutCreateInfo.bindingCount = 1;
+    layoutCreateInfo.pBindings = &binding;
+
+    VK_CHECK(vkCreateDescriptorSetLayout(m_device, &layoutCreateInfo, nullptr, &m_storageBufferLayout));
+
+    VkDescriptorSetAllocateInfo allocInfo = {};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = descriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &m_storageBufferLayout;
+
+    VK_CHECK(vkAllocateDescriptorSets(m_device, &allocInfo, &m_storageBufferDescriptorSet));
+
+    // Write the buffer information to the descriptor set
+    VkDescriptorBufferInfo bufferInfo = {};
+    bufferInfo.buffer = m_storageBuffer.buffer;
+    bufferInfo.offset = 0;
+    bufferInfo.range = VK_WHOLE_SIZE;
+
+    VkWriteDescriptorSet descriptorWrite = {};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = m_storageBufferDescriptorSet;
+    descriptorWrite.dstBinding = 0;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pBufferInfo = &bufferInfo;
+
+    vkUpdateDescriptorSets(m_device, 1, &descriptorWrite, 0, nullptr);
 }
 
 void Device::destroyBuffer(const AllocatedBuffer &buffer) 
@@ -496,7 +558,7 @@ void Device::endFrame(CommandBuffer cmd, const AllocatedImage &drawImage)
     // Fences are reset here to prevent the deadlock in case swapchain becomes dirty
     m_swapchain.resetFences(m_device, getCurrentFrameIndex());
 
-    auto swapchainLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    auto swapchainLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     {
         // clear swapchain image
         VkImageSubresourceRange clearRange = vkinit::imageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
@@ -549,17 +611,5 @@ void Device::endFrame(CommandBuffer cmd, const AllocatedImage &drawImage)
 VkDescriptorSetLayout Device::getBindlessDescSetLayout() const
 {
     return m_imageCache.bindlessSetManager.getDescSetLayout();
-}
-
-void Device::bindBindlessDescSet(VkCommandBuffer cmd, VkPipelineLayout layout)
-{
-    vkCmdBindDescriptorSets(cmd, 
-        VK_PIPELINE_BIND_POINT_GRAPHICS, 
-        layout, 
-        0, 
-        1,
-        &m_imageCache.bindlessSetManager.getDescSet(), 
-        0, 
-        nullptr);
 }
 } // namespace sky

@@ -17,6 +17,8 @@ layout (buffer_reference, scalar) readonly buffer SceneDataBuffer {
     mat4 proj;
     mat4 viewProj;
     vec4 cameraPos;
+    vec2 mousePos;
+    vec2 viewportSize;
 
     // ambient
     vec3 ambientColor;

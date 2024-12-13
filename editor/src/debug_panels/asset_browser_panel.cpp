@@ -255,7 +255,7 @@ void AssetBrowserPanel::displayFileHierarchy(const fs::path &directory)
 
             auto label = std::string(ICON_FA_FOLDER "  ") + path;
             
-            ImGui::Dummy({0, 4}); // Add vertical space
+            ImGui::Spacing();
             const bool treeNodeOpen = ImGui::TreeNodeEx(path.c_str(), flags, label.c_str());
 
             // if treenode is selected

@@ -19,9 +19,29 @@ void ViewportPanel::render()
         bool show = true;
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 		ImGui::Begin(scene.string().c_str(), &show);
+
+		auto viewportOffset = ImGui::GetCursorPos();
 		auto viewportSize = ImGui::GetContentRegionAvail();
+        auto windowSize = ImGui::GetWindowSize();
+        auto miniBound = ImGui::GetWindowPos();
+        miniBound.x += viewportOffset.x;
+        miniBound.y += viewportOffset.y;
+
+        auto maxBound = ImVec2(miniBound.x + windowSize.x, miniBound.y + windowSize.y);
+        m_viewportBounds[0] = {miniBound.x, miniBound.y};
+        m_viewportBounds[1] = {maxBound.x, maxBound.y};
+
+        auto [mx, my] = ImGui::GetMousePos();
+        mx -= m_viewportBounds[0].x;
+        my -= m_viewportBounds[0].y;
+
+        auto mainWindowSize = Application::getWindow()->getExtent();
+        auto ratioX = mainWindowSize.width / windowSize.x;
+        auto ratioY = mainWindowSize.height / windowSize.y;
+
 		m_context->setViewportInfo({
 			.size = {viewportSize.x, viewportSize.y},
+            .mousePos = {mx * ratioX, my * ratioY},
 			.isFocus = ImGui::IsWindowFocused() && ImGui::IsWindowHovered(),
 		});
 		ImGui::Image(renderer->getDrawImageId(), viewportSize);

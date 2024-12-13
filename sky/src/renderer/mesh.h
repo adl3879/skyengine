@@ -39,5 +39,6 @@ struct MeshDrawCommand
 	MeshID		meshId;
 	glm::mat4	modelMatrix;
 	bool		isVisible;
+	uint32_t	uniqueId = 0;
 };
 } // namespace sky
