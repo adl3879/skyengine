@@ -1,5 +1,7 @@
 #include "scene_renderer.h"
 
+#include <ImGuizmo.h>
+
 #include "core/application.h"
 #include "graphics/vulkan/vk_images.h"
 #include "asset_management/texture_importer.h"
@@ -8,6 +10,7 @@
 #include "core/color.h"
 #include "core/events/input.h"
 #include "scene/entity.h"
+#include "frustum_culling.h"
 
 namespace sky
 {
@@ -23,9 +26,56 @@ void SceneRenderer::init(glm::ivec2 size)
     createDrawImage(size);
 
     m_materialCache.init(m_device);
-    initSceneData();
+    initSceneData(); 
 
     m_forwardRenderer.init(m_device);
+    initBuiltins();
+}
+
+void SceneRenderer::initBuiltins() 
+{
+    {
+		AssimpModelLoader loader("res/models/cube.glb");
+		auto mesh = loader.getMeshes()[0].mesh;
+		mesh.material = addMaterialToCache(Material{});
+		m_builtinModels[ModelType::Cube] = addMeshToCache(mesh);
+    }
+	{
+		AssimpModelLoader loader("res/models/plane.glb");
+		auto mesh = loader.getMeshes()[0].mesh;
+		mesh.material = addMaterialToCache(Material{});
+		m_builtinModels[ModelType::Plane] = addMeshToCache(mesh);
+    }
+	{
+		AssimpModelLoader loader("res/models/sphere.glb");
+		auto mesh = loader.getMeshes()[0].mesh;
+		mesh.material = addMaterialToCache(Material{});
+		m_builtinModels[ModelType::Sphere] = addMeshToCache(mesh);
+	}
+	{
+		AssimpModelLoader loader("res/models/cylinder.glb");
+		auto mesh = loader.getMeshes()[0].mesh;
+		mesh.material = addMaterialToCache(Material{});
+		m_builtinModels[ModelType::Cylinder] = addMeshToCache(mesh);
+	}
+	{
+		AssimpModelLoader loader("res/models/taurus.glb");
+		auto mesh = loader.getMeshes()[0].mesh;
+		mesh.material = addMaterialToCache(Material{});
+		m_builtinModels[ModelType::Taurus] = addMeshToCache(mesh);
+	}
+	{
+		AssimpModelLoader loader("res/models/cone.glb");
+		auto mesh = loader.getMeshes()[0].mesh;
+		mesh.material = addMaterialToCache(Material{});
+		m_builtinModels[ModelType::Cone] = addMeshToCache(mesh);
+	}
+	//{
+	//	AssimpModelLoader loader("res/models/capsule.glb");
+	//	auto mesh = loader.getMeshes()[0].mesh;
+	//	mesh.material = addMaterialToCache(Material{});
+	//	m_builtinModels[ModelType::Capsule] = addMeshToCache(mesh);
+	//}
 }
 
 void SceneRenderer::initSceneData() 
@@ -101,9 +151,19 @@ gfx::AllocatedImage SceneRenderer::getDrawImage()
 	return m_device.getImage(m_drawImageID);
 }
 
-void SceneRenderer::addDrawCommand(MeshDrawCommand drawCmd)
+void SceneRenderer::drawMesh(MeshID id, const glm::mat4 &transform, bool visibility, uint32_t uniqueId) 
 {
-    m_meshDrawCommands.push_back(drawCmd);
+    const auto &mesh = m_meshCache.getMesh(id);
+    const auto worldBoundingSphere = edge::calculateBoundingSphereWorld(transform, mesh.boundingSphere, false);
+
+    const auto dc = MeshDrawCommand{
+        .meshId = id,
+        .modelMatrix = transform,
+        .isVisible = visibility,
+        .uniqueId = uniqueId + 1,
+        .worldBoundingSphere = worldBoundingSphere,
+    };
+    m_meshDrawCommands.push_back(dc);
 }
 
 void SceneRenderer::render(gfx::CommandBuffer cmd, Ref<Scene> scene) 
@@ -116,18 +176,22 @@ void SceneRenderer::render(gfx::CommandBuffer cmd, Ref<Scene> scene)
 		for (auto &e : view)
 		{
 			auto [transform, model, visibility] = view.get<TransformComponent, ModelComponent, VisibilityComponent>(e);
-			
-			AssetManager::getAssetAsync<Model>(model.handle, [=](const Ref<Model> &model){
-				for (const auto &mesh : model->meshes) 
-				{
-					addDrawCommand({
-						.meshId = mesh,
-						.modelMatrix = transform.getModelMatrix(),
-						.isVisible = visibility,
-                        .uniqueId = static_cast<uint32_t>(e) + 1,
-					});
-				}
-			});
+
+            if (model.type == ModelType::Custom)
+            {
+				AssetManager::getAssetAsync<Model>(model.handle, [=](const Ref<Model> &model){
+					for (const auto &mesh : model->meshes) 
+					{
+                        drawMesh(mesh, transform.getModelMatrix(), visibility,
+                            static_cast<uint32_t>(e));
+					}
+				});
+            }
+            else
+            {
+                drawMesh(m_builtinModels[model.type], transform.getModelMatrix(), 
+                    visibility, static_cast<uint32_t>(e));
+            }
 		}
     }
     updateLights(scene);
@@ -219,41 +283,32 @@ void SceneRenderer::updateLights(Ref<Scene> scene)
 
 void SceneRenderer::mousePicking(Ref<Scene> scene) 
 {
-    static bool wasButtonPressed = false; // Track previous state of the button
+    if (ImGuizmo::IsUsing() || Input::isKeyPressed(Key::LeftAlt) || !scene->getViewportInfo().isFocus) return;
+    static bool called = false;
 
-    if (scene->getViewportInfo().isFocus && Input::isMouseButtonPressed(Mouse::ButtonLeft))
+    if (Input::isMouseButtonPressed(Mouse::ButtonLeft))
     {
-        // Check if the button was not pressed previously (i.e., it's a new click)
-        if (!wasButtonPressed)
-        {
-            wasButtonPressed = true;
+        called = true;
+		auto storageBuffer = m_device.getStorageBuffer();
 
-            auto storageBuffer = m_device.getStorageBuffer();
+		void *mappedMemory = nullptr;
+		VK_CHECK(vmaMapMemory(m_device.getAllocator(), storageBuffer.allocation, (void **)&mappedMemory));
+		uint32_t *u = static_cast<uint32_t *>(mappedMemory);
 
-            void *mappedMemory = nullptr;
-            VK_CHECK(vmaMapMemory(m_device.getAllocator(), storageBuffer.allocation, (void **)&mappedMemory));
-            uint32_t *u = static_cast<uint32_t *>(mappedMemory);
+		int selectedID = -1;
+		for (int i = 0; i < gfx::DEPTH_ARRAY_SCALE; i++)
+		{
+			if (u[i] != 0)
+			{
+				selectedID = u[i];
+				auto ent = Entity{(entt::entity)(selectedID - 1), scene.get()};
+				scene->setSelectedEntity(ent);
+				break;
+			}
+		}
 
-            int selectedID = -1;
-            for (int i = 0; i < gfx::DEPTH_ARRAY_SCALE; i++)
-            {
-                if (u[i] != 0)
-                {
-                    selectedID = u[i];
-                    Entity ent = Entity{(entt::entity)(selectedID - 1), scene.get()};
-                    scene->setSelectedEntity(ent);
-                    break;
-                }
-            }
-
-            std::memset(mappedMemory, 0, gfx::DEPTH_ARRAY_SCALE * sizeof(uint32_t));
-            vmaUnmapMemory(m_device.getAllocator(), storageBuffer.allocation); // Unmap memory using VMA
-        }
-    }
-    else
-    {
-        // Reset the button state when released
-        wasButtonPressed = false;
-    }
+		std::memset(mappedMemory, 0, gfx::DEPTH_ARRAY_SCALE * sizeof(uint32_t));
+		vmaUnmapMemory(m_device.getAllocator(), storageBuffer.allocation); // Unmap memory using VMA
+    } else called = false;
 }
 } // namespace sky

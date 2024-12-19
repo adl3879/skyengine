@@ -36,6 +36,7 @@ class Scene : public Asset
     Entity createEntity(const std::string &name = std::string());
     Entity createEntityWithUUID(UUID uuid, const std::string &name);
     void destroyEntity(Entity entity);
+    void processDestructionQueue(); // Processes the queue
 
     entt::registry &getRegistry() { return m_registry; }
     Camera &getCamera();
@@ -66,6 +67,7 @@ class Scene : public Asset
     entt::registry m_registry;
     std::string m_sceneName;
     std::unordered_map<UUID, entt::entity> m_entityMap;
+    std::vector<entt::entity> m_destructionQueue;
     ViewportInfo m_viewportInfo;
 
     entt::entity m_selectedEntity{entt::null};

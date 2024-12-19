@@ -6,12 +6,12 @@
 #include "scene/components.h"
 #include "core/helpers/imgui.h"
 
-#define ADD_COMPONENT_MENU(type, name, fn)			\
-	if (!entity.hasComponent<type>())		\
+#define ADD_COMPONENT_MENU(type, name, fn)		\
+	if (!entity.hasComponent<type>())			\
 	{											\
 		if (ImGui::MenuItem(name))				\
 		{										\
-			entity.addComponent<type>(); fn();		\
+			entity.addComponent<type>(); fn();	\
 			ImGui::CloseCurrentPopup();			\
 		}										\
 	}											\

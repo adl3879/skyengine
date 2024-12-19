@@ -72,9 +72,11 @@ void SceneSerializer::serializeEntity(YAML::Emitter &out, Entity entity, AssetHa
 		const auto &modelComponent = entity.getComponent<ModelComponent>();
 		out << YAML::Key << "model" << YAML::BeginMap;
 		out << YAML::Key << "handle" << YAML::Key << modelComponent.handle;
+		out << YAML::Key << "type" << YAML::Key << modelTypeToString(modelComponent.type);
 		out << YAML::EndMap;
 
-		AssetManager::addToDependecyList(handle, modelComponent.handle);
+		if (modelComponent.handle != NULL_UUID) 
+			AssetManager::addToDependecyList(handle, modelComponent.handle);
     }
 	if (entity.hasComponent<DirectionalLightComponent>())
     {
@@ -115,6 +117,7 @@ void SceneSerializer::deserializeEntity(YAML::detail::iterator_value key, Entity
 	if (auto model = key["model"])
     {
 		auto &modelComponent = entity.addComponent<ModelComponent>();
+		modelComponent.type = stringToModelType(model["type"].as<std::string>());
 		modelComponent.handle = model["handle"].as<UUID>();
     }
 	if (auto dl = key["directionalLight"])

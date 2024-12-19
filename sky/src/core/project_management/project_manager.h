@@ -44,6 +44,7 @@ class ProjectManager
     static void saveProject();
     static void deserializeProjectsList();
     static void removeProjectFromList(ProjectInfo info);
+    static void setStartScene(const fs::path &path);
 
     static ProjectConfig getConfig() { return m_config; }
     static std::vector<ProjectInfo> getProjectsList();

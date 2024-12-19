@@ -65,7 +65,20 @@ void Scene::destroyEntity(Entity entity)
         parentEntity.removeChild(entity);
     }
 
-    m_registry.destroy(entity);
+    m_selectedEntity = Entity{entt::null, this};
+    m_destructionQueue.push_back(entity);
+}
+
+void Scene::processDestructionQueue()
+{
+    for (auto entity : m_destructionQueue)
+    {
+        if (m_registry.valid(entity))
+        {
+            m_registry.destroy(entity); // Safely destroy the entity
+        }
+    }
+    m_destructionQueue.clear(); // Clear the queue after destruction
 }
 
 Entity Scene::getEntityFromUUID(UUID uuid)
@@ -103,7 +116,7 @@ Entity Scene::getSelectedEntity()
 
 void Scene::setSelectedEntity(Entity entity) 
 {
-    m_selectedEntity = entity.getEntityID();
+    if (m_registry.valid(entity)) m_selectedEntity = entity.getEntityID();
 }
 
 LightID Scene::addLightToCache(const Light &light, const Transform &transform)

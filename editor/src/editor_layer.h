@@ -32,6 +32,7 @@ class EditorLayer : public Layer
 
   private:
     void setPanelContexts();
+    void registerEditorEvents();
 
   private:
     Ref<SceneRenderer> m_renderer;

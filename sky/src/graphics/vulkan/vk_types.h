@@ -17,6 +17,8 @@
 #include <glm/mat4x4.hpp>
 #include <glm/vec4.hpp>
 
+#include "core/math/sphere.h"
+
 #define VK_CHECK(x)                                                         \
     do {                                                                    \
         VkResult err = x;                                                   \
@@ -63,6 +65,7 @@ struct GPUMeshBuffers
 
     uint32_t numIndices{0};
     uint32_t materialId{0};
+    math::Sphere boundingSphere;
 };
 
 // push constants for our mesh object draws

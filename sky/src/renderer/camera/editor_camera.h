@@ -17,6 +17,10 @@ class EditorCamera : public Camera
     SKY_INLINE const glm::vec4 &getPosition() const override { return glm::vec4{m_position, 1.f}; };
     SKY_INLINE const glm::mat4 &getViewProjection() override { return m_projectionMatrix * m_viewMatrix; }
 
+    SKY_INLINE const float &getNear() const override { return m_nearClip; }
+    SKY_INLINE const float &getFar() const override { return m_farClip; }
+    SKY_INLINE const float &getAspect() const override { return m_aspectRatio; }
+
     void update(float ts);
     void onEvent(Event &e);
 

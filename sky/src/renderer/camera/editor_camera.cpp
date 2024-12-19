@@ -12,7 +12,8 @@ EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float f
     : m_fov(fov), m_aspectRatio(aspectRatio), m_nearClip(nearClip), m_farClip(farClip)
 {
     // set pitch to show the scene from an angle that looks like a floor
-    //m_pitch = 0.2613f;
+    m_yaw = -2.3616006;
+    m_pitch = -0.5568;
     updateView();
 }
 

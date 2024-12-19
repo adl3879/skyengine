@@ -1,5 +1,7 @@
 #include "mesh_cache.h"
 
+#include "core/math/math.h"
+
 namespace sky
 {
 void MeshCache::cleanup(gfx::Device &device) 
@@ -18,6 +20,13 @@ MeshID MeshCache::addMesh(gfx::Device &device, const Mesh &mesh)
         .materialId = mesh.material,
     };
 
+    std::vector<glm::vec3> positions(mesh.vertices.size());
+    for (std::size_t i = 0; i < mesh.vertices.size(); ++i)
+    {
+        positions[i] = mesh.vertices[i].position;
+    }
+    gpuMesh.boundingSphere = math::calculateBoundingSphere(positions);
+    
     uploadMesh(device, mesh, gpuMesh);
     const auto id = UUID::generate();
     m_meshes[id] = gpuMesh;

@@ -5,8 +5,10 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include "sphere.h"
 
 #include <skypch.h>
+#include <span>
 
 namespace sky
 {
@@ -97,5 +99,9 @@ std::vector<float> Calculate2DWeightsPolar(const std::vector<glm::vec2> &points,
 std::vector<float> Calculate2DWeightsCartesian(const std::vector<glm::vec2> &points,
                                                          const glm::vec2 &sample_point);
 std::vector<float> Calculate2DWeightsGBi(const std::vector<glm::vec2> &points, const glm::vec2 &sample_point);
+
+math::Sphere calculateBoundingSphere(std::span<glm::vec3> positions);
+glm::vec3 smoothDamp(const glm::vec3 &current, glm::vec3 target, glm::vec3 &currentVelocity, float smoothTime, float dt,
+                     float maxSpeed = std::numeric_limits<float>::max());
 } // namespace math
 } // namespace shade

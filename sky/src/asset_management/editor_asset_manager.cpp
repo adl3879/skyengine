@@ -69,7 +69,6 @@ Ref<Asset> EditorAssetManager::getAsset(AssetHandle handle)
         asset = AssetImporter::importAsset(handle, metadata);
         if (!asset)
         {
-            // Import failed
             SKY_CORE_ERROR("EditorAssetManager::GetAsset - asset import failed!");
             return nullptr;
         }
@@ -100,7 +99,8 @@ AssetHandle EditorAssetManager::getOrCreateAssetHandle(fs::path path, AssetType 
 
 bool EditorAssetManager::isAssetHandleValid(AssetHandle handle) const 
 {
-    return handle != NULL_UUID && m_assetRegistry.find(handle) != m_assetRegistry.end();
+    // ?
+    return handle != NULL_UUID || m_assetRegistry.find(handle) != m_assetRegistry.end();
 }
 
 AssetType EditorAssetManager::getAssetType(AssetHandle handle) const 

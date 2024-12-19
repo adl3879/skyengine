@@ -22,7 +22,8 @@ class SceneRenderer
 
     void init(glm::ivec2 size);
     void render(gfx::CommandBuffer cmd, Ref<Scene> scene);
-    void addDrawCommand(MeshDrawCommand drawCmd);
+    void initBuiltins();
+    void drawMesh(MeshID id, const glm::mat4 &transform, bool visibility, uint32_t uniqueId);
     
     MeshID addMeshToCache(const Mesh &mesh);
     MaterialID addMaterialToCache(const Material &material);
@@ -81,5 +82,7 @@ class SceneRenderer
     VkFormat m_drawImageFormat{VK_FORMAT_R16G16B16A16_SFLOAT};
     VkFormat m_depthImageFormat{VK_FORMAT_D32_SFLOAT};
     VkSampleCountFlagBits m_samples{VK_SAMPLE_COUNT_1_BIT};
+
+    std::unordered_map<ModelType, MeshID> m_builtinModels;
 };
 } // namespace sky

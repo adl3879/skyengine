@@ -215,6 +215,49 @@ Entity SceneHierarchyPanel::createEntityPopup()
 
     if (ImGui::BeginMenu(ICON_FA_CUBE "  Mesh"))
     {
+        if (ImGui::MenuItem(ICON_FA_CUBE "  Cube"))
+        {
+            entity = m_context->createEntity("Default Cube");
+            auto &model = entity.addComponent<ModelComponent>();
+            model.type = ModelType::Cube;
+        }
+        if (ImGui::MenuItem(ICON_FA_CUBE "  Plane"))
+        {
+            entity = m_context->createEntity("Default Plane");
+            auto &model = entity.addComponent<ModelComponent>();
+            model.type = ModelType::Plane;
+        }
+        if (ImGui::MenuItem(ICON_FA_CIRCLE "  Sphere"))
+        {
+            entity = m_context->createEntity("Default Sphere");
+            auto &model = entity.addComponent<ModelComponent>();
+            model.type = ModelType::Sphere;
+        }
+        if (ImGui::MenuItem(ICON_FA_CIRCLE "  Cylinder"))
+        {
+            entity = m_context->createEntity("Default Cylinder");
+            auto &model = entity.addComponent<ModelComponent>();
+            model.type = ModelType::Cylinder;
+        }
+        if (ImGui::MenuItem(ICON_FA_CIRCLE "  Taurus"))
+        {
+            entity = m_context->createEntity("Default Taurus");
+            auto &model = entity.addComponent<ModelComponent>();
+            model.type = ModelType::Taurus;
+        }
+        if (ImGui::MenuItem(ICON_FA_CIRCLE "  Cone"))
+        {
+            entity = m_context->createEntity("Default Cone");
+            auto &model = entity.addComponent<ModelComponent>();
+            model.type = ModelType::Cone;
+        }
+       /* if (ImGui::MenuItem(ICON_FA_CIRCLE "  Capsule"))
+        {
+            entity = m_context->createEntity("Default Capsule");
+            auto &model = entity.addComponent<ModelComponent>();
+            model.type = ModelType::Capsule;
+        }*/
+        ImGui::Separator();
         if (ImGui::MenuItem(ICON_FA_CUBE "  Empty Mesh"))
         {
         }

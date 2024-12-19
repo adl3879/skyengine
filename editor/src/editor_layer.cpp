@@ -7,6 +7,7 @@
 #include "core/project_management/project_manager.h"
 #include "core/helpers/imgui.h"
 #include "asset_management/asset_manager.h"
+#include "core/events/event_bus.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -29,6 +30,7 @@ EditorLayer::EditorLayer()
         if (!ProjectManager::isProjectListEmpty()) m_projectManagerPanel.showOpen();
         else m_projectManagerPanel.showCreate();
     }
+    registerEditorEvents();
 }
 
 void EditorLayer::onAttach() 
@@ -54,11 +56,14 @@ void EditorLayer::onUpdate(float dt)
         droppedFiles.pop_back();
         m_assetBrowserPanel.handleDroppedFile(filename);
     }
+
+    m_activeScene->processDestructionQueue();
 }
 
 void EditorLayer::onEvent(Event &e) 
 {
     m_activeScene->onEvent(e);
+    m_viewportPanel.onEvent(e);
 }
 
 void EditorLayer::onFixedUpdate(float dt) {}
@@ -119,5 +124,26 @@ void EditorLayer::setPanelContexts()
     m_sceneHierarchyPanel.setContext(m_activeScene);
     m_titlebarPanel.setContext(m_activeScene);
     m_inspectorPanel.setContext(m_activeScene);
+}
+
+void EditorLayer::registerEditorEvents() 
+{
+    auto &eventBus = EditorEventBus::get();
+
+    eventBus.registerHandler(EditorEventType::Exit, [](const EditorEvent &event){
+        Application::quit();    
+    });
+	eventBus.registerHandler(EditorEventType::NewProject, [=](const EditorEvent &event){
+        m_projectManagerPanel.showCreate();
+    });
+	eventBus.registerHandler(EditorEventType::OpenProject, [=](const EditorEvent &event){
+        m_projectManagerPanel.showOpen();
+    });
+    eventBus.registerHandler(EditorEventType::SaveCurrentScene, [=](const EditorEvent &event){
+        SceneManager::get().saveActiveScene();
+    });
+    eventBus.registerHandler(EditorEventType::SaveSceneAs, [=](const EditorEvent &event){
+        m_assetBrowserPanel.showFileBrowserPopup();
+    });
 }
 } // namespace sky

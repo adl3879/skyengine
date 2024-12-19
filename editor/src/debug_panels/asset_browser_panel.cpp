@@ -22,7 +22,7 @@ bool openCreateFilePopup = false;
 
 static char searchStr[128] = "";
 glm::vec2 thumbnailSize, defaultThumbnailSize = {120.0f, 110.0f};
-float dragRatio = 1.35f;
+float dragRatio = 1.0f;
 
 struct ContentBrowserData
 {
@@ -71,11 +71,12 @@ void AssetBrowserPanel::render()
 
     ImGui::Begin("Asset Browser   ");
     if (m_showConfirmDelete) ImGui::OpenPopup("Confirm Delete");
+    if (m_showFileBrowserModal) ImGui::OpenPopup("File Browser");
 
     float panelWidth = ImGui::GetContentRegionAvail().x;
     float dirTreeWidth = panelWidth * 0.17;
 
-    static float padding = 80.0f;
+    static float padding = 60.0f;
     const float cellSize = thumbnailSize.x + padding;
 
     thumbnailSize = defaultThumbnailSize * dragRatio;
@@ -200,6 +201,7 @@ void AssetBrowserPanel::render()
     ImGui::EndChild();
 
     confirmDeletePopup();
+    fileBrowserPopup();
  
     ImGui::End();
 
@@ -334,6 +336,64 @@ void AssetBrowserPanel::confirmDeletePopup()
     }
 }
 
+void AssetBrowserPanel::fileBrowserPopup() 
+{
+    if (ImGui::BeginPopupModal("File Browser", &m_showFileBrowserModal))
+    {
+        // Display the current directory
+        ImGui::Text("Current Directory: %s", m_currentDirectory.string().c_str());
+
+        // Navigation Buttons
+        if (ImGui::Button("Back"))
+        {
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Forward"))
+        {
+        }
+
+        ImGui::Separator();
+
+        // List files and directories
+        for (auto &directoryEntry : std::filesystem::directory_iterator(m_currentDirectory))
+        {
+            const auto &path = directoryEntry.path();
+            std::string fileName = path.filename().string();
+
+            if (directoryEntry.is_directory())
+            {
+                // Display folder with a folder icon
+                if (ImGui::Selectable((fileName + "/").c_str(), false, ImGuiSelectableFlags_DontClosePopups))
+                {
+                    m_currentDirectory = path;                        // Navigate into folder
+                }
+            }
+            else
+            {
+                // Display file with file icon
+                if (ImGui::Selectable(fileName.c_str()))
+                {
+                    if (ImGui::IsMouseDoubleClicked(0)) // Open file on double-click
+                    {
+                        // Open the file (implement your file opening logic here)
+                        //openFile(path.string());
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+            }
+        }
+
+        // Close button
+        if (ImGui::Button("Close"))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
 void AssetBrowserPanel::search(const std::string &query) 
 {
     m_CurrentDirectoryEntries.clear();
@@ -406,18 +466,23 @@ void AssetBrowserPanel::drawFileAssetBrowser(std::filesystem::directory_entry di
     ImGui::GetStyle().ItemSpacing.y = 12;
     if (ImGui::BeginPopupContextItem())
     {
+        if (path.extension() == ".scene" && 
+            ImGui::MenuItem(ICON_FA_PHOTO_VIDEO "   Set As Start Scene"))
+        {
+            ProjectManager::setStartScene(relativePath);
+        }
         if (ImGui::MenuItem(ICON_FA_TRASH "   Delete"))
         {
             m_filePathToDelete = path;       // Set the path of the file to delete
             m_showConfirmDelete = true; // Show the confirmation dialog
 			ImGui::OpenPopup("Confirm Delete");
         }
-        // Rename
         if (ImGui::MenuItem(ICON_FA_PEN "   Rename"))
         {
             m_renameRequested = true;
             m_renamePath = path;
         }
+      
         ImGui::EndPopup();
     }
     ImGui::GetStyle().ItemSpacing.y = originalSpace;
@@ -503,8 +568,6 @@ void AssetBrowserPanel::drawFileAssetBrowser(std::filesystem::directory_entry di
 
     ImGui::PopID();
     ImGui::EndGroup();
-
-    // ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 30);
 
     ImGui::NextColumn();
 

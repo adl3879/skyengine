@@ -10,6 +10,7 @@
 #include "core/helpers/image.h"
 #include "embed/window_images.embed";
 #include "scene/scene_manager.h"
+#include "core/events/event_bus.h"
 
 namespace sky
 {
@@ -163,6 +164,7 @@ void TitlebarPanel::render(float &outTitlebarHeight)
     ImGui::GetStyle().ItemSpacing.x = originalSpace;
 
     // Second bar with play, stop, pause etc
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
     ImGui::SetCursorPosX(windowPadding.x);
     {
 		auto btnSize = ImVec2{30, 30}; 
@@ -187,6 +189,7 @@ void TitlebarPanel::render(float &outTitlebarHeight)
 		ImGui::SetCursorPosX(ImGui::GetWindowWidth() - 130.f);
         ImGui::Text("FPS %.2f", Application::getFPS());
 	}
+    ImGui::PopStyleVar();
 
     ImGui::SetCursorPos(curPos);
     ImGui::InvisibleButton("##titleBarDragZone", ImVec2(w - buttonsAreaWidth, titlebarHeight / 2));
@@ -214,21 +217,32 @@ void TitlebarPanel::drawMenuBar()
 			{
 				if (ImGui::MenuItem("New Project"))
 				{
-					//m_projectManagerPanel.showCreate();
+                    EditorEventBus::get().pushEvent({EditorEventType::NewProject});
 				}
 				if (ImGui::MenuItem("Open Project"))
 				{
-					//m_projectManagerPanel.showOpen();
+                    EditorEventBus::get().pushEvent({EditorEventType::OpenProject});
 				}
 				ImGui::EndMenu();
 			}
-            if (ImGui::MenuItem("Save Current Scene")) 
-            {
-                SceneManager::get().saveActiveScene();
-            }
-            if (ImGui::MenuItem("Save All")) {}
             ImGui::Separator();
-            if (ImGui::MenuItem("Exit")) Application::quit();
+            if (ImGui::MenuItem("Save Current Scene", "Ctrl+S")) 
+            {
+				EditorEventBus::get().pushEvent({EditorEventType::SaveCurrentScene});
+            }
+            if (ImGui::MenuItem("Save Scene As", "Ctrl+Shift+S")) 
+            {
+				EditorEventBus::get().pushEvent({EditorEventType::SaveSceneAs});
+            }
+			if (ImGui::MenuItem("Save All Scenes", "Ctrl+Shift+Alt+S")) 
+            {
+				EditorEventBus::get().pushEvent({EditorEventType::SaveAllScenes});
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Exit")) 
+            {
+				EditorEventBus::get().pushEvent({EditorEventType::Exit});
+            }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit")) 

@@ -2,6 +2,7 @@
 
 #include "graphics/vulkan/vk_pipelines.h"
 #include "core/events/input.h"
+#include "renderer/frustum_culling.h"
 
 namespace sky
 {
@@ -41,7 +42,7 @@ void ForwardRendererPass::draw(
     gfx::Device &device,
     gfx::CommandBuffer cmd, 
     VkExtent2D extent,
-    const Camera &camera,
+    Camera &camera,
 	const gfx::AllocatedBuffer &sceneDataBuffer,
     const MeshCache &meshCache,
     const std::vector<MeshDrawCommand> &drawCommands)
@@ -70,8 +71,11 @@ void ForwardRendererPass::draw(
     };
     vkCmdSetScissor(cmd, 0, 1, &scissor);
 
+	const auto frustum = edge::createFrustumFromCamera(camera);
     for (const auto &dc : drawCommands)
-	{
+    {
+        if (!edge::isInFrustum(frustum, dc.worldBoundingSphere)) continue;
+
         if (dc.isVisible)
         {    
 			const auto &mesh = meshCache.getMesh(dc.meshId);

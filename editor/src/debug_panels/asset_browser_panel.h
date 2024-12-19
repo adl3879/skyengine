@@ -14,6 +14,7 @@ class AssetBrowserPanel
     void init();
 	void render();
     void handleDroppedFile(const fs::path &path);
+    void showFileBrowserPopup() { m_showFileBrowserModal = true; }
 
   private:
 	struct FileTreeNode
@@ -30,6 +31,7 @@ class AssetBrowserPanel
     void displayFileHierarchy(const fs::path &directory);
     void openCreateFilePopup(AssetType type);
     void confirmDeletePopup();
+    void fileBrowserPopup();
 
     // Search
     void search(const std::string &query);
@@ -61,6 +63,7 @@ class AssetBrowserPanel
     bool m_renameRequested = false;
     std::filesystem::path m_renamePath;
 
+    bool m_showFileBrowserModal = false;
     bool m_showConfirmDelete = false;
 	fs::path m_filePathToDelete;
 

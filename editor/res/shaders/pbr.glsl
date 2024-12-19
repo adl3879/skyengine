@@ -50,7 +50,7 @@ vec3 pbrBRDF(
     vec3 Fr = (D * V) * F;
 
     // diffuse BRDF
-    vec3 Fd = diffuse * Fd_Lambert();
+    vec3 Fd = (1 - metallic) * diffuse * Fd_Lambert();
 
     return Fd + Fr;
 }

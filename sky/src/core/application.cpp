@@ -5,9 +5,11 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
+#include <ImGuizmo.h>
 
 #include "renderer/model_loader.h"
 #include "scene/scene_manager.h"
+#include "core/events/event_bus.h"
 
 namespace sky {
 Ref<Window>         Application::m_window       = nullptr;
@@ -51,6 +53,7 @@ void Application::run()
         // imgui new frame
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+        ImGuizmo::BeginFrame();
 
         // some imgui UI to test
         // ImGui::ShowDemoWindow();
@@ -74,6 +77,7 @@ void Application::run()
         for (Layer *layer : m_layerStack) layer->onUpdate(m_fps.getDeltaTime());
 
         m_fps.frameRendered();
+        EditorEventBus::get().processEvents();
     }
     m_window->destroy();
 }

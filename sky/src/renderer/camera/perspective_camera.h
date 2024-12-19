@@ -3,7 +3,6 @@
 #include <glm/glm.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/rotate_vector.hpp>
-#include "camera_frustum.h"
 #include "camera.h"
 
 #include <skypch.h>
@@ -14,14 +13,6 @@ class PerspectiveCamera : public Camera
 {
   public:
     PerspectiveCamera();
-    /**
-     * @brief Constructor for PerspectiveCamera.
-     * @param position Initial position of the camera.
-     * @param fov Field of view in degrees.
-     * @param aspect Aspect ratio of the camera.
-     * @param zNear Near clipping plane distance.
-     * @param zFar Far clipping plane distance.
-     */
     PerspectiveCamera(const glm::vec3 &position, float fov, float aspect, float zNear, float zFar);
     virtual ~PerspectiveCamera() = default;
 
@@ -116,7 +107,7 @@ class PerspectiveCamera : public Camera
      * @brief Get the aspect ratio.
      * @return Aspect ratio.
      */
-    SKY_INLINE const float &getAspect() const { return m_aspect; }
+    SKY_INLINE const float &getAspect() const override { return m_aspect; }
 
     /**
      * @brief Get a modifiable reference to the aspect ratio.
@@ -128,7 +119,7 @@ class PerspectiveCamera : public Camera
      * @brief Get the near clipping plane distance.
      * @return Near clipping plane distance.
      */
-    SKY_INLINE const float &getNear() const { return m_zNear; }
+    SKY_INLINE const float &getNear() const override { return m_zNear; }
 
     /**
      * @brief Get a modifiable reference to the near clipping plane distance.
@@ -140,7 +131,7 @@ class PerspectiveCamera : public Camera
      * @brief Get the far clipping plane distance.
      * @return Far clipping plane distance.
      */
-    SKY_INLINE const float &getFar() const { return m_zFar; }
+    SKY_INLINE const float &getFar() const override { return m_zFar; }
 
     /**
      * @brief Get a modifiable reference to the far clipping plane distance.
@@ -355,12 +346,6 @@ class PerspectiveCamera : public Camera
      * @return roll angle in radians.
      */
     SKY_INLINE float getRoll() const { return glm::atan(m_up.x, m_up.y); }
-
-    /**
-     * @brief Get the camera frustum.
-     * @return CameraFrustum object representing the frustum.
-     */
-    SKY_INLINE CameraFrustum getCameraFrustum() { return CameraFrustum(getViewProjection()); }
 
   private:
     const glm::vec3 UP = glm::vec3(0.0f, 1.0f, 0.0f); // Y is up

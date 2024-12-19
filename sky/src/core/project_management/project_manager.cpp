@@ -3,6 +3,7 @@
 #include <fstream>
 #include <yaml-cpp/yaml.h>
 #include "core/helpers/date_fns.h"
+#include "scene/scene_manager.h"
 
 namespace sky
 {
@@ -56,6 +57,8 @@ void ProjectManager::loadProject(const fs::path &path)
     }
     serializeProjectsList();
     m_isProjectOpen = true;
+
+    if (!m_config.startScene.empty()) SceneManager::get().openScene(m_config.startScene);
 }
 
 void ProjectManager::saveProject() 
@@ -187,9 +190,12 @@ void ProjectManager::removeProjectFromList(ProjectInfo info)
                             m_projectsList.end());
 
     serializeProjectsList();
+}
 
-    // if (info.isValid) fs::remove(info.projectPath);
-    
+void ProjectManager::setStartScene(const fs::path &path) 
+{
+    m_config.startScene = path;
+    serialize(m_config);
 }
 
 bool ProjectManager::isProjectValid(ProjectInfo info)

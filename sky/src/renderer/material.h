@@ -37,7 +37,7 @@ struct Material
 {
     LinearColor baseColor{1.f, 1.f, 1.f, 1.f};
     float       metallicFactor{0.f};
-    float       roughnessFactor{0.7f};
+    float       roughnessFactor{0.f};
     float       emissiveFactor{0.f};
 
     ImageID     albedoTexture{NULL_IMAGE_ID};

@@ -17,6 +17,47 @@ struct Vertex
 	glm::vec4 tangent;
 };
 
+enum ModelType
+{
+	Custom,
+	Cube,
+	Sphere,
+	Plane,
+	Cylinder,
+	Taurus,
+	Cone,
+	Capsule,
+};
+
+static std::string modelTypeToString(ModelType type)
+{
+    switch (type)
+    {
+        case ModelType::Custom: return "Custom";
+        case ModelType::Cube: return "Cube";
+        case ModelType::Sphere: return "Sphere";
+        case ModelType::Plane: return "Plane";
+        case ModelType::Cylinder: return "Cylinder";
+        case ModelType::Taurus: return "Taurus";
+        case ModelType::Cone: return "Cone";
+        case ModelType::Capsule: return "Capsule";
+        default: return "Unknown";
+    }
+}
+
+static ModelType stringToModelType(const std::string &str)
+{
+    if (str == "Custom") return ModelType::Custom;
+    if (str == "Cube") return ModelType::Cube;
+    if (str == "Sphere") return ModelType::Sphere;
+    if (str == "Plane") return ModelType::Plane;
+    if (str == "Cylinder") return ModelType::Cylinder;
+    if (str == "Taurus") return ModelType::Taurus;
+    if (str == "Cone") return ModelType::Cone;
+    if (str == "Capsule") return ModelType::Capsule;
+    return ModelType::Custom; // Default fallback
+}
+
 struct Mesh
 {
 	std::vector<Vertex>		vertices;
@@ -36,9 +77,10 @@ struct Model : public Asset
 
 struct MeshDrawCommand
 {
-	MeshID		meshId;
-	glm::mat4	modelMatrix;
-	bool		isVisible;
-	uint32_t	uniqueId = 0;
+	MeshID		 meshId;
+	glm::mat4	 modelMatrix;
+	bool		 isVisible;
+	uint32_t	 uniqueId = 0;
+    math::Sphere worldBoundingSphere;
 };
 } // namespace sky

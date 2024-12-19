@@ -19,3 +19,6 @@
 [submodule "sky/vendor/glfw"]
 	path = sky/vendor/glfw
 	url = https://github.com/TheCherno/glfw.git
+[submodule "sky/vendor/ImGuizmo"]
+	path = sky/vendor/ImGuizmo
+	url = https://github.com/CedricGuillemet/ImGuizmo.git

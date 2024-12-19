@@ -23,6 +23,7 @@ struct SpotLightComponent { Light light; };
 
 struct ModelComponent
 {
+    ModelType type = ModelType::Custom;
     AssetHandle handle = NULL_UUID;
 };
 

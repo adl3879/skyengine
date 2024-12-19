@@ -19,6 +19,7 @@ SceneManager::SceneManager()
 
 void SceneManager::openScene(const fs::path &path) 
 {
+    m_currentViewport = path;
     m_openedScenes.insert(path);
     auto handle = AssetManager::getOrCreateAssetHandle(path, AssetType::Scene);
     AssetManager::getAssetAsync<Scene>(handle, [=](const Ref<Scene> &scene) 
@@ -33,7 +34,11 @@ void SceneManager::closeScene(const fs::path &path)
 {
     m_openedScenes.erase(path);
     if (!m_openedScenes.empty()) openScene(*m_openedScenes.rbegin());
-    else m_activeScene = CreateRef<Scene>();
+    else 
+    {
+        m_activeScene = CreateRef<Scene>();
+        m_activeScene->init();
+    }
 }
 
 std::set<fs::path> SceneManager::getOpenedScenes() 
