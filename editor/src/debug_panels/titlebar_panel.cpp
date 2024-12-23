@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <tracy/Tracy.hpp>
 
 #include "core/application.h"
 #include "core/project_management/project_manager.h"
@@ -34,6 +35,7 @@ TitlebarPanel::TitlebarPanel() : m_titleBarHovered(false)
 
 void TitlebarPanel::render(float &outTitlebarHeight)
 {
+    ZoneScopedN("Titlebar panel");
     const bool isMaximized = Application::getWindow()->isWindowMaximized();
     const float titlebarHeight = 90.f;
     float titlebarVerticalOffset = 0.0f;

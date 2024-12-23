@@ -2,13 +2,18 @@
 
 namespace sky
 {
+const auto getTextureOrElse = [](ImageID imageId, ImageID placeholder) { 
+	return imageId != NULL_IMAGE_ID ? imageId : placeholder;
+};
+
 void MaterialCache::init(gfx::Device &gfxDevice) 
 {
-    m_materialDataBuffer =
-        gfxDevice.createBuffer(MAX_MATERIALS * sizeof(MaterialData),
-            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            VMA_MEMORY_USAGE_AUTO);
-    //vkutil::addDebugLabel(gfxDevice.getDevice(), materialDataBuffer.buffer, "material data");
+    m_materialDataBuffer.init(gfxDevice,  
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+        MAX_MATERIALS * sizeof(MaterialData),
+        gfx::FRAME_OVERLAP,
+        "materials");
+    //m_materialDataCPU.reserve(MAX_MATERIALS);
 
     {   // create default normal map texture
         std::uint32_t normal = 0xFFFF8080; // (0.5, 0.5, 1.0, 1.0)
@@ -21,25 +26,27 @@ void MaterialCache::init(gfx::Device &gfxDevice)
     }
 }
 
+void MaterialCache::upload(gfx::Device &gfxDevice, gfx::CommandBuffer cmd) 
+{
+    m_materialDataBuffer.uploadNewData(cmd, 
+        gfxDevice.getCurrentFrameIndex(), 
+        (void *)m_materialDataCPU.data(), 
+        sizeof(MaterialData) * m_materialDataCPU.size());
+}
+
 void MaterialCache::cleanup(gfx::Device &gfxDevice) 
 {
-    gfxDevice.destroyBuffer(m_materialDataBuffer);
+    m_materialDataBuffer.cleanup(gfxDevice);
 }
 
 MaterialID MaterialCache::addMaterial(gfx::Device &gfxDevice, Material material) 
-{
-    const auto getTextureOrElse = [](ImageID imageId, ImageID placeholder) { 
-        return imageId != NULL_IMAGE_ID ? imageId : placeholder;
-    };
-
-    // store on GPU
-    MaterialData *data = (MaterialData *)m_materialDataBuffer.info.pMappedData;
+{ 
     auto whiteTextureID = gfxDevice.getWhiteTextureID();
     auto id = getFreeMaterialID();
 
     assert(id < MAX_MATERIALS);
 
-    data[id] = MaterialData{
+    auto newMaterial = MaterialData{
         .baseColor = material.baseColor,
         .metalRoughnessEmissive =
             glm::vec4{material.metallicFactor, material.roughnessFactor, material.emissiveFactor, 0.f},
@@ -52,18 +59,36 @@ MaterialID MaterialCache::addMaterial(gfx::Device &gfxDevice, Material material)
     };
 
     // store on CPU
-    m_materials[id] = std::move(material);
+    m_materialDataCPU.push_back(std::move(newMaterial));
 
     return id;
 }
 
-const Material &MaterialCache::getMaterial(MaterialID id) const
+void MaterialCache::updateMaterial(gfx::Device &gfxDevice, MaterialID id, Material material) 
 {
-    return m_materials.at(id);
+    auto whiteTextureID = gfxDevice.getWhiteTextureID();
+
+    auto &mat = m_materialDataCPU.at(id);
+    mat = MaterialData{
+		.baseColor = material.baseColor,
+        .metalRoughnessEmissive =
+            glm::vec4{material.metallicFactor, material.roughnessFactor, material.emissiveFactor, 0.f},
+        .albedoTex = getTextureOrElse(material.albedoTexture, whiteTextureID),
+        .normalTex = getTextureOrElse(material.normalMapTexture, m_defaultNormalMapTextureID),
+        .metallicTex = getTextureOrElse(material.metallicTexture, whiteTextureID),
+        .roughnessTex = getTextureOrElse(material.roughnessTexture, whiteTextureID),
+        .ambientOcclusionTex = getTextureOrElse(material.ambientOcclusionTexture, whiteTextureID),
+        .emissiveTex = getTextureOrElse(material.emissiveTexture, whiteTextureID),
+    };
+}
+
+const MaterialData &MaterialCache::getMaterial(MaterialID id) const
+{
+    return m_materialDataCPU.at(id);
 }
 
 MaterialID MaterialCache::getFreeMaterialID() const 
 {
-    return m_materials.size();
+    return m_materialDataCPU.size();
 }
 } // namespace sky

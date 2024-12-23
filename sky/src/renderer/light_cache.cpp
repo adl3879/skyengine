@@ -72,7 +72,7 @@ void LightCache::updateLight(LightID id, const Light &light, const Transform &tr
 
 GPULightData LightCache::getLight(LightID id) 
 { 
-    return GPULightData(); 
+    return GPULightData{}; 
 }
 
 LightID LightCache::getFreeLightID() 

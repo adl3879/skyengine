@@ -22,8 +22,8 @@ target_link_libraries(editor PRIVATE sky)
 set(SHADERS
     "mesh.vert"
     "mesh.frag"
-    "triangle.vert"
-    "triangle.frag"
+    "grid.vert"
+    "grid.frag"
     "imgui.frag"
     "imgui.vert")
 

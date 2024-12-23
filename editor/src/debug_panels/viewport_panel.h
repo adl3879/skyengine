@@ -19,6 +19,7 @@ class ViewportPanel
 	void drawControls(const char *icon, const char *tooltip, bool isActive, std::function<void()> action);
 	void drawGizmo(const glm::vec2 &size);
 	bool onKeyPressed(KeyPressedEvent &e);
+	const glm::vec3 &getRayIntersectionPoint();
 
   private:
 	Ref<Scene> m_context;

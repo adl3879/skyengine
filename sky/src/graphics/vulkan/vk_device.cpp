@@ -10,6 +10,7 @@
 #include <imgui.h>
 #include <imgui_impl_vulkan.h>
 #include <imgui_impl_glfw.h>
+#include <tracy/Tracy.hpp>
 #include <IconsFontAwesome5.h>
 
 #define GLM_ENABLE_EXPERIMENTAL
@@ -587,6 +588,7 @@ void Device::endFrame(CommandBuffer cmd, const AllocatedImage &drawImage)
     }
 
     {
+        ZoneScopedN("Imgui draw");
         vkutil::transitionImage(cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
         swapchainLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         m_imguiBackend.draw(cmd, *this, m_swapchain.getImageView(swapchainImageIndex), m_swapchain.getExtent());

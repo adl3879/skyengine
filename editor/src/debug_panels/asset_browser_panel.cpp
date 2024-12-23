@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 #include <stb_image.h>
 #include <FileWatch.h>
+#include <tracy/Tracy.hpp>
 
 #include "asset_management/asset_manager.h"
 #include "core/project_management/project_manager.h"
@@ -59,6 +60,7 @@ void AssetBrowserPanel::init()
 
 void AssetBrowserPanel::render()
 {
+    ZoneScopedN("Asset browser panel");
     if (ProjectManager::isProjectOpen()) 
     {
         static bool opened = true;
@@ -210,9 +212,8 @@ void AssetBrowserPanel::render()
 
 void AssetBrowserPanel::handleDroppedFile(const fs::path &path) 
 {
-    fs::copy(path, m_currentDirectory / path.stem());
-
-    // TODO: scan through folder recursively and automatically import supported assets
+    if (!path.has_extension()) fs::copy(path, m_currentDirectory / path.stem());
+    else fs::copy(path, m_currentDirectory / path.filename());
 }
 
 void AssetBrowserPanel::addPathToTree(FileTreeNode &root, const fs::path &path) {}

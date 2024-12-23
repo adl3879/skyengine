@@ -1,6 +1,7 @@
 #include "scene_hierarchy_panel.h"
 
 #include <imgui.h>
+#include <tracy/Tracy.hpp>
 #include <IconsFontAwesome5.h>
 #include "scene/components.h"
 #include "asset_management/asset_manager.h"
@@ -45,6 +46,7 @@ bool SceneHierarchyPanel::matchesSearchRecursively(Entity &entity, const char *q
 
 void SceneHierarchyPanel::render() 
 {
+    ZoneScopedN("Scene hierarchy panel");
 	ImGui::Begin("Scene Hierarchy   ");
  
 	if (m_context)

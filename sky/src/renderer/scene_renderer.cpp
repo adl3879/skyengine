@@ -1,6 +1,7 @@
 #include "scene_renderer.h"
 
 #include <ImGuizmo.h>
+#include <tracy/Tracy.hpp>
 
 #include "core/application.h"
 #include "graphics/vulkan/vk_images.h"
@@ -17,9 +18,14 @@ namespace sky
 SceneRenderer::SceneRenderer(gfx::Device &device)
 	: m_device(device)
 {
+    m_meshDrawCommands.reserve(100);
 }
 
-SceneRenderer::~SceneRenderer() {}
+SceneRenderer::~SceneRenderer() 
+{
+    m_forwardRenderer.cleanup(m_device);
+    m_infiniteGridPass.cleanup(m_device);
+}
 
 void SceneRenderer::init(glm::ivec2 size) 
 {
@@ -29,6 +35,8 @@ void SceneRenderer::init(glm::ivec2 size)
     initSceneData(); 
 
     m_forwardRenderer.init(m_device);
+    m_infiniteGridPass.init(m_device);
+
     initBuiltins();
 }
 
@@ -70,12 +78,12 @@ void SceneRenderer::initBuiltins()
 		mesh.material = addMaterialToCache(Material{});
 		m_builtinModels[ModelType::Cone] = addMeshToCache(mesh);
 	}
-	//{
-	//	AssimpModelLoader loader("res/models/capsule.glb");
-	//	auto mesh = loader.getMeshes()[0].mesh;
-	//	mesh.material = addMaterialToCache(Material{});
-	//	m_builtinModels[ModelType::Capsule] = addMeshToCache(mesh);
-	//}
+	{
+		/*AssimpModelLoader loader("res/models/capsule.glb");
+		auto mesh = loader.getMeshes()[0].mesh;
+		mesh.material = addMaterialToCache(Material{});
+		m_builtinModels[ModelType::Capsule] = addMeshToCache(mesh);*/
+	}
 }
 
 void SceneRenderer::initSceneData() 
@@ -163,11 +171,23 @@ void SceneRenderer::drawMesh(MeshID id, const glm::mat4 &transform, bool visibil
         .uniqueId = uniqueId + 1,
         .worldBoundingSphere = worldBoundingSphere,
     };
+
+    //assert(m_meshDrawCommands.capacity() >= m_meshDrawCommands.size() + 1);
     m_meshDrawCommands.push_back(dc);
+}
+
+void SceneRenderer::drawModel(Ref<Model> model, const glm::mat4 &transform) 
+{
+    for (const auto &mesh : model->meshes)
+    {
+        drawMesh(mesh, transform, true, -1);
+    }
 }
 
 void SceneRenderer::render(gfx::CommandBuffer cmd, Ref<Scene> scene) 
 {
+    ZoneScopedN("Scene Renderer");
+
     auto drawImage = m_device.getImage(m_drawImageID);
     auto depthImage = m_device.getImage(m_depthImageID);
 
@@ -207,7 +227,7 @@ void SceneRenderer::render(gfx::CommandBuffer cmd, Ref<Scene> scene)
             .mousePos = scene->getViewportInfo().mousePos,
             .viewportSize = scene->getViewportInfo().size,
             .ambientColor = LinearColorNoAlpha::white(),
-            .ambientIntensity = 0.0f,
+            .ambientIntensity = 0.1f,
             .lightsBuffer = lightCache.getBuffer().address,
             .numLights = (uint32_t)lightCache.getSize(),
             .sunlightIndex = lightCache.getSunlightIndex(), 
@@ -219,6 +239,7 @@ void SceneRenderer::render(gfx::CommandBuffer cmd, Ref<Scene> scene)
             (void *)&gpuSceneData,
             sizeof(GPUSceneData));
 
+        m_materialCache.upload(m_device, cmd);
         lightCache.upload(m_device, cmd);
 	}
 
@@ -237,8 +258,12 @@ void SceneRenderer::render(gfx::CommandBuffer cmd, Ref<Scene> scene)
 
     vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
 
-    m_forwardRenderer.draw(
-        m_device,
+    m_infiniteGridPass.draw(m_device, 
+        cmd, 
+        drawImage.getExtent2D(),
+        m_sceneDataBuffer.getBuffer());
+
+    m_forwardRenderer.draw(m_device,
         cmd,
         drawImage.getExtent2D(),
         camera,
@@ -249,7 +274,12 @@ void SceneRenderer::render(gfx::CommandBuffer cmd, Ref<Scene> scene)
     mousePicking(scene);
     vkCmdEndRendering(cmd);
 
-    m_meshDrawCommands.clear();
+    clearDrawCommands();
+}
+
+void SceneRenderer::updateMaterial(MaterialID id, Material material) 
+{
+    m_materialCache.updateMaterial(m_device, id, material);
 }
 
 void SceneRenderer::updateLights(Ref<Scene> scene) 
@@ -310,5 +340,10 @@ void SceneRenderer::mousePicking(Ref<Scene> scene)
 		std::memset(mappedMemory, 0, gfx::DEPTH_ARRAY_SCALE * sizeof(uint32_t));
 		vmaUnmapMemory(m_device.getAllocator(), storageBuffer.allocation); // Unmap memory using VMA
     } else called = false;
+}
+
+void SceneRenderer::addTempModel(const fs::path &path, Ref<Model> model) 
+{
+    m_tempModels[path] = model;
 }
 } // namespace sky

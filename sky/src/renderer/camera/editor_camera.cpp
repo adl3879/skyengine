@@ -12,8 +12,8 @@ EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float f
     : m_fov(fov), m_aspectRatio(aspectRatio), m_nearClip(nearClip), m_farClip(farClip)
 {
     // set pitch to show the scene from an angle that looks like a floor
-    m_yaw = -2.3616006;
-    m_pitch = -0.5568;
+    //m_yaw = -2.3616006;
+    m_pitch = glm::radians(180.f);
     updateView();
 }
 
@@ -29,8 +29,7 @@ void EditorCamera::updateView()
     m_position = calculatePosition();
 
     glm::quat orientation = getOrientation();
-    m_viewMatrix = glm::translate(glm::mat4(1.0f), m_position) * glm::toMat4(orientation);
-    m_viewMatrix = glm::inverse(m_viewMatrix);
+    m_viewMatrix = glm::lookAt(m_position, m_focalPoint, getUpDirection());
 }
 
 std::pair<float, float> EditorCamera::panSpeed() const
@@ -103,20 +102,16 @@ void EditorCamera::mouseRotate(const glm::vec2 &delta)
 void EditorCamera::mouseZoom(float delta)
 {
     m_distance -= delta * zoomSpeed();
-    if (m_distance < 1.0f)
-    {
-        // m_focalPoint += GetForwardDirection();
-        m_distance = 1.0f;
-    }
+    if (m_distance < 1.0f) m_distance = 1.0f;
 }
 
-glm::vec3 EditorCamera::getUpDirection() const { return glm::rotate(getOrientation(), glm::vec3(0.0f, -1.0f, 0.0f)); }
+glm::vec3 EditorCamera::getUpDirection() const { return glm::rotate(getOrientation(), glm::vec3(0.0f, 1.0f, 0.0f)); }
 
 glm::vec3 EditorCamera::getRightDirection() const { return glm::rotate(getOrientation(), glm::vec3(1.0f, 0.0f, 0.0f)); }
 
 glm::vec3 EditorCamera::getForwardDirection() const
 {
-    return glm::rotate(getOrientation(), glm::vec3(0.0f, 0.0f, -1.0f));
+    return glm::rotate(getOrientation(), glm::vec3(0.0f, 0.0f, 1.0f));
 }
 
 glm::vec3 EditorCamera::calculatePosition() const { return m_focalPoint - getForwardDirection() * m_distance; }
@@ -125,7 +120,7 @@ glm::quat EditorCamera::getOrientation() const { return glm::quat(glm::vec3(-m_p
 
 void EditorCamera::reset()
 {
-    m_pitch = 0.2613f;
+    //m_pitch = 0.2613f;
     m_yaw = 0.0f;
     m_distance = 10.0f;
     m_focalPoint = {0.0f, 0.0f, 0.0f};

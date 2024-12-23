@@ -44,8 +44,8 @@ void main()
     float metallicF = material.metallicRoughnessEmissive.r;
     float roughnessF = material.metallicRoughnessEmissive.g;
 
-    float metallic = metallicF * sampleTexture2DLinear(material.metallicTex, inUV).r;
-    float roughness = roughnessF * sampleTexture2DLinear(material.roughnessTex, inUV).r;
+    float metallic = mix(metallicF, sampleTexture2DLinear(material.metallicTex, inUV).r, 0.5);
+    float roughness = mix(roughnessF, sampleTexture2DLinear(material.roughnessTex, inUV).r, 0.5);
 
     // Optional: Convert roughness to linear space (if perceptual space)
     // roughness = roughness * roughness;
@@ -101,5 +101,4 @@ void main()
 
 	outFragColor = vec4(fragColor, 1.0f);
     // outFragColor = vec4(pcs.uniqueId / 10.f, 0.f, 0.1f, 1.f);
-
 }

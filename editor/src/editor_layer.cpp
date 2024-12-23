@@ -70,6 +70,7 @@ void EditorLayer::onFixedUpdate(float dt) {}
 
 void EditorLayer::onImGuiRender()
 {
+    ZoneScopedN("Editor imgui render");
     static ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags_None;
 
     ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDocking;

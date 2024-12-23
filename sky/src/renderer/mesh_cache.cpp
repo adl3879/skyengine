@@ -46,17 +46,20 @@ void MeshCache::uploadMesh(gfx::Device &device, const Mesh &mesh, gfx::GPUMeshBu
 
     // create vertex buffer
     gpuMesh.vertexBuffer = device.createBuffer(vertexBufferSize,
-                                           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-                                           VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-                                           VMA_MEMORY_USAGE_GPU_ONLY);
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+		VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+		VMA_MEMORY_USAGE_GPU_ONLY);
 
     // create index buffer
     gpuMesh.indexBuffer =
-        device.createBuffer(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                     VMA_MEMORY_USAGE_GPU_ONLY);
+        device.createBuffer(indexBufferSize, 
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            VMA_MEMORY_USAGE_GPU_ONLY);
 
     gfx::AllocatedBuffer staging =
-        device.createBuffer(vertexBufferSize + indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+        device.createBuffer(vertexBufferSize + indexBufferSize, 
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+            VMA_MEMORY_USAGE_CPU_ONLY);
 
     // ?         staging.allocation.GetMappedData()   
     void *data = staging.info.pMappedData;

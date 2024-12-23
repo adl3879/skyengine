@@ -4,9 +4,11 @@
 #include <imgui_internal.h>
 #include <IconsFontAwesome5.h>
 #include <ImGuizmo.h>
+#include <tracy/Tracy.hpp>
 
 #include "core/application.h"
 #include "asset_management/asset_manager.h"
+#include "asset_management/mesh_importer.h"
 #include "scene/components.h"
 #include "scene/entity.h"
 #include "scene/scene_manager.h"
@@ -16,6 +18,7 @@ namespace sky
 {
 void ViewportPanel::render() 
 {
+    ZoneScopedN("Viewport render");
     auto renderer = Application::getRenderer();
 
     for (const auto &scene : SceneManager::get().getOpenedScenes())
@@ -137,9 +140,83 @@ bool ViewportPanel::onKeyPressed(KeyPressedEvent &e)
     return true;
 }
 
+const glm::vec3 &ViewportPanel::getRayIntersectionPoint()
+{
+    // TODO: insert return statement here
+	auto windowSize = ImGui::GetWindowSize();
+	auto viewportOffset = ImGui::GetCursorPos();
+	auto miniBound = ImGui::GetWindowPos();
+	miniBound.x += viewportOffset.x;
+	miniBound.y += viewportOffset.y;
+
+	auto maxBound = ImVec2(miniBound.x + windowSize.x, miniBound.y + windowSize.y);
+	m_viewportBounds[0] = {miniBound.x, miniBound.y};
+	m_viewportBounds[1] = {maxBound.x, maxBound.y};
+
+	auto [mx, my] = ImGui::GetMousePos();
+	mx -= m_viewportBounds[0].x;
+	my -= m_viewportBounds[0].y;
+
+	auto proj = m_context->getEditorCamera().getProjectionMatrix();
+	auto view = m_context->getEditorCamera().getViewMatrix();
+	auto cameraPosition = m_context->getEditorCamera().getPosition();
+
+	float x_ndc = (2.0f * mx / windowSize.x) - 1.0f;
+	float y_ndc = 1.0f - (2.0f * -my / windowSize.y);
+
+	glm::vec4 rayClip = glm::vec4(x_ndc, y_ndc, 1.0, 1.0);
+	glm::vec4 rayEye = glm::inverse(proj) * rayClip;
+	rayEye = glm::vec4(rayEye.x, rayEye.y, -1.0, 0.0);
+	glm::vec3 rayWorld = glm::normalize(glm::vec3(glm::inverse(view) * rayEye));
+
+	float t = -cameraPosition.y / rayWorld.y;
+	glm::vec3 intersectionPoint = glm::vec3{cameraPosition.x, cameraPosition.y, cameraPosition.z} + t * rayWorld;
+
+    return intersectionPoint;
+}
+
 void ViewportPanel::handleViewportDrop() 
 {
-    if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+    if (const auto *payload = ImGui::GetDragDropPayload())
+    {
+        auto renderer = Application::getRenderer();
+        fs::path path = (const char *)payload->Data;
+		auto assetType = getAssetTypeFromFileExtension(path.extension());
+		auto handle = AssetManager::getOrCreateAssetHandle(path, assetType);
+
+        // check if it is already loaded in asset registry
+        Ref<Model> model;
+        if (AssetManager::isAssetLoaded(handle))
+        {
+            model = AssetManager::getAsset<Model>(handle);
+        }
+        else
+        {
+            if (!renderer->isTempModelLoaded(path))
+            {
+				const auto &fullPath = ProjectManager::getConfig().getAssetDirectory() / path;
+				AssimpModelLoader loader(fullPath);
+				std::vector<MeshID> meshIds;
+				for (auto &mesh : loader.getMeshes())
+				{
+					mesh.mesh.material = renderer->addMaterialToCache(Material{});
+					auto id = renderer->addMeshToCache(mesh.mesh);
+					meshIds.push_back(id);
+				}
+				model = CreateRef<Model>(meshIds);
+            }
+            else
+            {
+                model = renderer->getTempModel(path);
+            }
+        }
+
+        const auto intersectionPoint = getRayIntersectionPoint();
+		glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), intersectionPoint);
+        renderer->drawModel(model, translationMatrix);
+    }
+
+    if (const auto *payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
     {
         fs::path path = (const char *)payload->Data;
         auto assetType = getAssetTypeFromFileExtension(path.extension());
@@ -149,10 +226,9 @@ void ViewportPanel::handleViewportDrop()
             case AssetType::Mesh:
             {
                 auto handle = AssetManager::getOrCreateAssetHandle(path, assetType);
-                //auto asset = AssetManager::loadAssetAsync<Model>(handle);
-
                 auto entity = m_context->createEntity(path.stem().string());
                 entity.addComponent<ModelComponent>().handle = handle;
+                entity.getComponent<TransformComponent>().setPosition(getRayIntersectionPoint());
                 m_context->setSelectedEntity(entity);
 				break;
             }
@@ -161,7 +237,6 @@ void ViewportPanel::handleViewportDrop()
             default: break;
         }
     }
-
 }
 
 void ViewportPanel::drawControls(const char *icon, const char *tooltip, bool isActive, std::function<void()> action)

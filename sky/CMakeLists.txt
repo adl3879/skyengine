@@ -6,7 +6,8 @@ add_subdirectory(vendor)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp" 
     "vendor/stb_image/stb_image.cpp"
-    "vendor/ImGuizmo/ImGuizmo.cpp")
+    "vendor/ImGuizmo/ImGuizmo.cpp"
+    "vendor/tracy/TracyClient.cpp")
 file(GLOB_RECURSE HEADERS "src/*.h")
 
 add_library(sky STATIC ${SOURCES} ${HEADERS})
@@ -28,6 +29,7 @@ target_include_directories(sky
     vendor/entt/single_include
     vendor/yaml-cpp/include
     vendor/assimp/include
+    vendor/tracy/public
     vendor/ImGuizmo)
 
 target_link_libraries(sky
@@ -38,4 +40,7 @@ target_link_libraries(sky
         EnTT::EnTT
         yaml-cpp::yaml-cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/vendor/assimp/assimp-vc143-mt.lib
-    PUBLIC glm imgui)
+    PUBLIC 
+        glm 
+        imgui
+        Tracy::TracyClient)

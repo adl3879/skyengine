@@ -1,6 +1,7 @@
 #include "logs_panel.h"
 
 #include <imgui.h>
+#include <tracy/Tracy.hpp>
 #include "core/log/log.h"
 #include "core/helpers/string.h"
 
@@ -13,6 +14,7 @@ bool clearOnPlay =  false;
 
 void LogsPanel::render() 
 {
+    ZoneScopedN("Logs panel");
 	ImGui::Begin("Log   ");
     //static ImGuiTextFilter logFilter; // For filtering log messages
     //logFilter.Draw("Filter", -1.0f);

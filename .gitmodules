@@ -22,3 +22,6 @@
 [submodule "sky/vendor/ImGuizmo"]
 	path = sky/vendor/ImGuizmo
 	url = https://github.com/CedricGuillemet/ImGuizmo.git
+[submodule "sky/vendor/tracy"]
+	path = sky/vendor/tracy
+	url = https://github.com/wolfpld/tracy.git

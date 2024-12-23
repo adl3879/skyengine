@@ -70,6 +70,11 @@ class AssetManager
         }
     }
 
+    static bool isAssetLoaded(AssetHandle handle) 
+    {
+        return ProjectManager::getEditorAssetManager()->isAssetLoaded(handle);
+    }
+
     static void serializeAssetDirectory() 
     {
         ProjectManager::getEditorAssetManager()->serializeAssetRegistry();

@@ -3,6 +3,7 @@
 #include "graphics/vulkan/vk_pipelines.h"
 #include "core/events/input.h"
 #include "renderer/frustum_culling.h"
+#include "core/application.h"
 
 namespace sky
 {

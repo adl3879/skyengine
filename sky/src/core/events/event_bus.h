@@ -2,6 +2,7 @@
 
 #include <skypch.h>
 #include <any>
+#include <tracy/Tracy.hpp>
 
 namespace sky
 {
@@ -44,6 +45,7 @@ class EditorEventBus
     // Process all events in the queue
     void processEvents()
     {
+        ZoneScopedN("Editor events loop");
         while (!eventQueue.empty())
         {
             const EditorEvent &event = eventQueue.front();

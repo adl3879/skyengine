@@ -1,6 +1,8 @@
 #include "project_manager_panel.h"
 
 #include <imgui.h>
+#include <tracy/Tracy.hpp>
+
 #include "graphics/vulkan/vk_imgui_backend.h"
 #include "core/project_management/project_manager.h"
 #include "core/helpers/file_dialogs.h"
@@ -11,6 +13,7 @@ namespace sky
 {
 void ProjectManagerPanel::render()
 {
+    ZoneScopedN("Project manager panel");
     if (m_showCreate) ImGui::OpenPopup("Project Manager (New)");
     if (m_showOpen) ImGui::OpenPopup("Project Manager (Open)");
     if (m_confirmRemove) ImGui::OpenPopup("Confirm Remove");

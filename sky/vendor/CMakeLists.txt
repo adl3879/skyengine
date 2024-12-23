@@ -11,3 +11,10 @@ add_subdirectory(spdlog)
 add_subdirectory(vk-bootstrap)
 add_subdirectory(entt)
 add_subdirectory(yaml-cpp)
+
+# set options before add_subdirectory
+# available options : TRACY_ENABLE , TRACY_ON_DEMAND , TRACY_NO_BROADCAST ,
+# TRACY_NO_CODE_TRANSFER , ...
+option (TRACY_ENABLE "" ON)
+option (TRACY_ON_DEMAND "" ON)
+add_subdirectory(tracy)

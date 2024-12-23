@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 #include <IconsFontAwesome5.h>
+#include <tracy/Tracy.hpp>
 
 #include "scene/components.h"
 #include "core/helpers/imgui.h"
@@ -20,6 +21,7 @@ namespace sky
 {
 void InspectorPanel::render() 
 {
+	ZoneScopedN("Inspector panel");
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 0));
 	ImGui::Begin("Inspector");
 
@@ -110,7 +112,7 @@ void InspectorPanel::render()
 			drawTransformComponent();	
 		});
 
-		helper::imguiCollapsingHeaderStyle("MESH", [&](){
+		helper::imguiCollapsingHeaderStyle("MESH RENDERER", [&](){
 			drawMeshComponent();	
 		}, entity.hasComponent<ModelComponent>());
 

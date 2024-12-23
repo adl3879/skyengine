@@ -6,6 +6,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #include <ImGuizmo.h>
+#include <tracy/Tracy.hpp>
 
 #include "renderer/model_loader.h"
 #include "scene/scene_manager.h"
@@ -84,6 +85,7 @@ void Application::run()
 
 void Application::onEvent(Event &e)
 {
+    ZoneScopedN("Events");
     EventDispatcher dispatcher(e);
 
     for (auto it = m_layerStack.rbegin(); it != m_layerStack.rend(); ++it)
