@@ -99,6 +99,16 @@ void ProjectManagerPanel::render()
             }
             ImGui::PopFont();
 
+
+			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+            {
+				ProjectManager::loadProject(projectList[selectedProjectIndex].projectConfigPath);
+				m_showOpen = false;
+				selectedProjectIndex = -1;
+				ImGui::CloseCurrentPopup();
+            }
+
+
             // Display additional project details (e.g., path and last opened date)
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 65);
             ImGui::PushFont(gfx::ImGuiBackend::s_fonts["sm"]);

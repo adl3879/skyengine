@@ -20,12 +20,13 @@ class ViewportPanel
 	void drawGizmo(const glm::vec2 &size);
 	bool onKeyPressed(KeyPressedEvent &e);
 	const glm::vec3 &getRayIntersectionPoint();
+	void updateCameraManipulator(const ImVec2 &size);
 
   private:
 	Ref<Scene> m_context;
     glm::vec2 m_viewportBounds[2];
 
-	bool m_isControlPressed;
+	bool m_isControlPressed, m_itemIsDraggedOver;
     int m_gizmoType = -1;
 };
 }

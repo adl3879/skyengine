@@ -30,6 +30,7 @@ MeshID MeshCache::addMesh(gfx::Device &device, const Mesh &mesh)
     uploadMesh(device, mesh, gpuMesh);
     const auto id = UUID::generate();
     m_meshes[id] = gpuMesh;
+    m_CPUMeshes[id] = mesh;
 
     return id;
 }

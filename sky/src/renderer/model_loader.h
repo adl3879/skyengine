@@ -8,6 +8,7 @@ struct aiNode;
 struct aiMesh;
 struct aiString;
 struct aiMaterial;
+struct aiTexture;
 enum aiTextureType;
 
 namespace sky
@@ -31,8 +32,9 @@ class AssimpModelLoader
   private:
     void processNode(aiNode *node, const aiScene *scene);
     MeshLoaderReturn processMesh(aiMesh *mesh, const aiScene *scene);
-	MaterialPaths extractMaterialPaths(aiMaterial *material);
-	fs::path getTexturePath(aiMaterial *material, aiTextureType type);
+	MaterialPaths extractMaterialPaths(const aiScene *scene, aiMaterial *material);
+	fs::path getTexturePath(const aiScene *scene, aiMaterial *material, aiTextureType type, const std::string &matParam);
+	fs::path saveEmbeddedTexture(const aiTexture *texture, const std::string &materialParam);
 
   private:
 	std::vector<MeshLoaderReturn> m_meshes;

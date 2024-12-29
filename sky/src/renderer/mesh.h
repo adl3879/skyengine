@@ -82,5 +82,6 @@ struct MeshDrawCommand
 	bool		 isVisible;
 	uint32_t	 uniqueId = 0;
     math::Sphere worldBoundingSphere;
+    MaterialID   material = NULL_MATERIAL_ID;
 };
 } // namespace sky

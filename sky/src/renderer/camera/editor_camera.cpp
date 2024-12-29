@@ -3,17 +3,14 @@
 #include "core/events/input.h"
 #include "core/application.h"
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/quaternion.hpp>
-
 namespace sky
 {
 EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
     : m_fov(fov), m_aspectRatio(aspectRatio), m_nearClip(nearClip), m_farClip(farClip)
 {
     // set pitch to show the scene from an angle that looks like a floor
-    //m_yaw = -2.3616006;
-    m_pitch = glm::radians(180.f);
+    m_pitch = glm::radians(200.f);
+    //m_yaw = glm::radians(120.f);
     updateView();
 }
 

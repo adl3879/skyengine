@@ -6,6 +6,7 @@ add_subdirectory(vendor)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp" 
     "vendor/stb_image/stb_image.cpp"
+    "vendor/stb_image/stb_image_write.cpp"
     "vendor/ImGuizmo/ImGuizmo.cpp"
     "vendor/tracy/TracyClient.cpp")
 file(GLOB_RECURSE HEADERS "src/*.h")

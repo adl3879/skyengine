@@ -3,19 +3,39 @@
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
+#include <stb_image.h>
+#include <stb_image_write.h>
 
 #include "core/project_management/project_manager.h"
 
 namespace sky
 {
 // Helper function to get a texture path
-fs::path AssimpModelLoader::getTexturePath(aiMaterial *material, aiTextureType type)
+fs::path AssimpModelLoader::getTexturePath(const aiScene *scene, 
+    aiMaterial *material, 
+    aiTextureType type, 
+    const std::string &matParam)
 {
     aiString path;
     if (material->GetTexture(type, 0, &path) == AI_SUCCESS)
     {
-        auto p = fs::relative(m_path.parent_path(), ProjectManager::getConfig().getAssetDirectory());
-        return p / path.C_Str();
+        // Check if the texture is embedded
+        if (path.C_Str()[0] == '*')
+        {
+            // Embedded texture, extract the index
+            int index = std::atoi(path.C_Str() + 1);
+            if (index >= 0 && index < scene->mNumTextures)
+            {
+                const aiTexture *texture = scene->mTextures[index];
+                return saveEmbeddedTexture(texture, matParam);
+            }
+        }
+        else
+        {
+            // External texture
+            auto p = fs::relative(m_path.parent_path(), ProjectManager::getConfig().getAssetDirectory());
+            return p / path.C_Str();
+        }
     }
     return ""; // Return an empty string if the texture is not found
 }
@@ -122,23 +142,66 @@ MeshLoaderReturn AssimpModelLoader::processMesh(aiMesh *mesh, const aiScene *sce
     if (mesh->mMaterialIndex >= 0)
     {
         aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
-        materialPaths = extractMaterialPaths(material);
+        materialPaths = extractMaterialPaths(scene, material);
     }
 
     return {.materialPaths = materialPaths, .mesh = processedMesh};
 }
 
-MaterialPaths AssimpModelLoader::extractMaterialPaths(aiMaterial* material)
+MaterialPaths AssimpModelLoader::extractMaterialPaths(const aiScene *scene, aiMaterial* material)
 {
     MaterialPaths materialPaths;
-    materialPaths.albedoTexture = getTexturePath(material, aiTextureType_DIFFUSE);
-    materialPaths.normalMapTexture = getTexturePath(material, aiTextureType_NORMALS);
-    materialPaths.metallicsTexture = getTexturePath(material, aiTextureType_METALNESS); // Requires Assimp 5.0+
-    materialPaths.roughnessTexture = getTexturePath(material, aiTextureType_DIFFUSE_ROUGHNESS);
-    materialPaths.roughnessTexture = getTexturePath(material, aiTextureType_DIFFUSE_ROUGHNESS);
-    materialPaths.ambientOcclusionTexture = getTexturePath(material, aiTextureType_LIGHTMAP);
-    materialPaths.emissiveTexture = getTexturePath(material, aiTextureType_EMISSIVE);
+    materialPaths.albedoTexture = getTexturePath(scene, material, aiTextureType_DIFFUSE, "albedo");
+    materialPaths.normalMapTexture = getTexturePath(scene, material, aiTextureType_NORMALS, "normal");
+    materialPaths.metallicsTexture = getTexturePath(scene, material, aiTextureType_METALNESS, "matallic"); // Requires Assimp 5.0+
+    materialPaths.roughnessTexture = getTexturePath(scene, material, aiTextureType_DIFFUSE_ROUGHNESS, "roughness");
+    materialPaths.ambientOcclusionTexture = getTexturePath(scene, material, aiTextureType_LIGHTMAP, "ao");
+    materialPaths.emissiveTexture = getTexturePath(scene, material, aiTextureType_EMISSIVE, "emissive");
 
     return materialPaths;
+}
+
+fs::path AssimpModelLoader::saveEmbeddedTexture(const aiTexture *texture, const std::string &materialParam)
+{
+    // Determine the file extension based on the desired format
+    std::string extension = ".png"; // Default to PNG
+    if (texture->achFormatHint[0] != '\0')
+    {
+        std::string hint(texture->achFormatHint);
+        if (hint == "jpg" || hint == "jpeg") extension = ".jpg";
+    }
+
+    // Create a filename using the material parameter
+    std::string textureName = m_path.stem().string() + "_" + materialParam + extension;
+    fs::path texturePath = m_path.parent_path() / textureName;
+
+    if (texture->mHeight == 0)
+    {
+        // Handle compressed texture data
+        int width, height, channels;
+        unsigned char *data = stbi_load_from_memory(reinterpret_cast<const unsigned char *>(texture->pcData),
+                                                    texture->mWidth, &width, &height, &channels, 4);
+        if (data)
+        {
+            // Save as PNG or JPG
+            if (extension == ".png")
+                stbi_write_png(texturePath.string().c_str(), width, height, 4, data, width * 4);
+            else if (extension == ".jpg")
+                stbi_write_jpg(texturePath.string().c_str(), width, height, 4, data, 90); // Quality = 90
+
+            stbi_image_free(data);
+        }
+        else
+        {
+            SKY_CORE_ERROR("Failed to decode compressed texture for {0}", materialParam);
+        }
+    }
+    else
+    {
+        // Handle uncompressed texture data (e.g., RGBA8888)
+        SKY_CORE_ERROR("Uncompressed texture data is not supported in this implementation.");
+    }
+
+    return fs::relative(texturePath, ProjectManager::getConfig().getAssetDirectory());
 }
 } // namespace sky

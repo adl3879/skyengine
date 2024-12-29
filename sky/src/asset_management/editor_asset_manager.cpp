@@ -15,6 +15,7 @@ static std::map<fs::path, AssetType> s_assetExtensionMap = {
     { ".png",   AssetType::Texture2D },
     { ".jpg",   AssetType::Texture2D },
     { ".scene", AssetType::Scene },
+    { ".mat",   AssetType::Material },
 };
 
 AssetType getAssetTypeFromFileExtension(const fs::path &extension)
@@ -84,6 +85,8 @@ Ref<Asset> EditorAssetManager::getAsset(AssetHandle handle)
 
 AssetHandle EditorAssetManager::getOrCreateAssetHandle(fs::path path, AssetType assetType)
 {
+    if (assetType == AssetType::None) return NULL_UUID;
+
     for (const auto& [key, value] : m_assetRegistry)
     {
         if (value.filepath == path) return key;
@@ -97,9 +100,26 @@ AssetHandle EditorAssetManager::getOrCreateAssetHandle(fs::path path, AssetType 
     return handle;
 }
 
+bool EditorAssetManager::removeAsset(AssetHandle handle) 
+{
+    if (isAssetHandleValid(handle))
+    {
+		m_loadedAssets.erase(handle);
+		m_assetRegistry.erase(handle);
+		serializeAssetRegistry();
+    }
+    return true;
+}
+
+
+void EditorAssetManager::unloadAllAssets() 
+{
+    m_loadedAssets.clear();
+    m_assetRegistry.clear();
+}
+
 bool EditorAssetManager::isAssetHandleValid(AssetHandle handle) const 
 {
-    // ?
     return handle != NULL_UUID || m_assetRegistry.find(handle) != m_assetRegistry.end();
 }
 

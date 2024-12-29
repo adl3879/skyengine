@@ -75,6 +75,7 @@ class Device
 	VkDevice getDevice() const { return m_device; }
 	VmaAllocator getAllocator() { return m_allocator; }
     ImageID getWhiteTextureID() const { return m_whiteImageId; }
+    ImageID getCheckerboardTextureID() const { return m_checkerboardImageId; }
 	VkDescriptorSetLayout getBindlessDescSetLayout() const;
 	VkDescriptorSetLayout getStrorageBufferLayout() const { return m_storageBufferLayout; }
 	VkDescriptorSet getBindlessDescSet() const { return m_imageCache.bindlessSetManager.getDescSet(); }
@@ -146,6 +147,7 @@ class Device
 
 	gfx::ImageCache m_imageCache;
     ImageID m_whiteImageId{NULL_IMAGE_ID};
+    ImageID m_checkerboardImageId{NULL_IMAGE_ID};
 
 	// mouse picker storage buffer
     AllocatedBuffer m_storageBuffer;

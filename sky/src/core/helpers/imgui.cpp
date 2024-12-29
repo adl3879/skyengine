@@ -147,6 +147,45 @@ void imguiCollapsingHeaderStyle(const char* label, std::function<void()> fn, boo
     }
 }
 
+void imguiCollapsingHeaderStyle2(const char* label, std::function<void()> fn, bool closed, bool disabled)
+{
+	ImGuiStyle &style = ImGui::GetStyle();
+	ImFont *defaultFont = ImGui::GetFont();
+	auto boldFont = gfx::ImGuiBackend::s_fonts["bold"];
+
+	// Backup current colors
+	ImVec4 originalHeaderColor = style.Colors[ImGuiCol_Header];
+	ImVec4 originalHeaderHoveredColor = style.Colors[ImGuiCol_HeaderHovered];
+	ImVec4 originalHeaderActiveColor = style.Colors[ImGuiCol_HeaderActive];
+
+	// Set custom colors
+	style.Colors[ImGuiCol_Header] = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);        // Normal
+	style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.3f, 0.3f, 0.3f, 1.0f); // Hovered
+	style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);  // Active
+
+	if (!closed) ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+
+	 // Render the CollapsingHeader
+	ImGui::PushFont(boldFont);
+	if (ImGui::CollapsingHeader(label))
+	{
+		ImGui::PushFont(defaultFont);
+		//ImGui::Dummy({0, 8});
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 20);
+        if (disabled) ImGui::BeginDisabled();
+		fn();
+        if (disabled) ImGui::EndDisabled();
+		//ImGui::Dummy({0, 8});
+		ImGui::PopFont();
+	}
+	ImGui::PopFont();
+
+	// Restore original colors
+	style.Colors[ImGuiCol_Header] = originalHeaderColor;
+	style.Colors[ImGuiCol_HeaderHovered] = originalHeaderHoveredColor;
+	style.Colors[ImGuiCol_HeaderActive] = originalHeaderActiveColor;
+}
+
 void drawButtonImage(ImageID img, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed) 
 {
     auto *drawList = ImGui::GetForegroundDrawList();

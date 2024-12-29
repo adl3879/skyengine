@@ -13,7 +13,9 @@ enum class EditorEventType
     SaveSceneAs,
     SaveCurrentScene,
     SaveAllScenes,
+    Reset,
     Exit,
+    OpenMaterialEditor,
 };
 
 struct EditorEvent

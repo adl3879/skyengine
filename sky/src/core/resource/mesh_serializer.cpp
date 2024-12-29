@@ -3,32 +3,13 @@
 #include "core/application.h"
 #include "renderer/texture.h"
 #include "asset_management/asset_manager.h"
+#include "core/helpers/image.h"
 
 namespace sky
 {
-static ImageID createMaterialImage(Ref<Texture2D> tex, VkFormat format, VkImageUsageFlags usage, bool mipMap)
-{
-    if (tex == nullptr) return NULL_IMAGE_ID;
-
-    auto renderer = Application::getRenderer();
-    return renderer->createImage(
-        {
-            .format = format,
-            .usage = usage |                           //
-                     VK_IMAGE_USAGE_TRANSFER_DST_BIT | // for uploading pixel data to image
-                     VK_IMAGE_USAGE_TRANSFER_SRC_BIT,  // for generating mips
-            .extent =
-                VkExtent3D{
-                    .width = (std::uint32_t)tex->width,
-                    .height = (std::uint32_t)tex->height,
-                    .depth = 1,
-                },
-            .mipMap = mipMap,
-        },
-        tex->pixels);
-}
-
-static Material createMaterialFromPaths(MaterialPaths materialPaths, AssetHandle handle)
+static Material createMaterialFromPaths(MaterialPaths materialPaths, 
+    AssetHandle handle, 
+    const std::string &name)
 {
     Material material;
 
@@ -37,7 +18,8 @@ static Material createMaterialFromPaths(MaterialPaths materialPaths, AssetHandle
         auto textureHandle = AssetManager::getOrCreateAssetHandle(materialPaths.albedoTexture, AssetType::Texture2D);
         AssetManager::addToDependecyList(handle, textureHandle);
         auto tex = AssetManager::getAsset<Texture2D>(textureHandle);
-        material.albedoTexture = createMaterialImage(tex, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT, true);
+        material.albedoTexture = 
+            helper::loadImageFromTexture(tex, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT, true);
     }
 
     if (materialPaths.normalMapTexture != "")
@@ -46,7 +28,7 @@ static Material createMaterialFromPaths(MaterialPaths materialPaths, AssetHandle
         AssetManager::addToDependecyList(handle, textureHandle);
         auto tex = AssetManager::getAsset<Texture2D>(textureHandle);
         material.normalMapTexture =
-            createMaterialImage(tex, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, true);
+            helper::loadImageFromTexture(tex, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, true);
     }
 
     if (materialPaths.metallicsTexture != "")
@@ -54,7 +36,8 @@ static Material createMaterialFromPaths(MaterialPaths materialPaths, AssetHandle
         auto textureHandle = AssetManager::getOrCreateAssetHandle(materialPaths.metallicsTexture, AssetType::Texture2D);
         AssetManager::addToDependecyList(handle, textureHandle);
         auto tex = AssetManager::getAsset<Texture2D>(textureHandle);
-        material.metallicTexture = createMaterialImage(tex, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, true);
+        material.metallicTexture = 
+            helper::loadImageFromTexture(tex, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, true);
     }
 
     if (materialPaths.roughnessTexture != "")
@@ -63,7 +46,7 @@ static Material createMaterialFromPaths(MaterialPaths materialPaths, AssetHandle
         AssetManager::addToDependecyList(handle, textureHandle);
         auto tex = AssetManager::getAsset<Texture2D>(textureHandle);
         material.roughnessTexture =
-            createMaterialImage(tex, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, true);
+            helper::loadImageFromTexture(tex, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, true);
     }
 
     if (materialPaths.ambientOcclusionTexture != "")
@@ -72,7 +55,7 @@ static Material createMaterialFromPaths(MaterialPaths materialPaths, AssetHandle
         AssetManager::addToDependecyList(handle, textureHandle);
         auto tex = AssetManager::getAsset<Texture2D>(textureHandle);
         material.ambientOcclusionTexture =
-            createMaterialImage(tex, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, true);
+            helper::loadImageFromTexture(tex, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, true);
     }
 
     if (materialPaths.emissiveTexture != "")
@@ -80,8 +63,10 @@ static Material createMaterialFromPaths(MaterialPaths materialPaths, AssetHandle
         auto textureHandle = AssetManager::getOrCreateAssetHandle(materialPaths.emissiveTexture, AssetType::Texture2D);
         AssetManager::addToDependecyList(handle, textureHandle);
         auto tex = AssetManager::getAsset<Texture2D>(textureHandle);
-        material.emissiveTexture = createMaterialImage(tex, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT, true);
+        material.emissiveTexture = 
+            helper::loadImageFromTexture(tex, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT, true);
     }
+    material.name = name.empty() ? "Unnamed" : name;
 
     return material;
 }
@@ -257,14 +242,14 @@ std::vector<Mesh> MeshSerializer::deserialize(const fs::path &path, AssetHandle 
 			.roughnessTexture = roughness,
 			.ambientOcclusionTexture = ao,
 			.emissiveTexture = emissive,
-		}, handle);
+		}, handle, materialName);
         auto materialId = Application::getRenderer()->addMaterialToCache(material);
 
         auto mesh = Mesh{
             .vertices = vertices,
             .indices = indices,
             .material = materialId, 
-			.name = name,
+			.name = name.empty() ? "Unnamed" : name,
         };
         meshes.push_back(mesh);
     }

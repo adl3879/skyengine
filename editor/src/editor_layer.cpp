@@ -146,5 +146,20 @@ void EditorLayer::registerEditorEvents()
     eventBus.registerHandler(EditorEventType::SaveSceneAs, [=](const EditorEvent &event){
         m_assetBrowserPanel.showFileBrowserPopup();
     });
+	eventBus.registerHandler(EditorEventType::Reset, [=](const EditorEvent &event){
+        reset();
+    });
+	eventBus.registerHandler(EditorEventType::OpenMaterialEditor, [=](const EditorEvent &event){
+		 m_inspectorPanel.openView(InspectorPanelView::MaterialEditor);
+         if (event.data.has_value())
+			 m_inspectorPanel.setMaterialContext(
+                 std::any_cast<InspectorPanel::MaterialContext>(event.data));
+    });
+}
+
+void EditorLayer::reset() 
+{
+    m_assetBrowserPanel.reset();
+    m_logPanel.reset();
 }
 } // namespace sky

@@ -55,6 +55,23 @@ void Device::init()
                 .extent = VkExtent3D{1, 1, 1},
             }, &pixel);
     }
+    { // create checkerboard texture
+        uint32_t black = glm::packUnorm4x8(glm::vec4(0, 0, 0, 0));
+        uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
+        const int size = 8;
+        std::array<uint32_t, size * size> pixels; // for 16x16 checkerboard texture
+        for (int x = 0; x < size; x++)
+        {
+            for (int y = 0; y < size; y++)
+                pixels[y * size + x] = ((x % 2) ^ (y % 2)) ? magenta : black;
+        }
+        m_checkerboardImageId = createImage(
+            {
+				.format = VK_FORMAT_R8G8B8A8_UNORM,
+                .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                .extent = VkExtent3D{size, size, 1},
+            }, &pixels);
+    }
 
     ImGui::CreateContext();
 

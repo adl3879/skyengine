@@ -24,7 +24,8 @@ class SceneRenderer
     void init(glm::ivec2 size);
     void render(gfx::CommandBuffer cmd, Ref<Scene> scene);
     void initBuiltins();
-    void drawMesh(MeshID id, const glm::mat4 &transform, bool visibility, uint32_t uniqueId);
+    void drawMesh(MeshID id, const glm::mat4 &transform, bool visibility, 
+        uint32_t uniqueId, MaterialID mat = NULL_MATERIAL_ID);
     void drawModel(Ref<Model> model, const glm::mat4 &transform);
     void clearDrawCommands() { m_meshDrawCommands.clear(); }
     
@@ -38,7 +39,10 @@ class SceneRenderer
 
     ImageID getDrawImageId() const { return m_drawImageID; }
     gfx::Device &getDevice() const { return m_device; }
+    const Mesh &getMesh(MeshID id) const { return m_meshCache.getCPUMesh(id); }
+    const Material &getMaterial(MaterialID id) const { return m_materialCache.getMaterial(id); }
 
+    ImageID getCheckerboardTexture() const { return m_device.getCheckerboardTextureID(); }
     gfx::AllocatedImage getDrawImage();
 
   private:

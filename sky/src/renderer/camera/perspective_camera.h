@@ -82,7 +82,7 @@ class PerspectiveCamera : public Camera
      * @brief Set the camera view using a view matrix.
      * @param view The view matrix to set.
      */
-    SKY_INLINE void setView(const glm::mat4 &view)
+    SKY_INLINE void setView(const glm::mat4 &view) override
     {
         glm::mat4 matrix = getProjection() * glm::inverse(view);
         // glm::vec2 right	= glm::vec3(matrix[0][0], matrix[1][0], matrix[2][0]);

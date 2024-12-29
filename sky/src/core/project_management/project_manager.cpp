@@ -4,6 +4,8 @@
 #include <yaml-cpp/yaml.h>
 #include "core/helpers/date_fns.h"
 #include "scene/scene_manager.h"
+#include "core/events/event_bus.h"
+#include "asset_management/asset_manager.h"
 
 namespace sky
 {
@@ -12,7 +14,8 @@ void ProjectManager::createNewProject(ProjectConfig config)
     // create folders
     fs::create_directory(config.getProjectFilePath());
     fs::create_directory(config.getProjectFilePath() / config.assetPath);
-    fs::create_directory(config.getImportedCachePath());
+    fs::path importedDir = config.getProjectFilePath() / ".sky" / "imported";
+    fs::create_directories(importedDir);
 
     serialize(config);
 
@@ -33,8 +36,12 @@ void ProjectManager::loadProject(const fs::path &path)
 	auto editorAssetManager = CreateRef<EditorAssetManager>();
     m_assetManager = editorAssetManager;
 
+    AssetManager::unloadAllAssets();
+    SceneManager::get().reset();
+    EditorEventBus::get().pushEvent({EditorEventType::Reset});
+
     deserialize(path);
-    m_assetManager->deserializeAssetRegistry();
+    if (fs::exists(m_config.getAssetRegistryPath())) m_assetManager->deserializeAssetRegistry();
 
     // push to project list if not found
     auto currentProject = ProjectInfo{
@@ -43,8 +50,11 @@ void ProjectManager::loadProject(const fs::path &path)
         .projectConfigPath = m_config.getProjectConfigFilePath(),
         .lastOpened = helper::getCurrentDate(),
     }; 
-    if (std::find(m_projectsList.begin(), m_projectsList.end(), currentProject) == m_projectsList.end())
+    if (std::find_if(m_projectsList.begin(), m_projectsList.end(), [&](const ProjectInfo &info)
+                     { return info.projectName == currentProject.projectName; }) == m_projectsList.end())
+    {
         m_projectsList.push_back(currentProject);
+    }
 
     // update last opened
     for (auto &project : m_projectsList)

@@ -13,6 +13,7 @@ bool MaterialSerializer::serialize(const fs::path &path, const Material &mat)
         << mat.baseColor.b << mat.baseColor.a << YAML::EndSeq;
     out << YAML::Key << "metallicFactor" << YAML::Value << mat.metallicFactor;
     out << YAML::Key << "roughnessFactor" << YAML::Value << mat.roughnessFactor;
+    out << YAML::Key << "ambientOcclusionFactor" << YAML::Value << mat.ambientOcclusionFactor;
     out << YAML::Key << "emissiveFactor" << YAML::Value << mat.emissiveFactor;
     out << YAML::Key << "albedoTexture" << YAML::Value << mat.albedoTexture;
     out << YAML::Key << "normalMapTexture" << YAML::Value << mat.normalMapTexture;
@@ -28,7 +29,7 @@ bool MaterialSerializer::serialize(const fs::path &path, const Material &mat)
     return true;
 }
 
-Material MaterialSerializer::deserialize(const fs::path &path) 
+Material &MaterialSerializer::deserialize(const fs::path &path) 
 {
     std::ifstream stream(path);
     std::stringstream strStream;
@@ -45,12 +46,15 @@ Material MaterialSerializer::deserialize(const fs::path &path)
     if (data["baseColor"])
     {
         auto baseColor = data["baseColor"];
-        mat.baseColor = LinearColor{baseColor[0].as<float>(), baseColor[1].as<float>(), baseColor[2].as<float>(),
-                                    baseColor[3].as<float>()};
+        mat.baseColor = LinearColor{baseColor[0].as<float>(), 
+            baseColor[1].as<float>(), 
+            baseColor[2].as<float>(),
+            baseColor[3].as<float>()};
     }
 
     if (data["metallicFactor"]) mat.metallicFactor = data["metallicFactor"].as<float>();
     if (data["roughnessFactor"]) mat.roughnessFactor = data["roughnessFactor"].as<float>();
+    if (data["ambientOcclusionFactor"]) mat.emissiveFactor = data["ambientOcclusionFactor"].as<float>();
     if (data["emissiveFactor"]) mat.emissiveFactor = data["emissiveFactor"].as<float>();
     if (data["albedoTexture"]) mat.albedoTexture = data["albedoTexture"].as<ImageID>();
     if (data["normalMapTexture"]) mat.normalMapTexture = data["normalMapTexture"].as<ImageID>();

@@ -29,6 +29,9 @@ struct Texture2D : public Asset
 
 	bool shouldSTBFree{false};
 
+    // for vulkan
+    ImageID vkImageID = NULL_IMAGE_ID;
+
 	AssetType getType() const override { return AssetType::Texture2D; }
 };
 }

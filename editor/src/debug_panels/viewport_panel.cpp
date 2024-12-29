@@ -9,10 +9,12 @@
 #include "core/application.h"
 #include "asset_management/asset_manager.h"
 #include "asset_management/mesh_importer.h"
+#include "asset_management/texture_importer.h"
 #include "scene/components.h"
 #include "scene/entity.h"
 #include "scene/scene_manager.h"
 #include "core/events/input.h"
+#include "core/helpers/image.h"
 
 namespace sky
 {
@@ -52,15 +54,16 @@ void ViewportPanel::render()
 		m_context->setViewportInfo({
 			.size = {viewportSize.x, viewportSize.y},
 			.mousePos = {mx * ratioX, my * ratioY},
-			.isFocus = isMouseInViewport,
+			.isFocus = isMouseInViewport && !m_itemIsDraggedOver,
 		});
 		ImGui::Image(renderer->getDrawImageId(), viewportSize);
-
+ 
 		if (ImGui::BeginDragDropTarget())
 		{
 			handleViewportDrop();
 			ImGui::EndDragDropTarget(); 
-		}
+            m_itemIsDraggedOver = true;
+		} else m_itemIsDraggedOver = false;
 
 		if (scene != "[empty]")
 		{
@@ -113,6 +116,8 @@ void ViewportPanel::render()
 		ImGui::PopStyleVar(2);
 
 		drawGizmo({viewportSize.x, viewportSize.y});
+        //TDOD: FIX! 
+        //updateCameraManipulator({viewportSize.x, viewportSize.y});
 
 		ImGui::End();
 		ImGui::PopStyleVar();
@@ -159,7 +164,7 @@ const glm::vec3 &ViewportPanel::getRayIntersectionPoint()
 
 	auto proj = m_context->getEditorCamera().getProjectionMatrix();
 	auto view = m_context->getEditorCamera().getViewMatrix();
-	auto cameraPosition = m_context->getEditorCamera().getPosition();
+	auto camPos = m_context->getEditorCamera().getPosition();
 
 	float x_ndc = (2.0f * mx / windowSize.x) - 1.0f;
 	float y_ndc = 1.0f - (2.0f * -my / windowSize.y);
@@ -169,8 +174,8 @@ const glm::vec3 &ViewportPanel::getRayIntersectionPoint()
 	rayEye = glm::vec4(rayEye.x, rayEye.y, -1.0, 0.0);
 	glm::vec3 rayWorld = glm::normalize(glm::vec3(glm::inverse(view) * rayEye));
 
-	float t = -cameraPosition.y / rayWorld.y;
-	glm::vec3 intersectionPoint = glm::vec3{cameraPosition.x, cameraPosition.y, cameraPosition.z} + t * rayWorld;
+	float t = -camPos.y / rayWorld.y;
+	glm::vec3 intersectionPoint = glm::vec3{camPos.x, camPos.y, camPos.z} + t * rayWorld;
 
     return intersectionPoint;
 }
@@ -182,9 +187,9 @@ void ViewportPanel::handleViewportDrop()
         auto renderer = Application::getRenderer();
         fs::path path = (const char *)payload->Data;
 		auto assetType = getAssetTypeFromFileExtension(path.extension());
-		auto handle = AssetManager::getOrCreateAssetHandle(path, assetType);
+        if (assetType != AssetType::Mesh) return;
 
-        // check if it is already loaded in asset registry
+		auto handle = AssetManager::getOrCreateAssetHandle(path, assetType);
         Ref<Model> model;
         if (AssetManager::isAssetLoaded(handle))
         {
@@ -199,11 +204,19 @@ void ViewportPanel::handleViewportDrop()
 				std::vector<MeshID> meshIds;
 				for (auto &mesh : loader.getMeshes())
 				{
-					mesh.mesh.material = renderer->addMaterialToCache(Material{});
+                    auto material = Material{};
+                    auto albedoPath = ProjectManager::getConfig().getAssetDirectory() / mesh.materialPaths.albedoTexture;
+                    material.albedoTexture = helper::loadImageFromTexture(
+                        TextureImporter::loadTexture(albedoPath), 
+                        VK_FORMAT_R8G8B8A8_SRGB, 
+                        VK_IMAGE_USAGE_SAMPLED_BIT, 
+                        true);
+					mesh.mesh.material = renderer->addMaterialToCache(material);
 					auto id = renderer->addMeshToCache(mesh.mesh);
 					meshIds.push_back(id);
 				}
 				model = CreateRef<Model>(meshIds);
+                renderer->addTempModel(path, model);
             }
             else
             {
@@ -265,6 +278,32 @@ void ViewportPanel::drawControls(const char *icon, const char *tooltip, bool isA
     ImGui::PopStyleColor(2);
 }
 
+void ViewportPanel::updateCameraManipulator(const ImVec2 &size)
+{
+    glm::mat4 cameraView = m_context->getCamera().getView();
+    float *cameraViewPtr = glm::value_ptr(cameraView);
+
+    // Add a small deadzone to prevent micro-adjustments
+    static glm::mat4 lastView = cameraView;
+    ImGuizmo::SetOrthographic(false);
+    ImGuizmo::SetDrawlist();
+    ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, size.x, size.y);
+
+    ImGuizmo::ViewManipulate(cameraViewPtr,
+                             10.0f,                   // Distance
+                             ImVec2(size.x + 400, size.y - 100), // Position
+                             ImVec2(200, 200),        // Size
+                             0x10101010               // Background color (slight gray to see the widget)
+    );
+
+    // Only update if the change is significant
+    if (!glm::all(glm::epsilonEqual(glm::vec3(cameraView[3]), glm::vec3(lastView[3]), 0.0001f)))
+    {
+        lastView = cameraView;
+        m_context->getCamera().setView(cameraView);
+    }
+}
+
 void ViewportPanel::drawGizmo(const glm::vec2 &size) 
 {
     auto selectedEntity = m_context->getSelectedEntity();
@@ -299,7 +338,7 @@ void ViewportPanel::drawGizmo(const glm::vec2 &size)
             nullptr, 
             snap ? snapValues : nullptr);
 
-        if (ImGuizmo::IsUsing())
+	    if (ImGuizmo::IsUsing())
         {
             glm::mat4 localTransform = glm::mat4(transform);
            

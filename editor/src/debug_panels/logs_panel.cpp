@@ -12,7 +12,13 @@ bool showWarning =  true;
 bool showError =    true;
 bool clearOnPlay =  false;
 
-void LogsPanel::render() 
+void LogsPanel::reset() 
+{
+	auto &logs = Log::getLogSink()->getLogEntries();
+	logs.clear();
+}
+
+void LogsPanel::render()
 {
     ZoneScopedN("Logs panel");
 	ImGui::Begin("Log   ");

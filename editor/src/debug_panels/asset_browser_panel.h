@@ -3,6 +3,7 @@
 #include <skypch.h>
 #include "core/filesystem.h"
 #include "asset_management/asset.h"
+#include "asset_management/asset_manager.h"
 #include "graphics/vulkan/vk_types.h"
 
 namespace sky
@@ -12,6 +13,7 @@ class AssetBrowserPanel
   public:
     AssetBrowserPanel();
     void init();
+    void reset();
 	void render();
     void handleDroppedFile(const fs::path &path);
     void showFileBrowserPopup() { m_showFileBrowserModal = true; }
@@ -32,6 +34,20 @@ class AssetBrowserPanel
     void openCreateFilePopup(AssetType type);
     void confirmDeletePopup();
     void fileBrowserPopup();
+
+    // import assets
+    template <typename T> void loadAsset(const fs::path &path, AssetType assetType)
+    {
+        auto handle = AssetManager::getOrCreateAssetHandle(path, assetType);
+        AssetManager::getAssetAsync<T>(handle);
+    }
+	template <typename T> void removeAsset(const fs::path &path, AssetType assetType)
+    {
+        auto handle = AssetManager::getOrCreateAssetHandle(path, assetType);
+        AssetManager::removeAsset(handle);
+    }
+    void importNewAsset(const fs::path &path);
+    void deleteAsset(const fs::path &path);
 
     // Search
     void search(const std::string &query);

@@ -16,6 +16,9 @@
 #include "core/helpers/image.h"
 #include "core/helpers/imgui.h"
 #include "scene/scene_manager.h"
+#include "core/resource/material_serializer.h"
+#include "core/events/event_bus.h"
+#include "inspector_panel.h"
 
 namespace sky
 {
@@ -47,7 +50,7 @@ void AssetBrowserPanel::init()
     m_baseDirectory = ProjectManager::getConfig().getAssetDirectory();
     m_currentDirectory = m_baseDirectory;
 
-	s_data->renameWatcher = std::make_unique<filewatch::FileWatch<std::string>>(
+	/*s_data->renameWatcher = std::make_unique<filewatch::FileWatch<std::string>>(
 	"C:\\dev\\3DEngine\\Sandbox\\SandboxProject\\Assets",
 	[](const std::string &path, const filewatch::Event change_type)
 	{
@@ -55,7 +58,12 @@ void AssetBrowserPanel::init()
 		{
             // TODO: reimport asset
 		}
-	});
+	});*/
+}
+
+void AssetBrowserPanel::reset() 
+{
+	init();
 }
 
 void AssetBrowserPanel::render()
@@ -211,9 +219,76 @@ void AssetBrowserPanel::render()
 }
 
 void AssetBrowserPanel::handleDroppedFile(const fs::path &path) 
+{ 
+    importNewAsset(path);
+}
+
+void AssetBrowserPanel::importNewAsset(const fs::path &path) 
 {
-    if (!path.has_extension()) fs::copy(path, m_currentDirectory / path.stem());
-    else fs::copy(path, m_currentDirectory / path.filename());
+    auto importAsset = [=](const fs::path &path) {
+		auto extension = path.extension();
+		auto assetType = getAssetTypeFromFileExtension(extension);
+		switch (assetType)
+		{
+			case AssetType::Mesh: loadAsset<Model>(path, assetType); break;
+			case AssetType::Texture2D: loadAsset<Texture2D>(path, assetType); break;
+			default: break;
+		}
+	};
+
+    if (fs::is_directory(path))
+    {
+		fs::copy(path, m_currentDirectory / path.stem());
+        // Recursively iterate through the directory
+        for (const auto &entry : fs::recursive_directory_iterator(path))
+        {
+            if (fs::is_regular_file(entry.path()))
+            {
+                auto file = m_currentDirectory / path.stem() / entry.path().filename();
+                importAsset(fs::relative(file, ProjectManager::getConfig().getAssetDirectory()));
+            }
+        }
+    }
+    else if (fs::is_regular_file(path))
+    {
+        fs::path file = m_currentDirectory / path.filename();
+        fs::copy(path, file);
+        importAsset(fs::relative(file, ProjectManager::getConfig().getAssetDirectory()));
+    }
+    else
+    {
+        SKY_CORE_ERROR("Unsupported file type");
+    }
+}
+
+void AssetBrowserPanel::deleteAsset(const fs::path &path) 
+{
+	auto remove = [=](const fs::path &path) {
+		auto extension = path.extension();
+		auto assetType = getAssetTypeFromFileExtension(extension);
+		switch (assetType)
+		{
+			case AssetType::Mesh: removeAsset<Model>(path, assetType); break;
+			case AssetType::Texture2D: removeAsset<Texture2D>(path, assetType); break;
+			default: break;
+		}
+	}; 
+   
+	if (fs::is_directory(path))
+	{
+		for (const auto &entry : fs::recursive_directory_iterator(path))
+		{
+			if (fs::is_regular_file(entry.path())) 
+                remove(fs::relative(entry.path(), ProjectManager::getConfig().getAssetDirectory()));
+		}
+	}
+    else if (fs::is_regular_file(path)) 
+	{
+		const auto importDataFile = path.string() + ".import";
+        fs::remove(importDataFile);
+		remove(fs::relative(path, ProjectManager::getConfig().getAssetDirectory()));
+	}
+    else SKY_CORE_ERROR("Unsupported file type");
 }
 
 void AssetBrowserPanel::addPathToTree(FileTreeNode &root, const fs::path &path) {}
@@ -272,8 +347,7 @@ void AssetBrowserPanel::displayFileHierarchy(const fs::path &directory)
                 displayFileHierarchy(entryPath);
                 ImGui::TreePop();
             }
-            else
-                isOpen = false;
+            else isOpen = false;
         }
     }
 }
@@ -289,7 +363,7 @@ void AssetBrowserPanel::openCreateFilePopup(AssetType type)
     else
     {
         std::string defaultName = type == AssetType::Scene       ? "New Scene.scene"
-                                  : type == AssetType::Material  ? "New Material.material"
+                                  : type == AssetType::Material  ? "New Material.mat"
                                   : type == AssetType::Shader    ? "New Shader.shader"
                                                                  : "New File.txt";
 
@@ -317,7 +391,8 @@ void AssetBrowserPanel::confirmDeletePopup()
         {
             try
             {
-                fs::remove_all(m_filePathToDelete);
+                deleteAsset(path);
+                fs::remove_all(path);
             }
             catch (const std::filesystem::filesystem_error &e)
             {
@@ -341,61 +416,103 @@ void AssetBrowserPanel::fileBrowserPopup()
 {
     if (ImGui::BeginPopupModal("File Browser", &m_showFileBrowserModal))
     {
-        // Display the current directory
-        ImGui::Text("Current Directory: %s", m_currentDirectory.string().c_str());
+        float panelWidth = ImGui::GetContentRegionAvail().x;
+        float dirTreeWidth = panelWidth * 0.17;
 
-        // Navigation Buttons
-        if (ImGui::Button("Back"))
+        static float padding = 60.0f;
+        const float cellSize = thumbnailSize.x + padding;
+
+        thumbnailSize = defaultThumbnailSize * dragRatio;
+
+        int columnCount = static_cast<int>(panelWidth / cellSize);
+        if (columnCount < 1) columnCount = 1;
+
+        ImGui::BeginChild("Content Region", {0.f, 0.f}, false);
+        ImGui::BeginChild("ContentHeader", {0.f, 45.f}, false,
+                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5);
+        if (ImGui::ImageButton("##bk", m_icons["back"], {28, 24}, {0, 1}, {1, 0}))
         {
+            if (m_currentDirectory != m_baseDirectory)
+            {
+                m_DirectoryStack.push_back(m_currentDirectory.stem());
+                m_currentDirectory = m_currentDirectory.parent_path();
+            }
         }
+        ImGui::SameLine();
+
+        if (ImGui::ImageButton("##fwd", m_icons["forward"], {28, 24}, {0, 1}, {1, 0}))
+        {
+            if (!m_DirectoryStack.empty())
+            {
+                m_currentDirectory /= m_DirectoryStack.back();
+                m_DirectoryStack.pop_back();
+            }
+        }
+        ImGui::SameLine();
+
+        // Search bar
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 10);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 4);
+        // search bar
+        ImGui::PushItemWidth(350);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5, 5));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10.0f);
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.05f, 0.05f, 0.05f, 0.54f));
+        if (ImGui::InputTextWithHint("##Search", ICON_FA_SEARCH "  Search", searchStr, IM_ARRAYSIZE(searchStr)))
+        {
+            search(searchStr);
+        }
+        ImGui::PopStyleColor();
+        ImGui::PopStyleVar(2);
+
+        ImGui::PopItemWidth();
 
         ImGui::SameLine();
-        if (ImGui::Button("Forward"))
+        ImGui::SetCursorPosY(0);
+        auto filepaths =
+            std::filesystem::relative(m_currentDirectory, ProjectManager::getConfig().getAssetDirectory()).string();
+        auto assetDirName = ProjectManager::getConfig().assetPath.string();
+        filepaths = filepaths == "." ? assetDirName : (assetDirName + "\\" + filepaths);
+        ImGui::TextColored({0.5f, 0.5f, 0.5f, 1.0f}, "%s", filepaths.c_str());
+
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(ImGui::GetWindowWidth() - 150);
+
+        ImGui::PushItemWidth(150);
+        ImGui::SliderFloat("##Thumbnail_Size", &dragRatio, 1.0f, 5.0f);
+        ImGui::PopItemWidth();
+
+        ImGui::EndChild();
+
+        ImGui::BeginChild("Content", {0.f, 0.f}, false);
+
+        ImGui::Columns(columnCount, nullptr, false);
+
+        if (m_CurrentDirectoryEntries.empty())
         {
-        }
-
-        ImGui::Separator();
-
-        // List files and directories
-        for (auto &directoryEntry : std::filesystem::directory_iterator(m_currentDirectory))
-        {
-            const auto &path = directoryEntry.path();
-            std::string fileName = path.filename().string();
-
-            if (directoryEntry.is_directory())
+            if (fs::exists(m_currentDirectory))
             {
-                // Display folder with a folder icon
-                if (ImGui::Selectable((fileName + "/").c_str(), false, ImGuiSelectableFlags_DontClosePopups))
-                {
-                    m_currentDirectory = path;                        // Navigate into folder
-                }
-            }
-            else
-            {
-                // Display file with file icon
-                if (ImGui::Selectable(fileName.c_str()))
-                {
-                    if (ImGui::IsMouseDoubleClicked(0)) // Open file on double-click
-                    {
-                        // Open the file (implement your file opening logic here)
-                        //openFile(path.string());
-                        ImGui::CloseCurrentPopup();
-                    }
-                }
+                for (auto &directoryEntry : std::filesystem::directory_iterator(m_currentDirectory))
+                    drawFileAssetBrowser(directoryEntry);
             }
         }
+        else
+            for (const auto &directoryEntry : m_CurrentDirectoryEntries) drawFileAssetBrowser(directoryEntry);
 
-        // Close button
-        if (ImGui::Button("Close"))
-        {
-            ImGui::CloseCurrentPopup();
-        }
+        ImGui::Columns(1);
+        ImGui::EndChild();
+
+        // TODO: status bar
+        ImGui::EndChild();
 
         ImGui::EndPopup();
     }
 }
 
-void AssetBrowserPanel::search(const std::string &query) 
+void AssetBrowserPanel::search(const std::string &query)
 {
     m_CurrentDirectoryEntries.clear();
 
@@ -439,7 +556,7 @@ void AssetBrowserPanel::drawFileAssetBrowser(std::filesystem::directory_entry di
         if (icon == NULL_IMAGE_ID) icon = m_icons["file"];
     }
 
-    if (path.extension() == ".material")
+    if (path.extension() == ".mat")
     {
         //icon = ThumbnailManager::Get().GetThumbnail(relativePath);
         if (!icon) icon = m_icons["file"];
@@ -474,7 +591,7 @@ void AssetBrowserPanel::drawFileAssetBrowser(std::filesystem::directory_entry di
         }
         if (ImGui::MenuItem(ICON_FA_TRASH "   Delete"))
         {
-            m_filePathToDelete = path;       // Set the path of the file to delete
+            m_filePathToDelete = relativePath;       // Set the path of the file to delete
             m_showConfirmDelete = true; // Show the confirmation dialog
 			ImGui::OpenPopup("Confirm Delete");
         }
@@ -504,7 +621,21 @@ void AssetBrowserPanel::drawFileAssetBrowser(std::filesystem::directory_entry di
         if (directoryEntry.is_directory()) m_currentDirectory /= path.filename();
         else
         {
-            if (path.extension() == ".scene") SceneManager::get().openScene(relativePath);
+            auto assetType = getAssetTypeFromFileExtension(path.extension());
+            switch (assetType)
+            {
+                case AssetType::Scene: SceneManager::get().openScene(relativePath); break;
+                case AssetType::Material: 
+                {
+                    const auto handle = AssetManager::getOrCreateAssetHandle(relativePath, AssetType::Material);
+					InspectorPanel::MaterialContext ctx;
+                    ctx.isCustom = true;
+                    ctx.assetHandle = handle;
+                    EditorEventBus::get().pushEvent({EditorEventType::OpenMaterialEditor, ctx}); 
+                    break;
+                }
+                default: break;
+            }
         }
     }
 
@@ -620,7 +751,6 @@ void AssetBrowserPanel::updateThumbnails()
             auto task =
                 CreateRef<Task<ImageID>>("LoadImage_" + thumbnailInfo.assetPath.string(),
                                          [&]() -> ImageID { return helper::loadImageFromFile(thumbnailInfo.assetPath); });
-
             Application::getTaskManager()->submitTask(task);
         }
 

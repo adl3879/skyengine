@@ -13,7 +13,7 @@ void MaterialCache::init(gfx::Device &gfxDevice)
         MAX_MATERIALS * sizeof(MaterialData),
         gfx::FRAME_OVERLAP,
         "materials");
-    //m_materialDataCPU.reserve(MAX_MATERIALS);
+    m_materialDataGPU.reserve(MAX_MATERIALS);
 
     {   // create default normal map texture
         std::uint32_t normal = 0xFFFF8080; // (0.5, 0.5, 1.0, 1.0)
@@ -30,8 +30,8 @@ void MaterialCache::upload(gfx::Device &gfxDevice, gfx::CommandBuffer cmd)
 {
     m_materialDataBuffer.uploadNewData(cmd, 
         gfxDevice.getCurrentFrameIndex(), 
-        (void *)m_materialDataCPU.data(), 
-        sizeof(MaterialData) * m_materialDataCPU.size());
+        (void *)m_materialDataGPU.data(), 
+        sizeof(MaterialData) * m_materialDataGPU.size());
 }
 
 void MaterialCache::cleanup(gfx::Device &gfxDevice) 
@@ -59,7 +59,8 @@ MaterialID MaterialCache::addMaterial(gfx::Device &gfxDevice, Material material)
     };
 
     // store on CPU
-    m_materialDataCPU.push_back(std::move(newMaterial));
+    m_materialDataGPU.push_back(std::move(newMaterial));
+    m_materialDataCPU.push_back(material);
 
     return id;
 }
@@ -68,7 +69,7 @@ void MaterialCache::updateMaterial(gfx::Device &gfxDevice, MaterialID id, Materi
 {
     auto whiteTextureID = gfxDevice.getWhiteTextureID();
 
-    auto &mat = m_materialDataCPU.at(id);
+    auto &mat = m_materialDataGPU.at(id);
     mat = MaterialData{
 		.baseColor = material.baseColor,
         .metalRoughnessEmissive =
@@ -80,15 +81,17 @@ void MaterialCache::updateMaterial(gfx::Device &gfxDevice, MaterialID id, Materi
         .ambientOcclusionTex = getTextureOrElse(material.ambientOcclusionTexture, whiteTextureID),
         .emissiveTex = getTextureOrElse(material.emissiveTexture, whiteTextureID),
     };
+
+    m_materialDataCPU[id] = material;
 }
 
-const MaterialData &MaterialCache::getMaterial(MaterialID id) const
+const Material &MaterialCache::getMaterial(MaterialID id) const
 {
     return m_materialDataCPU.at(id);
 }
 
 MaterialID MaterialCache::getFreeMaterialID() const 
 {
-    return m_materialDataCPU.size();
+    return m_materialDataGPU.size();
 }
 } // namespace sky

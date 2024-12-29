@@ -13,8 +13,17 @@ SceneManager &SceneManager::get()
 
 SceneManager::SceneManager()
 {
-    m_sceneState = SceneState::Edit;
+	m_sceneState = SceneState::Edit;
     m_activeScene = CreateRef<Scene>();
+}
+
+void SceneManager::reset() 
+{
+    m_activeScene = CreateRef<Scene>();
+    m_activeScene->init();
+
+    m_openedScenes.clear();
+    m_currentViewport.clear();
 }
 
 void SceneManager::openScene(const fs::path &path) 

@@ -159,7 +159,7 @@ gfx::AllocatedImage SceneRenderer::getDrawImage()
 	return m_device.getImage(m_drawImageID);
 }
 
-void SceneRenderer::drawMesh(MeshID id, const glm::mat4 &transform, bool visibility, uint32_t uniqueId) 
+void SceneRenderer::drawMesh(MeshID id, const glm::mat4 &transform, bool visibility, uint32_t uniqueId, MaterialID mat) 
 {
     const auto &mesh = m_meshCache.getMesh(id);
     const auto worldBoundingSphere = edge::calculateBoundingSphereWorld(transform, mesh.boundingSphere, false);
@@ -170,17 +170,19 @@ void SceneRenderer::drawMesh(MeshID id, const glm::mat4 &transform, bool visibil
         .isVisible = visibility,
         .uniqueId = uniqueId + 1,
         .worldBoundingSphere = worldBoundingSphere,
+        .material = mat
     };
 
     //assert(m_meshDrawCommands.capacity() >= m_meshDrawCommands.size() + 1);
     m_meshDrawCommands.push_back(dc);
 }
 
+// Used for drag indicator, can be used to draw any model that can't be selected
 void SceneRenderer::drawModel(Ref<Model> model, const glm::mat4 &transform) 
 {
     for (const auto &mesh : model->meshes)
     {
-        drawMesh(mesh, transform, true, -1);
+        drawMesh(mesh, transform, true, -1, getMesh(mesh).material);
     }
 }
 
@@ -195,22 +197,30 @@ void SceneRenderer::render(gfx::CommandBuffer cmd, Ref<Scene> scene)
 		auto view = scene->getRegistry().view<TransformComponent, ModelComponent, VisibilityComponent>();
 		for (auto &e : view)
 		{
-			auto [transform, model, visibility] = view.get<TransformComponent, ModelComponent, VisibilityComponent>(e);
+			auto [transform, modelComponent, visibility] = 
+                view.get<TransformComponent, ModelComponent, VisibilityComponent>(e);
 
-            if (model.type == ModelType::Custom)
+            if (modelComponent.type == ModelType::Custom)
             {
-				AssetManager::getAssetAsync<Model>(model.handle, [=](const Ref<Model> &model){
-					for (const auto &mesh : model->meshes) 
+				AssetManager::getAssetAsync<Model>(modelComponent.handle, [=](const Ref<Model> &model){
+					for (size_t i = 0; i < model->meshes.size(); i++) 
 					{
+                        const auto &mesh = model->meshes[i];
+                        const auto material = modelComponent.customMaterialOverrides.contains(i) 
+                            ? AssetManager::getAsset<MaterialAsset>(modelComponent.customMaterialOverrides.at(i))->material 
+                            : getMesh(mesh).material;
+                        
                         drawMesh(mesh, transform.getModelMatrix(), visibility,
-                            static_cast<uint32_t>(e));
+                            static_cast<uint32_t>(e), material);
 					}
 				});
             }
             else
             {
-                drawMesh(m_builtinModels[model.type], transform.getModelMatrix(), 
-                    visibility, static_cast<uint32_t>(e));
+                // draw builtin models
+                drawMesh(m_builtinModels[modelComponent.type], transform.getModelMatrix(), 
+                    visibility, static_cast<uint32_t>(e),  
+                    AssetManager::getAsset<MaterialAsset>(modelComponent.builtinMaterial)->material);
             }
 		}
     }

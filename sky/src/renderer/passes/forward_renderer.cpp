@@ -86,7 +86,7 @@ void ForwardRendererPass::draw(
                 .uniqueId = dc.uniqueId,
                 .sceneDataBuffer = sceneDataBuffer.address,
 				.vertexBuffer = mesh.vertexBuffer.address,
-                .materialId = mesh.materialId, 
+                .materialId = dc.material, 
 			};
 
 			vkCmdPushConstants(cmd, 

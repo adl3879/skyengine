@@ -6,6 +6,7 @@
 #include "graphics/vulkan/vk_types.h"
 #include "core/color.h"
 #include "core/uuid.h"
+#include "asset_management/asset.h"
 
 namespace sky
 {
@@ -39,6 +40,7 @@ struct Material
     float       metallicFactor{0.5f};
     float       roughnessFactor{0.5f};
     float       emissiveFactor{0.f};
+    float       ambientOcclusionFactor{0.f};
 
     ImageID     albedoTexture{NULL_IMAGE_ID};
     ImageID     normalMapTexture{NULL_IMAGE_ID};
@@ -51,4 +53,13 @@ struct Material
 };
 
 using MaterialID = uint32_t;
+static const MaterialID NULL_MATERIAL_ID = -1;
+
+struct MaterialAsset : public Asset
+{
+    MaterialAsset(MaterialID id): material(id) {}
+
+    MaterialID material = NULL_MATERIAL_ID;
+    AssetType getType() const override { return AssetType::Material; }
+};
 }

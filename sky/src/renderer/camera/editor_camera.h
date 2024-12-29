@@ -1,5 +1,8 @@
 #pragma once
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/quaternion.hpp>
+
 #include "camera.h"
 #include "core/events/event.h"
 #include "core/events/mouse_event.h"
@@ -20,6 +23,15 @@ class EditorCamera : public Camera
     SKY_INLINE const float &getNear() const override { return m_nearClip; }
     SKY_INLINE const float &getFar() const override { return m_farClip; }
     SKY_INLINE const float &getAspect() const override { return m_aspectRatio; }
+
+    SKY_INLINE void setView(const glm::mat4 &view) override 
+    {
+        glm::mat4 matrix = getProjection() * glm::inverse(view);
+        // glm::vec2 right	= glm::vec3(matrix[0][0], matrix[1][0], matrix[2][0]);
+        //m_forward = glm::vec3(matrix[0][2], matrix[1][2], matrix[2][2]);
+        //m_up = glm::vec3(matrix[0][1], matrix[1][1], matrix[2][1]);
+        m_position = glm::vec3(view[3][0], view[3][1], view[3][2]);
+    }
 
     void update(float ts);
     void onEvent(Event &e);

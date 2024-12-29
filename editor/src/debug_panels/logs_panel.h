@@ -7,6 +7,7 @@ namespace sky
 class LogsPanel
 {
   public:
+	void reset();
 	void render();
 
   private:

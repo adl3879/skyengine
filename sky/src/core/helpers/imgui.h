@@ -15,6 +15,7 @@ bool imguiButton(std::string text,
 void imguiCenteredText(std::string text);
 void imguiDrawVec3Control(const std::string &label, glm::vec3 &values, float resetValue = 0.0f, float columnWidth = 100.0f);
 void imguiCollapsingHeaderStyle(const char* label, std::function<void()> fn, bool show = true, bool closed = false);
+void imguiCollapsingHeaderStyle2(const char* label, std::function<void()> fn, bool closed = false, bool disabled = false);
 void drawButtonImage(ImageID img, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed);
 }
 }

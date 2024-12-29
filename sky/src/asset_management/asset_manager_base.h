@@ -18,6 +18,8 @@ class AssetManagerBase
 
     virtual bool isAssetHandleValid(AssetHandle handle) const = 0;
     virtual bool isAssetLoaded(AssetHandle handle) = 0;
+    virtual bool removeAsset(AssetHandle handle) = 0;
+    virtual void unloadAllAssets() = 0;
     virtual AssetType getAssetType(AssetHandle handle) const = 0;
 };
 }

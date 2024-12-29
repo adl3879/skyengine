@@ -17,7 +17,7 @@ class MaterialCache
     void cleanup(gfx::Device &gfxDevice);
 
     MaterialID addMaterial(gfx::Device &gfxDevice, Material material);
-    const MaterialData &getMaterial(MaterialID id) const;
+    const Material &getMaterial(MaterialID id) const;
     void updateMaterial(gfx::Device &gfxDevice, MaterialID id, Material material);
 
     MaterialID getFreeMaterialID() const;
@@ -25,7 +25,8 @@ class MaterialCache
     VkDeviceAddress getMaterialDataBufferAddress() const { return m_materialDataBuffer.getBuffer().address; }
 
   private:
-    std::vector<MaterialData> m_materialDataCPU;
+    std::vector<Material> m_materialDataCPU;
+    std::vector<MaterialData> m_materialDataGPU;
 
     static const auto MAX_MATERIALS = 1000;
     gfx::NBuffer m_materialDataBuffer;

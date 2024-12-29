@@ -75,6 +75,16 @@ class AssetManager
         return ProjectManager::getEditorAssetManager()->isAssetLoaded(handle);
     }
 
+    static bool removeAsset(AssetHandle handle) 
+    {
+		return ProjectManager::getEditorAssetManager()->removeAsset(handle);   
+    }
+
+    static void unloadAllAssets() 
+    {
+        return ProjectManager::getEditorAssetManager()->unloadAllAssets();
+    }
+
     static void serializeAssetDirectory() 
     {
         ProjectManager::getEditorAssetManager()->serializeAssetRegistry();

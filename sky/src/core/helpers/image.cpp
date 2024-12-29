@@ -46,5 +46,27 @@ ImageID loadImageFromData(const void *buffer, uint64_t length)
         tex->pixels);
     return texture;
 }
+
+ImageID loadImageFromTexture(Ref<Texture2D> tex, VkFormat format, VkImageUsageFlags usage, bool mipMap)
+{
+    if (tex == nullptr) return NULL_IMAGE_ID;
+
+    auto renderer = Application::getRenderer();
+    return renderer->createImage(
+        {
+            .format = format,
+            .usage = usage |                           //
+                     VK_IMAGE_USAGE_TRANSFER_DST_BIT | // for uploading pixel data to image
+                     VK_IMAGE_USAGE_TRANSFER_SRC_BIT,  // for generating mips
+            .extent =
+                VkExtent3D{
+                    .width = (std::uint32_t)tex->width,
+                    .height = (std::uint32_t)tex->height,
+                    .depth = 1,
+                },
+            .mipMap = mipMap,
+        },
+        tex->pixels);
+}
 }
 }

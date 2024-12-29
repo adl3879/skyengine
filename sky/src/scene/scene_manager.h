@@ -20,6 +20,8 @@ class SceneManager
     SceneManager();
     ~SceneManager() = default;
 
+    void reset();
+
     void setActiveScene(const Ref<Scene> &scene) { m_activeScene = scene; }
     Ref<Scene> getActiveScene() const { return m_activeScene; }
 

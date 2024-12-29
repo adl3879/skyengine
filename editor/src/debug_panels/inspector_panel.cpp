@@ -6,6 +6,11 @@
 
 #include "scene/components.h"
 #include "core/helpers/imgui.h"
+#include "asset_management/asset_manager.h"
+#include "core/events/event_bus.h"
+#include "renderer/texture.h"
+#include "core/helpers/image.h"
+#include "core/resource/material_serializer.h"
 
 #define ADD_COMPONENT_MENU(type, name, fn)		\
 	if (!entity.hasComponent<type>())			\
@@ -17,14 +22,53 @@
 		}										\
 	}											\
 
+#define HANDLE_DRAG_DROP_TEXTURE(materialParam, format)                                                                \
+    if (ImGui::BeginDragDropTarget())                                                                                  \
+    {                                                                                                                  \
+        if (const auto *payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))                                \
+        {                                                                                                              \
+            fs::path path = (const char *)payload->Data;                                                               \
+            auto assetType = getAssetTypeFromFileExtension(path.extension());                                          \
+            if (assetType == AssetType::Texture2D)                                                                     \
+            {                                                                                                          \
+                const auto handle = AssetManager::getOrCreateAssetHandle(path, AssetType::Texture2D);                  \
+                auto texture = AssetManager::getAsset<Texture2D>(handle);                                              \
+                materialParam = helper::loadImageFromTexture(texture, format, VK_IMAGE_USAGE_SAMPLED_BIT, true);       \
+            }                                                                                                          \
+        }                                                                                                              \
+        ImGui::EndDragDropTarget();                                                                                    \
+    }
+
+
 namespace sky
 {
-void InspectorPanel::render() 
+void InspectorPanel::reset() {}
+
+void InspectorPanel::render()
 {
 	ZoneScopedN("Inspector panel");
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 0));
 	ImGui::Begin("Inspector");
 
+	if (m_view != InspectorPanelView::Default)
+    {
+		if (ImGui::Button("Back", {80, 40}))
+			m_view = InspectorPanelView::Default;
+    }
+
+	switch (m_view)
+	{
+		case sky::InspectorPanelView::Default: drawDefaultView(); break;
+		case sky::InspectorPanelView::MaterialEditor: drawMaterialEditor(); break;
+		default: break;
+	}
+	
+	ImGui::End();
+	ImGui::PopStyleVar();
+}
+
+void InspectorPanel::drawDefaultView() 
+{
 	auto entity = m_context->getSelectedEntity();
 
 	if (!entity.isNull())
@@ -126,17 +170,195 @@ void InspectorPanel::render()
 			drawSpotLightComponent();
 		}, entity.hasComponent<SpotLightComponent>());
 	}
-
-	ImGui::End();
-	ImGui::PopStyleVar();
 }
 
-void InspectorPanel::drawTransformComponent() 
+void InspectorPanel::drawMaterialEditor() 
+{
+    auto renderer = Application::getRenderer();
+	const auto imageSize = ImVec2{100, 100};
+	bool show = true;
+
+	const auto getTextureOrElse = [=](ImageID imageId) { 
+		return imageId != NULL_IMAGE_ID ? imageId : renderer->getCheckerboardTexture();
+	};
+
+	auto material = Material{};
+	MaterialID materialId = NULL_MATERIAL_ID;
+	auto isBuiltinMaterial = false;
+	if (!m_materialContext.isCustom) 
+	{
+		material = renderer->getMaterial(m_materialContext.materialId);
+		materialId = m_materialContext.materialId;
+		isBuiltinMaterial = true;
+	}
+	else
+    {
+		materialId = AssetManager::getAsset<MaterialAsset>(m_materialContext.assetHandle)->material;
+		material = renderer->getMaterial(materialId);
+    }
+
+	helper::imguiCollapsingHeaderStyle2("Albedo", [&](){
+		if (ImGui::BeginTable("Albedo", 3, ImGuiTableFlags_Resizable))
+		{
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("Texture");
+			ImGui::TableNextColumn();
+			ImGui::Image(getTextureOrElse(material.albedoTexture), imageSize);
+			HANDLE_DRAG_DROP_TEXTURE(material.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
+			ImGui::TableNextColumn();
+			ImGui::Button(ICON_FA_UNDO);
+			ImGui::SameLine();
+			ImGui::Button(ICON_FA_TRASH);
+
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("Value");
+			ImGui::TableNextColumn();
+			float col[] = { material.baseColor.r, material.baseColor.g, material.baseColor.b };
+			ImGui::ColorEdit3("##dl", col);
+			material.baseColor = { col[0], col[1], col[2], 1.f };
+			ImGui::TableNextColumn();
+			ImGui::Button(ICON_FA_UNDO);
+
+			ImGui::EndTable();
+		}
+	}, show, isBuiltinMaterial);
+	helper::imguiCollapsingHeaderStyle2("Normal Map", [&](){
+		if (ImGui::BeginTable("Normal", 3, ImGuiTableFlags_Resizable))
+		{
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("Texture");
+			ImGui::TableNextColumn();
+			ImGui::Image(getTextureOrElse(material.normalMapTexture), imageSize);
+			HANDLE_DRAG_DROP_TEXTURE(material.normalMapTexture, VK_FORMAT_R8G8B8A8_UNORM);
+			ImGui::TableNextColumn();
+			ImGui::Button(ICON_FA_UNDO);
+			ImGui::SameLine();
+			ImGui::Button(ICON_FA_TRASH);
+
+			ImGui::EndTable();
+		}
+	}, show, isBuiltinMaterial);
+	helper::imguiCollapsingHeaderStyle2("Metallic", [&](){
+		if (ImGui::BeginTable("Metallic", 3, ImGuiTableFlags_Resizable))
+		{
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("Texture");
+			ImGui::TableNextColumn();
+			ImGui::Image(getTextureOrElse(material.metallicTexture), imageSize);
+			HANDLE_DRAG_DROP_TEXTURE(material.metallicTexture, VK_FORMAT_R8G8B8A8_UNORM);
+			ImGui::TableNextColumn();
+			ImGui::Button(ICON_FA_UNDO);
+			ImGui::SameLine();
+			ImGui::Button(ICON_FA_TRASH);
+
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("Value");
+			ImGui::TableNextColumn();
+			ImGui::SliderFloat("##dd", &material.metallicFactor, 0.f, 1.f);
+			ImGui::TableNextColumn();
+			ImGui::Button(ICON_FA_UNDO);
+
+			ImGui::EndTable();
+		}
+	}, show, isBuiltinMaterial);
+	helper::imguiCollapsingHeaderStyle2("Roughness", [&](){
+		if (ImGui::BeginTable("Roughness", 3, ImGuiTableFlags_Resizable))
+		{
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("Texture");
+			ImGui::TableNextColumn();
+			ImGui::Image(getTextureOrElse(material.roughnessTexture), imageSize);
+			HANDLE_DRAG_DROP_TEXTURE(material.roughnessTexture, VK_FORMAT_R8G8B8A8_UNORM);
+			ImGui::TableNextColumn();
+			ImGui::Button(ICON_FA_UNDO);
+			ImGui::SameLine();
+			ImGui::Button(ICON_FA_TRASH);
+
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("Value");
+			ImGui::TableNextColumn();
+			ImGui::SliderFloat("##dd", &material.roughnessFactor, 0.f, 1.f);
+			ImGui::TableNextColumn();
+			ImGui::Button(ICON_FA_UNDO);
+
+			ImGui::EndTable();
+		}
+	}, show, isBuiltinMaterial);
+	helper::imguiCollapsingHeaderStyle2("Ambient Occlusion", [&](){
+		if (ImGui::BeginTable("Ambient Occlusion", 3, ImGuiTableFlags_Resizable))
+		{
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("Texture");
+			ImGui::TableNextColumn();
+			ImGui::Image(getTextureOrElse(material.ambientOcclusionTexture), imageSize);
+			HANDLE_DRAG_DROP_TEXTURE(material.ambientOcclusionTexture, VK_FORMAT_R8G8B8A8_UNORM);
+			ImGui::TableNextColumn();
+			ImGui::Button(ICON_FA_UNDO);
+			ImGui::SameLine();
+			ImGui::Button(ICON_FA_TRASH);
+
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("Value");
+			ImGui::TableNextColumn();
+			ImGui::SliderFloat("##dd", &material.ambientOcclusionFactor, 0.f, 1.f);
+			ImGui::TableNextColumn();
+			ImGui::Button(ICON_FA_UNDO);
+
+			ImGui::EndTable();
+		}
+	}, show, isBuiltinMaterial);
+	helper::imguiCollapsingHeaderStyle2("Emissive", [&](){
+		if (ImGui::BeginTable("Emissive", 3, ImGuiTableFlags_Resizable))
+		{
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("Texture");
+			ImGui::TableNextColumn();
+			ImGui::Image(getTextureOrElse(material.emissiveTexture), imageSize);
+			HANDLE_DRAG_DROP_TEXTURE(material.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
+			ImGui::TableNextColumn();
+			ImGui::Button(ICON_FA_UNDO);
+			ImGui::SameLine();
+			ImGui::Button(ICON_FA_TRASH);
+
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("Value");
+			ImGui::TableNextColumn();
+			ImGui::SliderFloat("##dd", &material.emissiveFactor, 0.f, 1.f);
+			ImGui::TableNextColumn();
+			ImGui::Button(ICON_FA_UNDO);
+
+			ImGui::EndTable();
+		}
+	}, show, isBuiltinMaterial);
+
+
+	renderer->updateMaterial(materialId, material);
+}
+
+void InspectorPanel::openView(InspectorPanelView view) 
+{
+	m_previousView = m_view;
+	m_view = view;
+}
+
+void InspectorPanel::drawTransformComponent()
 {
 	auto entity = m_context->getSelectedEntity();
 	if (ImGui::BeginTable("TransformTable", 2, ImGuiTableFlags_Resizable))
 	{
 		auto &transform = entity.getComponent<TransformComponent>();
+		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
 
 		ImVec2 headerPadding = ImVec2(10, 10); // Increase padding for header row
 		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, headerPadding);
@@ -175,7 +397,117 @@ void InspectorPanel::drawTransformComponent()
 }
 
 void InspectorPanel::drawMeshComponent() 
-{}
+{
+	auto entity = m_context->getSelectedEntity();
+	auto &model = entity.getComponent<ModelComponent>();
+
+	if (ImGui::BeginTable("MeshTable", 2, ImGuiTableFlags_Resizable) && model.type == ModelType::Custom)
+	{
+
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		ImGui::Text("UUID");
+		ImGui::TableNextColumn();
+		ImGui::Button(model.handle.toString().c_str(), {-1, 40});
+
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		ImGui::Text("Path");
+		ImGui::TableNextColumn();
+		auto path = AssetManager::getMetadata(model.handle).filepath;
+		ImGui::Button(path.string().c_str(), {-1, 40});
+	
+		ImGui::EndTable();
+	}
+	else
+    {
+    }
+
+	if (ImGui::TreeNode("Surfaces") && model.type == ModelType::Custom)
+	{
+		auto renderer = Application::getRenderer();
+		AssetManager::getAssetAsync<Model>(model.handle, [&](const Ref<Model> &m){
+			for (size_t i = 0; i < m->meshes.size(); i++)
+			{
+				auto mesh = renderer->getMesh(m->meshes[i]);
+				std::string surfaceName = "Surface_" + std::to_string(i);
+
+				const auto material = model.customMaterialOverrides.contains(i) 
+					?  AssetManager::getAsset<MaterialAsset>(model.customMaterialOverrides.at(i))->material 
+					: mesh.material;
+
+				if (ImGui::TreeNode(surfaceName.c_str()))
+				{
+					if (ImGui::BeginTable("MeshSurfacesTable", 2, ImGuiTableFlags_Resizable))
+					{
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn();
+						ImGui::Text("Mesh");
+						ImGui::TableNextColumn();
+						ImGui::Button(mesh.name.c_str(), ImVec2(-1, 40));
+
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn();
+						ImGui::Text("Material");
+						ImGui::TableNextColumn();
+
+						if (ImGui::Button("...", {0, 40})) ImGui::OpenPopup("materialMenu");
+						if (ImGui::BeginPopup("materialMenu"))
+						{
+							if (ImGui::MenuItem(ICON_FA_PENCIL_ALT "	Edit")) 
+							{
+								MaterialContext ctx;
+								if (model.customMaterialOverrides.contains(i))
+								{
+									ctx.isCustom = true;
+									ctx.assetHandle = model.customMaterialOverrides.at(i); 
+								}
+								else
+								{
+									ctx.materialId = mesh.material;
+								}
+								EditorEventBus::get().pushEvent({EditorEventType::OpenMaterialEditor, ctx});
+							}	
+							ImGui::Separator();
+							if (ImGui::MenuItem("Create New Default Material")) 
+							{
+							}	
+							if (ImGui::MenuItem("Create New Material From Current")) {}	
+							if (ImGui::MenuItem("Reset to Default")) {}	
+							ImGui::EndPopup();
+						}
+
+						ImGui::SameLine();
+						const auto materialName = renderer->getMaterial(material).name; 
+
+						ImGui::Button(materialName.c_str(), ImVec2(-1, 40));
+						if (ImGui::BeginDragDropTarget())
+						{
+							if (const auto *payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+							{
+								fs::path path = (const char *)payload->Data;
+								auto assetType = getAssetTypeFromFileExtension(path.extension());
+								if (assetType == AssetType::Material)
+								{
+									const auto handle = AssetManager::getOrCreateAssetHandle(path, AssetType::Material);
+									model.customMaterialOverrides[i] = handle;
+								}
+							}
+							ImGui::EndDragDropTarget();
+						}
+
+						ImGui::EndTable();
+					}
+
+					ImGui::TreePop();
+				}
+			}
+		});
+		ImGui::TreePop();
+	}
+
+
+	}
 
 void InspectorPanel::drawPointLightComponent() 
 {
@@ -188,6 +520,7 @@ void InspectorPanel::drawPointLightComponent()
 		ImGui::TableNextColumn();
 		ImGui::Text("Color");
 		ImGui::TableNextColumn();
+		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
 		float col[] = { (float)pl.color.r, (float)pl.color.g, (float)pl.color.b };
 		ImGui::ColorEdit3("##dl", col);
 		pl.color = { col[0], col[1], col[2] };
@@ -221,6 +554,7 @@ void InspectorPanel::drawSpotLightComponent()
 		ImGui::TableNextColumn();
 		ImGui::Text("Color");
 		ImGui::TableNextColumn();
+		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
 		float col[] = { (float)sl.color.r, (float)sl.color.g, (float)sl.color.b };
 		ImGui::ColorEdit3("##dl", col);
 		sl.color = { col[0], col[1], col[2] };
@@ -274,6 +608,7 @@ void InspectorPanel::drawDirectionalLightComponent()
 		ImGui::TableNextColumn();
 		ImGui::Text("Color");
 		ImGui::TableNextColumn();
+		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
 		float col[] = { (float)dl.color.r, (float)dl.color.g, (float)dl.color.b };
 		ImGui::ColorEdit3("##dl", col);
 		dl.color = { col[0], col[1], col[2] };

@@ -9,6 +9,6 @@ namespace sky
 class MaterialImporter
 {
   public:
+	static Ref<MaterialAsset> importAsset(AssetHandle handle, AssetMetadata &metadata);
 };
-
 }

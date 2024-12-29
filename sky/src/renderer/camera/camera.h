@@ -15,5 +15,6 @@ class Camera
     virtual SKY_INLINE const float &getNear() const = 0;
     virtual SKY_INLINE const float &getFar() const = 0;
     virtual SKY_INLINE const float &getAspect() const = 0;
+    virtual SKY_INLINE void setView(const glm::mat4 &view) = 0;
 };
 }
