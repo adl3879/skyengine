@@ -10,7 +10,7 @@ Ref<MaterialAsset> MaterialImporter::importAsset(AssetHandle handle, AssetMetada
 {
 	auto path = ProjectManager::getConfig().getAssetDirectory() / metadata.filepath;
 	MaterialSerializer serializer;
-	auto &material = serializer.deserialize(path);
+	auto material = serializer.deserialize(path);
 	material.name = metadata.filepath.string();
 	auto id = Application::getRenderer()->addMaterialToCache(material);
 

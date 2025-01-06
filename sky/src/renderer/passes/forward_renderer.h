@@ -23,6 +23,16 @@ class ForwardRendererPass : public Pass
         const gfx::AllocatedBuffer &sceneDataBuffer,
         const MeshCache &meshCache,
         const std::vector<MeshDrawCommand> &drawCommands);
+	void draw2(
+        gfx::Device &device, 
+        gfx::CommandBuffer cmd, 
+        VkExtent2D extent,
+        const gfx::AllocatedBuffer &sceneDataBuffer,
+        const MeshCache &meshCache,
+        std::vector<MeshID> meshId,
+        MaterialID materialId,
+        bool useDefaultMaterial = false);
+
     void cleanup(const gfx::Device &device);
 
   private:

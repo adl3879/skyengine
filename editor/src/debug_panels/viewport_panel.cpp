@@ -206,6 +206,7 @@ void ViewportPanel::handleViewportDrop()
 				{
                     auto material = Material{};
                     auto albedoPath = ProjectManager::getConfig().getAssetDirectory() / mesh.materialPaths.albedoTexture;
+                    // load just albedo for performance
                     material.albedoTexture = helper::loadImageFromTexture(
                         TextureImporter::loadTexture(albedoPath), 
                         VK_FORMAT_R8G8B8A8_SRGB, 

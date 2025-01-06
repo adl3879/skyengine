@@ -11,6 +11,7 @@
 #include "renderer/model_loader.h"
 #include "scene/scene_manager.h"
 #include "core/events/event_bus.h"
+#include "core/resource/custom_thumbnail.h"
 
 namespace sky {
 Ref<Window>         Application::m_window       = nullptr;
@@ -65,6 +66,7 @@ void Application::run()
 
         {
             auto cmd = m_gfxDevice->beginFrame();
+            CustomThumbnail::get().render(cmd);
             m_renderer->render(cmd, SceneManager::get().getActiveScene());
             m_gfxDevice->endFrame(cmd, m_renderer->getDrawImage());
 

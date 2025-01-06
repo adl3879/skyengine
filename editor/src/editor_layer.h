@@ -11,6 +11,7 @@
 #include "debug_panels/project_manager_panel.h"
 #include "debug_panels/inspector_panel.h"
 #include "debug_panels/asset_browser_panel.h"
+#include "debug_panels/asset_browser_popup.h"
 #include "debug_panels/logs_panel.h"
 #include "debug_panels/titlebar_panel.h"
 #include "debug_panels/viewport_panel.h"
@@ -42,6 +43,7 @@ class EditorLayer : public Layer
     ProjectManagerPanel m_projectManagerPanel;
     InspectorPanel      m_inspectorPanel;
     AssetBrowserPanel   m_assetBrowserPanel;
+    AssetBrowserPopup   m_assetBrowserPopup;
     LogsPanel           m_logPanel;
     TitlebarPanel       m_titlebarPanel;
     ViewportPanel       m_viewportPanel;

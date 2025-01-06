@@ -11,6 +11,7 @@ namespace helper
 {
 ImageID loadImageFromFile(const fs::path& path);
 ImageID loadImageFromData(const void *buffer, uint64_t length);
-ImageID loadImageFromTexture(Ref<Texture2D> tex, VkFormat format, VkImageUsageFlags usage, bool mipMap);
+ImageID loadImageFromTexture(Ref<Texture2D> tex, VkFormat format, 
+	VkImageUsageFlags usage = VK_IMAGE_USAGE_SAMPLED_BIT, bool mipMap = true);
 }
 }

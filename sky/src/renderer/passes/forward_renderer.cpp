@@ -102,6 +102,62 @@ void ForwardRendererPass::draw(
 	}
 }
 
+void ForwardRendererPass::draw2(gfx::Device &device, 
+    gfx::CommandBuffer cmd, 
+    VkExtent2D extent, 
+    const gfx::AllocatedBuffer &sceneDataBuffer,  
+	const MeshCache &meshCache,
+    std::vector<MeshID> meshes,
+    MaterialID materialId,
+    bool useDefaultMaterial)
+{
+	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInfo.pipeline);
+    VkDescriptorSet descriptorSets[] = {
+        device.getBindlessDescSet(),
+        device.getStorageBufferDescSet(),
+    };
+    device.bindDescriptorSets(cmd, m_pInfo.pipelineLayout, descriptorSets);
+
+    // set dynamic viewport and scissor
+    const auto viewport = VkViewport{
+        .x = 0.f,
+		.y = 0.f,
+		.width = (float)extent.width,
+		.height = (float)extent.height,
+		.minDepth = 0.f,
+		.maxDepth = 1.f,
+    };
+    vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+    const auto scissor = VkRect2D{
+        .offset = {0, 0},
+        .extent = extent,
+    };
+    vkCmdSetScissor(cmd, 0, 1, &scissor);
+
+    for (const auto &meshId : meshes)
+    {
+		const auto &mesh = meshCache.getMesh(meshId);
+		const auto pushConstants = PushConstants{
+			.transform = glm::mat4{1.f},
+			.uniqueId = (uint32_t)-1,
+			.sceneDataBuffer = sceneDataBuffer.address,
+			.vertexBuffer = mesh.vertexBuffer.address,
+			.materialId = useDefaultMaterial ? mesh.materialId : materialId, 
+		};
+
+		vkCmdPushConstants(cmd, 
+			m_pInfo.pipelineLayout, 
+			VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 
+			0, 
+			sizeof(PushConstants), 
+			&pushConstants);
+		vkCmdBindIndexBuffer(cmd, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+		vkCmdDrawIndexed(cmd, mesh.numIndices, 1, 0, 0, 0);
+    }
+}
+
 void ForwardRendererPass::cleanup(const gfx::Device &device) 
 {
     vkDestroyPipeline(device.getDevice(), m_pInfo.pipeline, nullptr);

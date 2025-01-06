@@ -24,6 +24,8 @@ set(SHADERS
     "mesh.frag"
     "grid.vert"
     "grid.frag"
+    "thumbnail_gradient.vert"
+    "thumbnail_gradient.frag"
     "imgui.frag"
     "imgui.vert")
 

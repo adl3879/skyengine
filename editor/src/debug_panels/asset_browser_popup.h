@@ -5,17 +5,31 @@
 #include "asset_management/asset.h"
 #include "asset_management/asset_manager.h"
 #include "graphics/vulkan/vk_types.h"
+#include <any>
 
 namespace sky
 {
-class AssetBrowserPanel
+class AssetBrowserPopup
 {
   public:
-    AssetBrowserPanel();
+    struct AssetBrowserPopupContext
+    {
+        std::string action = "Save";
+        AssetType assetType;
+        std::string metadata;
+    };
+
+  public:
+    AssetBrowserPopup();
     void init();
     void reset();
 	void render();
-    void handleDroppedFile(const fs::path &path);
+    void showFileBrowserPopup() { m_showFileBrowserModal = true; }
+    void setContext(AssetBrowserPopupContext ctx) { m_context = ctx; }
+
+    inline static std::optional<fs::path> s_recentlySavedFile;
+    inline static std::optional<fs::path> s_defaultMaterialSavedFile;
+    inline static std::optional<fs::path> s_fromMaterialSavedFile;
 
   private:
 	struct FileTreeNode
@@ -27,27 +41,7 @@ class AssetBrowserPanel
 	std::vector<FileTreeNode *> m_nodeStack; // Stack to keep track of visited nodes
 
   private:
-    void addPathToTree(FileTreeNode &root, const fs::path &path);
-    void refreshAssetTree();
-    void displayFileHierarchy(const fs::path &directory);
-    void openCreateFilePopup(AssetType type);
-    void confirmDeletePopup();
-
-    // import assets
-    template <typename T> void loadAsset(const fs::path &path, AssetType assetType)
-    {
-        auto handle = AssetManager::getOrCreateAssetHandle(path, assetType);
-        AssetManager::getAssetAsync<T>(handle);
-    }
-	template <typename T> void removeAsset(const fs::path &path, AssetType assetType)
-    {
-        auto handle = AssetManager::getOrCreateAssetHandle(path, assetType);
-        AssetManager::removeAsset(handle);
-    }
-    void importNewAsset(const fs::path &path);
-    void deleteAsset(const fs::path &path);
-
-    // Search
+    void fileBrowserPopup();
     void search(const std::string &query);
     void drawFileAssetBrowser(std::filesystem::directory_entry directoryEntry);
 
@@ -74,12 +68,10 @@ class AssetBrowserPanel
     std::vector<fs::directory_entry> m_CurrentDirectoryEntries;
 
 	std::string m_searchQuery;
-    bool m_renameRequested = false;
-    std::filesystem::path m_renamePath;
-
-    bool m_showConfirmDelete = false;
-	fs::path m_filePathToDelete;
+    bool m_showFileBrowserModal = false;
 
     std::unordered_map<std::string, ImageID> m_icons;
+
+    AssetBrowserPopupContext m_context;
 };
 }

@@ -24,7 +24,7 @@ struct SpotLightComponent { Light light; };
 struct ModelComponent
 {
     ModelType type = ModelType::Custom;
-    AssetHandle builtinMaterial = NULL_MATERIAL_ID;
+    AssetHandle builtinMaterial = NULL_UUID;
     AssetHandle handle = NULL_UUID;
     std::map<uint32_t, AssetHandle> customMaterialOverrides;
 };

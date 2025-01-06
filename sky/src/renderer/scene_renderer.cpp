@@ -45,37 +45,37 @@ void SceneRenderer::initBuiltins()
     {
 		AssimpModelLoader loader("res/models/cube.glb");
 		auto mesh = loader.getMeshes()[0].mesh;
-		mesh.material = addMaterialToCache(Material{});
+		mesh.material = m_materialCache.getDefaultMaterial();
 		m_builtinModels[ModelType::Cube] = addMeshToCache(mesh);
     }
 	{
 		AssimpModelLoader loader("res/models/plane.glb");
 		auto mesh = loader.getMeshes()[0].mesh;
-		mesh.material = addMaterialToCache(Material{});
+		mesh.material = m_materialCache.getDefaultMaterial();
 		m_builtinModels[ModelType::Plane] = addMeshToCache(mesh);
     }
 	{
 		AssimpModelLoader loader("res/models/sphere.glb");
 		auto mesh = loader.getMeshes()[0].mesh;
-		mesh.material = addMaterialToCache(Material{});
+		mesh.material = m_materialCache.getDefaultMaterial();
 		m_builtinModels[ModelType::Sphere] = addMeshToCache(mesh);
 	}
 	{
 		AssimpModelLoader loader("res/models/cylinder.glb");
 		auto mesh = loader.getMeshes()[0].mesh;
-		mesh.material = addMaterialToCache(Material{});
+		mesh.material = m_materialCache.getDefaultMaterial();
 		m_builtinModels[ModelType::Cylinder] = addMeshToCache(mesh);
 	}
 	{
 		AssimpModelLoader loader("res/models/taurus.glb");
 		auto mesh = loader.getMeshes()[0].mesh;
-		mesh.material = addMaterialToCache(Material{});
+		mesh.material = m_materialCache.getDefaultMaterial();
 		m_builtinModels[ModelType::Taurus] = addMeshToCache(mesh);
 	}
 	{
 		AssimpModelLoader loader("res/models/cone.glb");
 		auto mesh = loader.getMeshes()[0].mesh;
-		mesh.material = addMaterialToCache(Material{});
+		mesh.material = m_materialCache.getDefaultMaterial();
 		m_builtinModels[ModelType::Cone] = addMeshToCache(mesh);
 	}
 	{
@@ -116,7 +116,7 @@ void SceneRenderer::destroy()
     m_forwardRenderer.cleanup(m_device);
 }
 
-void SceneRenderer::createDrawImage(glm::ivec2 size)
+ImageID SceneRenderer::createNewDrawImage(glm::ivec2 size) 
 {
     const auto drawImageExtent = VkExtent3D{
         .width = (std::uint32_t)size.x,
@@ -124,34 +124,43 @@ void SceneRenderer::createDrawImage(glm::ivec2 size)
         .depth = 1,
     };
 
-    { // setup draw image
-        VkImageUsageFlags usages{};
-        usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-        usages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-		usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-        usages |= VK_IMAGE_USAGE_SAMPLED_BIT;
+	VkImageUsageFlags usages{};
+	usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+	usages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	usages |= VK_IMAGE_USAGE_SAMPLED_BIT;
 
-        auto createImageInfo = gfx::vkutil::CreateImageInfo{
-            .format = m_drawImageFormat,
-            .usage = usages,
-            .extent = drawImageExtent,
-            .samples = m_samples,
-        };
-        // reuse the same id if creating again
-        m_drawImageID = m_device.createImage(createImageInfo);
-    }
+	auto createImageInfo = gfx::vkutil::CreateImageInfo{
+		.format = m_drawImageFormat,
+		.usage = usages,
+		.extent = drawImageExtent,
+		.samples = m_samples,
+	};
+	// reuse the same id if creating again
+	return m_device.createImage(createImageInfo);
+}
 
-    { // setup depth image
-        auto createInfo = gfx::vkutil::CreateImageInfo{
-            .format = m_depthImageFormat,
-            .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            .extent = drawImageExtent,
-            .samples = m_samples,
-        };
+ImageID SceneRenderer::createNewDepthImage(glm::ivec2 size)
+{
+    const auto drawImageExtent = VkExtent3D{
+        .width = (std::uint32_t)size.x,
+        .height = (std::uint32_t)size.y,
+        .depth = 1,
+    };
+    auto createInfo = gfx::vkutil::CreateImageInfo{
+        .format = m_depthImageFormat,
+        .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        .extent = drawImageExtent,
+        .samples = m_samples,
+    };
+    // reuse the same id if creating again
+    return m_device.createImage(createInfo);
+}
 
-        // reuse the same id if creating again
-        m_depthImageID = m_device.createImage(createInfo);
-    }
+void SceneRenderer::createDrawImage(glm::ivec2 size)
+{
+    m_drawImageID = createNewDrawImage(size);
+    m_depthImageID = createNewDepthImage(size);
 }
 
 gfx::AllocatedImage SceneRenderer::getDrawImage() 
@@ -186,7 +195,7 @@ void SceneRenderer::drawModel(Ref<Model> model, const glm::mat4 &transform)
     }
 }
 
-void SceneRenderer::render(gfx::CommandBuffer cmd, Ref<Scene> scene) 
+void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene) 
 {
     ZoneScopedN("Scene Renderer");
 
@@ -218,9 +227,11 @@ void SceneRenderer::render(gfx::CommandBuffer cmd, Ref<Scene> scene)
             else
             {
                 // draw builtin models
+                const auto material = modelComponent.builtinMaterial != NULL_UUID ?
+					AssetManager::getAsset<MaterialAsset>(modelComponent.builtinMaterial)->material :
+                    m_materialCache.getDefaultMaterial();
                 drawMesh(m_builtinModels[modelComponent.type], transform.getModelMatrix(), 
-                    visibility, static_cast<uint32_t>(e),  
-                    AssetManager::getAsset<MaterialAsset>(modelComponent.builtinMaterial)->material);
+                    visibility, static_cast<uint32_t>(e), material);
             }
 		}
     }
@@ -235,12 +246,11 @@ void SceneRenderer::render(gfx::CommandBuffer cmd, Ref<Scene> scene)
             .viewProj = camera.getViewProjection(),
             .cameraPos = camera.getPosition(),
             .mousePos = scene->getViewportInfo().mousePos,
-            .viewportSize = scene->getViewportInfo().size,
             .ambientColor = LinearColorNoAlpha::white(),
             .ambientIntensity = 0.1f,
             .lightsBuffer = lightCache.getBuffer().address,
             .numLights = (uint32_t)lightCache.getSize(),
-            .sunlightIndex = lightCache.getSunlightIndex(), 
+            //.sunlightIndex = lightCache.getSunlightIndex(), 
             .materialsBuffer = m_materialCache.getMaterialDataBufferAddress(),
         };
         m_sceneDataBuffer.uploadNewData(
@@ -266,25 +276,31 @@ void SceneRenderer::render(gfx::CommandBuffer cmd, Ref<Scene> scene)
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
+    gfx::vkutil::transitionImage(cmd, 
+        depthImage.image, 
+        VK_IMAGE_LAYOUT_UNDEFINED, 
+        VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+
     vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
+    {
+		m_infiniteGridPass.draw(m_device, 
+			cmd, 
+			drawImage.getExtent2D(),
+			m_sceneDataBuffer.getBuffer());
 
-    m_infiniteGridPass.draw(m_device, 
-        cmd, 
-        drawImage.getExtent2D(),
-        m_sceneDataBuffer.getBuffer());
+		m_forwardRenderer.draw(m_device,
+			cmd,
+			drawImage.getExtent2D(),
+			camera,
+			m_sceneDataBuffer.getBuffer(),
+			m_meshCache,
+			m_meshDrawCommands);
 
-    m_forwardRenderer.draw(m_device,
-        cmd,
-        drawImage.getExtent2D(),
-        camera,
-        m_sceneDataBuffer.getBuffer(),
-        m_meshCache,
-        m_meshDrawCommands);
-
-    mousePicking(scene);
+		mousePicking(scene);
+	}
     vkCmdEndRendering(cmd);
 
-    clearDrawCommands();
+   clearDrawCommands();
 }
 
 void SceneRenderer::updateMaterial(MaterialID id, Material material) 

@@ -26,9 +26,11 @@ LightID LightCache::addLight(const Light &light, const Transform &transform)
 {
 	if (light.type == LightType::Directional)
     {
-        assert(m_sunlightIndex == -1 && "directional light was already added before in the frame");
+        //assert(m_sunlightIndex == -1 && "directional light was already added before in the frame");
         m_sunlightIndex = (std::uint32_t)m_lightDataCPU.size();
     }
+
+    const auto id = getFreeLightID();
 
     GPULightData ld{};
     ld.position = transform.getPosition();
@@ -45,7 +47,7 @@ LightID LightCache::addLight(const Light &light, const Transform &transform)
     ld.intensity = light.intensity;
     if (light.type == LightType::Directional)
     {
-        ld.intensity = 1.0; // don't have intensity for directional light yet
+        //ld.intensity = 1.0; // don't have intensity for directional light yet
     }
 
     ld.scaleOffset.x = light.scaleOffset.x;
@@ -53,7 +55,7 @@ LightID LightCache::addLight(const Light &light, const Transform &transform)
 
     m_lightDataCPU.push_back(ld);
 
-    return getFreeLightID();
+    return id;
 }
 
 void LightCache::updateLight(LightID id, const Light &light, const Transform &transform) 
@@ -77,6 +79,6 @@ GPULightData LightCache::getLight(LightID id)
 
 LightID LightCache::getFreeLightID() 
 {
-    return  m_lightDataCPU.size() - 1;
+    return m_lightDataCPU.size();
 }
 } // namespace sky

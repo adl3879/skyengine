@@ -114,6 +114,7 @@ void EditorLayer::onImGuiRender()
     m_projectManagerPanel.render();
     m_inspectorPanel.render();
     m_assetBrowserPanel.render();
+    m_assetBrowserPopup.render();
     m_logPanel.render();
 
     ImGui::End();
@@ -144,7 +145,11 @@ void EditorLayer::registerEditorEvents()
         SceneManager::get().saveActiveScene();
     });
     eventBus.registerHandler(EditorEventType::SaveSceneAs, [=](const EditorEvent &event){
-        m_assetBrowserPanel.showFileBrowserPopup();
+        m_assetBrowserPopup.showFileBrowserPopup();
+		m_assetBrowserPopup.setContext({
+            .action = "Save",
+            .assetType = AssetType::Scene,
+        });
     });
 	eventBus.registerHandler(EditorEventType::Reset, [=](const EditorEvent &event){
         reset();
@@ -154,6 +159,22 @@ void EditorLayer::registerEditorEvents()
          if (event.data.has_value())
 			 m_inspectorPanel.setMaterialContext(
                  std::any_cast<InspectorPanel::MaterialContext>(event.data));
+    });
+	eventBus.registerHandler(EditorEventType::CreateNewMaterialFrom, [=](const EditorEvent &event){
+        m_assetBrowserPopup.showFileBrowserPopup();
+        m_assetBrowserPopup.setContext({
+            .action = "Save",
+            .assetType = AssetType::Material,
+            .metadata = std::any_cast<const char *>(event.data), 
+        });
+    });
+	eventBus.registerHandler(EditorEventType::CreateDefaultMaterial, [=](const EditorEvent &event){
+        m_assetBrowserPopup.showFileBrowserPopup();
+        m_assetBrowserPopup.setContext({
+            .action = "Save",
+            .assetType = AssetType::Material,
+            .metadata = std::any_cast<const char *>(event.data), 
+        });
     });
 }
 

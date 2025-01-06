@@ -24,6 +24,8 @@ void MaterialCache::init(gfx::Device &gfxDevice)
                 .extent = VkExtent3D{1, 1, 1},
             }, &normal);
     }
+
+    m_defaultMaterial = addMaterial(gfxDevice, Material{});
 }
 
 void MaterialCache::upload(gfx::Device &gfxDevice, gfx::CommandBuffer cmd) 

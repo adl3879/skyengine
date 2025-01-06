@@ -49,6 +49,13 @@ struct Material
     ImageID     ambientOcclusionTexture{NULL_IMAGE_ID};
     ImageID     emissiveTexture{NULL_IMAGE_ID};
 
+    AssetHandle albedoTextureHandle{NULL_UUID};
+    AssetHandle normalMapTextureHandle{NULL_UUID};
+    AssetHandle metallicTextureHandle{NULL_UUID};
+    AssetHandle roughnessTextureHandle{NULL_UUID};
+    AssetHandle ambientOcclusionTextureHandle{NULL_UUID};
+    AssetHandle emissiveTextureHandle{NULL_UUID};
+
     std::string name;
 };
 

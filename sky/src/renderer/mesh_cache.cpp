@@ -15,22 +15,37 @@ void MeshCache::cleanup(gfx::Device &device)
 
 MeshID MeshCache::addMesh(gfx::Device &device, const Mesh &mesh) 
 {
+    auto n = mesh.name;
     auto gpuMesh = gfx::GPUMeshBuffers{
         .numIndices = static_cast<uint32_t>(mesh.indices.size()),
         .materialId = mesh.material,
     };
 
     std::vector<glm::vec3> positions(mesh.vertices.size());
+    
+    glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());
+    glm::vec3 max = glm::vec3(std::numeric_limits<float>::min());
+
     for (std::size_t i = 0; i < mesh.vertices.size(); ++i)
     {
         positions[i] = mesh.vertices[i].position;
+        min = glm::min(min, positions[i]);
+        max = glm::max(max, positions[i]);
     }
     gpuMesh.boundingSphere = math::calculateBoundingSphere(positions);
+    gpuMesh.boundingBox = math::AABB{.min = min, .max = max};
     
     uploadMesh(device, mesh, gpuMesh);
     const auto id = UUID::generate();
     m_meshes[id] = gpuMesh;
-    m_CPUMeshes[id] = mesh;
+
+    m_CPUMeshes[id] = Mesh{
+        .vertices = mesh.vertices,
+        .indices = mesh.indices,
+        .material = mesh.material,
+	    .name = mesh.name,
+	    .boundingBox = gpuMesh.boundingBox,
+    };
 
     return id;
 }

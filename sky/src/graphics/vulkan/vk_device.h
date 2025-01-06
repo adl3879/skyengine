@@ -82,6 +82,7 @@ class Device
 	VkDescriptorSet getStorageBufferDescSet() const { return m_storageBufferDescriptorSet; }
 	AllocatedBuffer getStorageBuffer() const { return m_storageBuffer; }
     float getMaxAnisotropy() const { return m_maxSamplerAnisotropy; }
+	void resetSwapchainFences();
 
 	CommandBuffer beginFrame();
     void endFrame(CommandBuffer cmd, const AllocatedImage &drawImage);

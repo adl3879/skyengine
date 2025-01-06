@@ -23,6 +23,8 @@ class InspectorPanel
 	};
 
   public:
+	InspectorPanel();
+
 	void reset();
 	void render();
 	void setContext(Ref<Scene> ctx) { m_context = ctx; }
@@ -46,5 +48,7 @@ class InspectorPanel
 	InspectorPanelView m_previousView;
 
 	MaterialContext m_materialContext;
+
+    std::unordered_map<std::string, ImageID> m_icons;
 };
 }

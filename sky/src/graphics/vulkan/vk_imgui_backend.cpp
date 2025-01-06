@@ -60,7 +60,6 @@ void ImGuiBackend::init(Device &gfxDevice, VkFormat swapchainFormat)
     // Merge icons into the regular font
     io.Fonts->AddFontFromFileTTF("res/fonts/" FONT_ICON_FILE_NAME_FAS, iconFontSize, &icons_config, icons_ranges);
 
-
     setDarkThemeColors();
 
     // upload font
@@ -90,9 +89,9 @@ void ImGuiBackend::init(Device &gfxDevice, VkFormat swapchainFormat)
     };
 
     const auto layouts = std::array{gfxDevice.getBindlessDescSetLayout()};
+
     const auto pushConstantRanges = std::array{bufferRange};
     pipelineLayout = vkutil::createPipelineLayout(device, layouts, pushConstantRanges);
-    //vkutil::addDebugLabel(device, pipelineLayout, "ImGui pipeline layout");
 
     pipeline = PipelineBuilder{pipelineLayout}
                    .setShaders(vertexShader, fragShader)
@@ -106,7 +105,6 @@ void ImGuiBackend::init(Device &gfxDevice, VkFormat swapchainFormat)
                    .setColorAttachmentFormat(swapchainFormat)
                    .disableDepthTest()
                    .build(device);
-    //vkutil::addDebugLabel(device, pipeline, "ImGui pipeline");
 }
 
 void ImGuiBackend::draw(VkCommandBuffer cmd, Device &gfxDevice, VkImageView swapchainImageView,

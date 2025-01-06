@@ -264,6 +264,8 @@ PipelineBuilder &PipelineBuilder::setColorAttachmentFormat(VkFormat format)
 
     renderInfo.colorAttachmentCount = 1;
     renderInfo.pColorAttachmentFormats = &colorAttachmentformat;
+    renderInfo.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
+    renderInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
     return *this;
 }

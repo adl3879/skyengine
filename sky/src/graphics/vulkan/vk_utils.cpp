@@ -19,7 +19,7 @@ RenderInfo createRenderingInfo(const RenderingInfoParams &params)
         if (params.colorImageClearValue)
         {
             const auto col = params.colorImageClearValue.value();
-            ri.colorAttachment.clearValue.color = {col[0], col[1], col[2], col[3]};
+            ri.colorAttachment.clearValue.color = {{col[0], col[1], col[2], col[3]}};
         }
     }
 

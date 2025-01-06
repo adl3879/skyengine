@@ -18,6 +18,7 @@ class MaterialCache
 
     MaterialID addMaterial(gfx::Device &gfxDevice, Material material);
     const Material &getMaterial(MaterialID id) const;
+    MaterialID getDefaultMaterial() const { return m_defaultMaterial; }
     void updateMaterial(gfx::Device &gfxDevice, MaterialID id, Material material);
 
     MaterialID getFreeMaterialID() const;
@@ -32,5 +33,6 @@ class MaterialCache
     gfx::NBuffer m_materialDataBuffer;
 
     ImageID m_defaultNormalMapTextureID{NULL_IMAGE_ID};
+    MaterialID m_defaultMaterial;
 };
 }

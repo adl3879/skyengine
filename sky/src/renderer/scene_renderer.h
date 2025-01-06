@@ -22,7 +22,7 @@ class SceneRenderer
     SceneRenderer operator=(SceneRenderer &) = delete;
 
     void init(glm::ivec2 size);
-    void render(gfx::CommandBuffer cmd, Ref<Scene> scene);
+    void render(gfx::CommandBuffer &cmd, Ref<Scene> scene);
     void initBuiltins();
     void drawMesh(MeshID id, const glm::mat4 &transform, bool visibility, 
         uint32_t uniqueId, MaterialID mat = NULL_MATERIAL_ID);
@@ -41,9 +41,17 @@ class SceneRenderer
     gfx::Device &getDevice() const { return m_device; }
     const Mesh &getMesh(MeshID id) const { return m_meshCache.getCPUMesh(id); }
     const Material &getMaterial(MaterialID id) const { return m_materialCache.getMaterial(id); }
+    auto getMeshCache() const { return m_meshCache; }
+    auto getMaterialCache() const { return m_materialCache; }
 
     ImageID getCheckerboardTexture() const { return m_device.getCheckerboardTextureID(); }
     gfx::AllocatedImage getDrawImage();
+
+    ImageID createNewDrawImage(glm::ivec2 size);
+    ImageID createNewDepthImage(glm::ivec2 size);
+
+    ForwardRendererPass getForwardRendererPass() const { return m_forwardRenderer; }
+    auto getSphereMesh() const { return m_builtinModels.at(ModelType::Sphere); }
 
   private:
     void destroy();
@@ -60,7 +68,7 @@ class SceneRenderer
     MeshCache m_meshCache;
     MaterialCache m_materialCache;
 
-  private:
+  public:
     struct GPUSceneData
     {
         // camera

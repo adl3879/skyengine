@@ -43,6 +43,7 @@ class Task : public TaskBase
         catch (const std::exception &)
         {
             m_status = Status::Failed;
+            assert(false);
         }
     }
 

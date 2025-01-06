@@ -10,6 +10,6 @@ class MaterialSerializer
 {
   public:
 	bool serialize(const fs::path &path, const Material &mat);
-	Material &deserialize(const fs::path &path);
+	Material deserialize(const fs::path &path);
 };
 }

@@ -11,6 +11,8 @@
 #include "renderer/texture.h"
 #include "core/helpers/image.h"
 #include "core/resource/material_serializer.h"
+#include "asset_browser_popup.h"
+#include "core/resource/custom_thumbnail.h"
 
 #define ADD_COMPONENT_MENU(type, name, fn)		\
 	if (!entity.hasComponent<type>())			\
@@ -22,7 +24,7 @@
 		}										\
 	}											\
 
-#define HANDLE_DRAG_DROP_TEXTURE(materialParam, format)                                                                \
+#define HANDLE_DRAG_DROP_TEXTURE(materialParam, texHandle, format)                                                     \
     if (ImGui::BeginDragDropTarget())                                                                                  \
     {                                                                                                                  \
         if (const auto *payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))                                \
@@ -34,14 +36,19 @@
                 const auto handle = AssetManager::getOrCreateAssetHandle(path, AssetType::Texture2D);                  \
                 auto texture = AssetManager::getAsset<Texture2D>(handle);                                              \
                 materialParam = helper::loadImageFromTexture(texture, format, VK_IMAGE_USAGE_SAMPLED_BIT, true);       \
+                texHandle = handle;                                                                                    \
             }                                                                                                          \
         }                                                                                                              \
         ImGui::EndDragDropTarget();                                                                                    \
     }
 
-
 namespace sky
 {
+InspectorPanel::InspectorPanel() 
+{
+    m_icons["save"] = helper::loadImageFromFile("res/icons/save.png");
+}
+
 void InspectorPanel::reset() {}
 
 void InspectorPanel::render()
@@ -183,6 +190,7 @@ void InspectorPanel::drawMaterialEditor()
 	};
 
 	auto material = Material{};
+	static std::optional<Material> previousMaterial;
 	MaterialID materialId = NULL_MATERIAL_ID;
 	auto isBuiltinMaterial = false;
 	if (!m_materialContext.isCustom) 
@@ -195,7 +203,36 @@ void InspectorPanel::drawMaterialEditor()
     {
 		materialId = AssetManager::getAsset<MaterialAsset>(m_materialContext.assetHandle)->material;
 		material = renderer->getMaterial(materialId);
+		// only set previous material if it's not set
+		if (!previousMaterial.has_value()) previousMaterial = material;
     }
+
+	{
+		float imgSize = 255;
+		ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2 - imgSize / 2);
+		ImGui::Image(CustomThumbnail::get().getOrCreateThumbnail(material.name), {imgSize, imgSize}, 
+			/*vertical flip*/ {0, 1}, {1, 0});
+		ImGui::Dummy({0, 10});
+	}
+
+	if (ImGui::ImageButton("##rss", m_icons["save"], {35, 35}))
+    {
+		MaterialSerializer serializer;
+		const auto path = AssetManager::getMetadata(m_materialContext.assetHandle).filepath;
+        serializer.serialize(ProjectManager::getConfig().getAssetDirectory() / path, material);
+		previousMaterial.reset();
+
+		CustomThumbnail::get().refreshThumbnail(material.name);
+    }
+    // button tooltip
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::BeginTooltip();
+        ImGui::Text("Save Material");
+        ImGui::EndTooltip();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button(material.name.c_str(), {-1, 40})) {}
 
 	helper::imguiCollapsingHeaderStyle2("Albedo", [&](){
 		if (ImGui::BeginTable("Albedo", 3, ImGuiTableFlags_Resizable))
@@ -205,11 +242,15 @@ void InspectorPanel::drawMaterialEditor()
 			ImGui::Text("Texture");
 			ImGui::TableNextColumn();
 			ImGui::Image(getTextureOrElse(material.albedoTexture), imageSize);
-			HANDLE_DRAG_DROP_TEXTURE(material.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
+			HANDLE_DRAG_DROP_TEXTURE(material.albedoTexture, material.albedoTextureHandle, VK_FORMAT_R8G8B8A8_SRGB);
 			ImGui::TableNextColumn();
-			ImGui::Button(ICON_FA_UNDO);
+			ImGui::PushID("albedo_tex_undo");
+			if (ImGui::Button(ICON_FA_UNDO)) material.albedoTexture = previousMaterial->albedoTexture;
+			ImGui::PopID();
 			ImGui::SameLine();
-			ImGui::Button(ICON_FA_TRASH);
+			ImGui::PushID("albedo_tex_undo");
+			if (ImGui::Button(ICON_FA_TRASH)) material.albedoTexture = NULL_IMAGE_ID;
+			ImGui::PopID();
 
 			ImGui::TableNextRow();
 			ImGui::TableNextColumn();
@@ -219,7 +260,9 @@ void InspectorPanel::drawMaterialEditor()
 			ImGui::ColorEdit3("##dl", col);
 			material.baseColor = { col[0], col[1], col[2], 1.f };
 			ImGui::TableNextColumn();
-			ImGui::Button(ICON_FA_UNDO);
+			ImGui::PushID("albedo_undo");
+			if (ImGui::Button(ICON_FA_UNDO)) material.baseColor = previousMaterial->baseColor;
+			ImGui::PopID();
 
 			ImGui::EndTable();
 		}
@@ -232,11 +275,15 @@ void InspectorPanel::drawMaterialEditor()
 			ImGui::Text("Texture");
 			ImGui::TableNextColumn();
 			ImGui::Image(getTextureOrElse(material.normalMapTexture), imageSize);
-			HANDLE_DRAG_DROP_TEXTURE(material.normalMapTexture, VK_FORMAT_R8G8B8A8_UNORM);
+			HANDLE_DRAG_DROP_TEXTURE(material.normalMapTexture, material.normalMapTextureHandle, VK_FORMAT_R8G8B8A8_UNORM);
 			ImGui::TableNextColumn();
-			ImGui::Button(ICON_FA_UNDO);
+			ImGui::PushID("normal_tex_undo");
+			if (ImGui::Button(ICON_FA_UNDO)) material.normalMapTexture = previousMaterial->normalMapTexture;
+			ImGui::PopID();
 			ImGui::SameLine();
-			ImGui::Button(ICON_FA_TRASH);
+			ImGui::PushID("normal_tex_trash");
+			if (ImGui::Button(ICON_FA_TRASH)) material.normalMapTexture = NULL_IMAGE_ID;
+			ImGui::PopID();
 
 			ImGui::EndTable();
 		}
@@ -249,11 +296,15 @@ void InspectorPanel::drawMaterialEditor()
 			ImGui::Text("Texture");
 			ImGui::TableNextColumn();
 			ImGui::Image(getTextureOrElse(material.metallicTexture), imageSize);
-			HANDLE_DRAG_DROP_TEXTURE(material.metallicTexture, VK_FORMAT_R8G8B8A8_UNORM);
+			HANDLE_DRAG_DROP_TEXTURE(material.metallicTexture, material.metallicTextureHandle, VK_FORMAT_R8G8B8A8_UNORM);
 			ImGui::TableNextColumn();
-			ImGui::Button(ICON_FA_UNDO);
+			ImGui::PushID("metallic_tex_undo");
+			if (ImGui::Button(ICON_FA_UNDO)) material.metallicTexture = previousMaterial->metallicTexture;
+			ImGui::PopID();
 			ImGui::SameLine();
-			ImGui::Button(ICON_FA_TRASH);
+			ImGui::PushID("metallic_tex_trash");
+			if (ImGui::Button(ICON_FA_TRASH)) material.metallicTexture = NULL_IMAGE_ID;
+			ImGui::PopID();
 
 			ImGui::TableNextRow();
 			ImGui::TableNextColumn();
@@ -261,7 +312,9 @@ void InspectorPanel::drawMaterialEditor()
 			ImGui::TableNextColumn();
 			ImGui::SliderFloat("##dd", &material.metallicFactor, 0.f, 1.f);
 			ImGui::TableNextColumn();
-			ImGui::Button(ICON_FA_UNDO);
+			ImGui::PushID("metallic_undo");
+			if (ImGui::Button(ICON_FA_UNDO)) material.metallicFactor = previousMaterial->metallicFactor;
+			ImGui::PopID();
 
 			ImGui::EndTable();
 		}
@@ -274,11 +327,15 @@ void InspectorPanel::drawMaterialEditor()
 			ImGui::Text("Texture");
 			ImGui::TableNextColumn();
 			ImGui::Image(getTextureOrElse(material.roughnessTexture), imageSize);
-			HANDLE_DRAG_DROP_TEXTURE(material.roughnessTexture, VK_FORMAT_R8G8B8A8_UNORM);
+			HANDLE_DRAG_DROP_TEXTURE(material.roughnessTexture, material.roughnessTextureHandle, VK_FORMAT_R8G8B8A8_UNORM);
 			ImGui::TableNextColumn();
-			ImGui::Button(ICON_FA_UNDO);
+			ImGui::PushID("roughness_tex_undo");
+			if (ImGui::Button(ICON_FA_UNDO)) material.roughnessTexture = previousMaterial->roughnessTexture;
+			ImGui::PopID();
 			ImGui::SameLine();
-			ImGui::Button(ICON_FA_TRASH);
+			ImGui::PushID("roughness_tex_trash");
+			if (ImGui::Button(ICON_FA_TRASH)) material.roughnessTexture = NULL_IMAGE_ID;
+			ImGui::PopID();
 
 			ImGui::TableNextRow();
 			ImGui::TableNextColumn();
@@ -286,7 +343,9 @@ void InspectorPanel::drawMaterialEditor()
 			ImGui::TableNextColumn();
 			ImGui::SliderFloat("##dd", &material.roughnessFactor, 0.f, 1.f);
 			ImGui::TableNextColumn();
-			ImGui::Button(ICON_FA_UNDO);
+			ImGui::PushID("roughness_undo");
+			if (ImGui::Button(ICON_FA_UNDO)) material.roughnessFactor = previousMaterial->roughnessFactor;
+			ImGui::PopID();
 
 			ImGui::EndTable();
 		}
@@ -299,11 +358,17 @@ void InspectorPanel::drawMaterialEditor()
 			ImGui::Text("Texture");
 			ImGui::TableNextColumn();
 			ImGui::Image(getTextureOrElse(material.ambientOcclusionTexture), imageSize);
-			HANDLE_DRAG_DROP_TEXTURE(material.ambientOcclusionTexture, VK_FORMAT_R8G8B8A8_UNORM);
+			HANDLE_DRAG_DROP_TEXTURE(material.ambientOcclusionTexture, material.ambientOcclusionTextureHandle, 
+				VK_FORMAT_R8G8B8A8_UNORM);
 			ImGui::TableNextColumn();
-			ImGui::Button(ICON_FA_UNDO);
+			ImGui::PushID("ambient_occlusion_tex_undo");
+			if (ImGui::Button(ICON_FA_UNDO))
+				material.ambientOcclusionTexture = previousMaterial->ambientOcclusionTexture;
+			ImGui::PopID();
 			ImGui::SameLine();
-			ImGui::Button(ICON_FA_TRASH);
+			ImGui::PushID("ambient_occlusion_tex_trash");
+			if (ImGui::Button(ICON_FA_TRASH)) material.ambientOcclusionTexture = NULL_IMAGE_ID;
+			ImGui::PopID();
 
 			ImGui::TableNextRow();
 			ImGui::TableNextColumn();
@@ -311,7 +376,10 @@ void InspectorPanel::drawMaterialEditor()
 			ImGui::TableNextColumn();
 			ImGui::SliderFloat("##dd", &material.ambientOcclusionFactor, 0.f, 1.f);
 			ImGui::TableNextColumn();
-			ImGui::Button(ICON_FA_UNDO);
+			ImGui::PushID("ambient_occlusion_undo");
+			if (ImGui::Button(ICON_FA_UNDO))
+				material.ambientOcclusionFactor = previousMaterial->ambientOcclusionFactor;
+			ImGui::PopID();
 
 			ImGui::EndTable();
 		}
@@ -324,9 +392,11 @@ void InspectorPanel::drawMaterialEditor()
 			ImGui::Text("Texture");
 			ImGui::TableNextColumn();
 			ImGui::Image(getTextureOrElse(material.emissiveTexture), imageSize);
-			HANDLE_DRAG_DROP_TEXTURE(material.albedoTexture, VK_FORMAT_R8G8B8A8_SRGB);
+			HANDLE_DRAG_DROP_TEXTURE(material.emissiveTexture, material.emissiveTextureHandle, VK_FORMAT_R8G8B8A8_SRGB);
 			ImGui::TableNextColumn();
-			ImGui::Button(ICON_FA_UNDO);
+			ImGui::PushID("emissive_tex_undo");
+			if (ImGui::Button(ICON_FA_UNDO)) material.emissiveTexture = previousMaterial->emissiveTexture;
+			ImGui::PopID();
 			ImGui::SameLine();
 			ImGui::Button(ICON_FA_TRASH);
 
@@ -336,12 +406,13 @@ void InspectorPanel::drawMaterialEditor()
 			ImGui::TableNextColumn();
 			ImGui::SliderFloat("##dd", &material.emissiveFactor, 0.f, 1.f);
 			ImGui::TableNextColumn();
-			ImGui::Button(ICON_FA_UNDO);
+			ImGui::PushID("emissive_undo");
+			if (ImGui::Button(ICON_FA_UNDO)) material.emissiveFactor = previousMaterial->emissiveFactor;
+			ImGui::PopID();
 
 			ImGui::EndTable();
 		}
 	}, show, isBuiltinMaterial);
-
 
 	renderer->updateMaterial(materialId, material);
 }
@@ -401,113 +472,147 @@ void InspectorPanel::drawMeshComponent()
 	auto entity = m_context->getSelectedEntity();
 	auto &model = entity.getComponent<ModelComponent>();
 
-	if (ImGui::BeginTable("MeshTable", 2, ImGuiTableFlags_Resizable) && model.type == ModelType::Custom)
-	{
+	if (model.type == ModelType::Custom)
+    {
+		if (ImGui::BeginTable("MeshTable", 2, ImGuiTableFlags_Resizable))
+		{
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("UUID");
+			ImGui::TableNextColumn();
+			ImGui::Button(model.handle.toString().c_str(), {-1, 40});
 
-		ImGui::TableNextRow();
-		ImGui::TableNextColumn();
-		ImGui::Text("UUID");
-		ImGui::TableNextColumn();
-		ImGui::Button(model.handle.toString().c_str(), {-1, 40});
-
-		ImGui::TableNextRow();
-		ImGui::TableNextColumn();
-		ImGui::Text("Path");
-		ImGui::TableNextColumn();
-		auto path = AssetManager::getMetadata(model.handle).filepath;
-		ImGui::Button(path.string().c_str(), {-1, 40});
-	
-		ImGui::EndTable();
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("Path");
+			ImGui::TableNextColumn();
+			const auto path = AssetManager::getMetadata(model.handle).filepath;
+			ImGui::Button(path.string().c_str(), {-1, 40});
+		
+			ImGui::EndTable();
+		}
 	}
 	else
     {
     }
 
-	if (ImGui::TreeNode("Surfaces") && model.type == ModelType::Custom)
-	{
-		auto renderer = Application::getRenderer();
-		AssetManager::getAssetAsync<Model>(model.handle, [&](const Ref<Model> &m){
-			for (size_t i = 0; i < m->meshes.size(); i++)
-			{
-				auto mesh = renderer->getMesh(m->meshes[i]);
-				std::string surfaceName = "Surface_" + std::to_string(i);
-
-				const auto material = model.customMaterialOverrides.contains(i) 
-					?  AssetManager::getAsset<MaterialAsset>(model.customMaterialOverrides.at(i))->material 
-					: mesh.material;
-
-				if (ImGui::TreeNode(surfaceName.c_str()))
+	if (model.type == ModelType::Custom)
+    {
+		if (ImGui::TreeNode("Surfaces"))
+		{
+			auto renderer = Application::getRenderer();
+			AssetManager::getAssetAsync<Model>(model.handle, [&](const Ref<Model> &m){
+				for (size_t i = 0; i < m->meshes.size(); i++)
 				{
-					if (ImGui::BeginTable("MeshSurfacesTable", 2, ImGuiTableFlags_Resizable))
+					auto mesh = renderer->getMesh(m->meshes[i]);
+					std::string surfaceName = "Surface_" + std::to_string(i);
+
+					const auto material = model.customMaterialOverrides.contains(i) 
+						?  AssetManager::getAsset<MaterialAsset>(model.customMaterialOverrides.at(i))->material 
+						: mesh.material;
+
+					if (ImGui::TreeNode(surfaceName.c_str()))
 					{
-						ImGui::TableNextRow();
-						ImGui::TableNextColumn();
-						ImGui::Text("Mesh");
-						ImGui::TableNextColumn();
-						ImGui::Button(mesh.name.c_str(), ImVec2(-1, 40));
-
-						ImGui::TableNextRow();
-						ImGui::TableNextColumn();
-						ImGui::Text("Material");
-						ImGui::TableNextColumn();
-
-						if (ImGui::Button("...", {0, 40})) ImGui::OpenPopup("materialMenu");
-						if (ImGui::BeginPopup("materialMenu"))
+						if (ImGui::BeginTable("MeshSurfacesTable", 2, ImGuiTableFlags_Resizable))
 						{
-							if (ImGui::MenuItem(ICON_FA_PENCIL_ALT "	Edit")) 
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
+							ImGui::Text("Mesh");
+							ImGui::TableNextColumn();
+							ImGui::Button(mesh.name.c_str(), ImVec2(-1, 40));
+
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
+							ImGui::Text("Material");
+							ImGui::TableNextColumn();
+
+							if (ImGui::Button("...", {0, 40})) ImGui::OpenPopup("materialMenu");
+							if (ImGui::BeginPopup("materialMenu"))
 							{
-								MaterialContext ctx;
 								if (model.customMaterialOverrides.contains(i))
 								{
-									ctx.isCustom = true;
-									ctx.assetHandle = model.customMaterialOverrides.at(i); 
+									if (ImGui::MenuItem(ICON_FA_PENCIL_ALT "	Edit")) 
+									{
+										MaterialContext ctx;
+										if (model.customMaterialOverrides.contains(i))
+										{
+											ctx.isCustom = true;
+											ctx.assetHandle = model.customMaterialOverrides.at(i); 
+										}
+										else
+										{
+											ctx.materialId = mesh.material;
+										}
+										EditorEventBus::get().pushEvent({EditorEventType::OpenMaterialEditor, ctx});
+									}
+									ImGui::Separator();
 								}
-								else
+								if (ImGui::MenuItem("Create New Default Material")) 
 								{
-									ctx.materialId = mesh.material;
-								}
-								EditorEventBus::get().pushEvent({EditorEventType::OpenMaterialEditor, ctx});
-							}	
-							ImGui::Separator();
-							if (ImGui::MenuItem("Create New Default Material")) 
-							{
-							}	
-							if (ImGui::MenuItem("Create New Material From Current")) {}	
-							if (ImGui::MenuItem("Reset to Default")) {}	
-							ImGui::EndPopup();
-						}
-
-						ImGui::SameLine();
-						const auto materialName = renderer->getMaterial(material).name; 
-
-						ImGui::Button(materialName.c_str(), ImVec2(-1, 40));
-						if (ImGui::BeginDragDropTarget())
-						{
-							if (const auto *payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
-							{
-								fs::path path = (const char *)payload->Data;
-								auto assetType = getAssetTypeFromFileExtension(path.extension());
-								if (assetType == AssetType::Material)
+									EditorEventBus::get().pushEvent({EditorEventType::CreateDefaultMaterial, "default"});
+								}	
+								if (ImGui::MenuItem("Create New Material From Current")) 
 								{
-									const auto handle = AssetManager::getOrCreateAssetHandle(path, AssetType::Material);
-									model.customMaterialOverrides[i] = handle;
-								}
+									EditorEventBus::get().pushEvent({EditorEventType::CreateNewMaterialFrom, "fromMaterial"});
+								}	
+								if (ImGui::MenuItem("Reset to Default")) 
+								{
+									model.customMaterialOverrides.erase(i);
+								}	
+								ImGui::EndPopup();
 							}
-							ImGui::EndDragDropTarget();
+
+							ImGui::SameLine();
+							const auto materialName = renderer->getMaterial(material).name; 
+
+							ImGui::Button(materialName.c_str(), ImVec2(-1, 40));
+							if (ImGui::BeginDragDropTarget())
+							{
+								if (const auto *payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+								{
+									fs::path path = (const char *)payload->Data;
+									auto assetType = getAssetTypeFromFileExtension(path.extension());
+									if (assetType == AssetType::Material)
+									{
+										const auto handle = AssetManager::getOrCreateAssetHandle(path, AssetType::Material);
+										model.customMaterialOverrides[i] = handle;
+									}
+								}
+								ImGui::EndDragDropTarget();
+							}
+
+							ImGui::EndTable();
+						}
+						{
+							auto &p = AssetBrowserPopup::s_defaultMaterialSavedFile;
+							if (p.has_value())
+							{
+								auto handle = AssetManager::getOrCreateAssetHandle(p.value(), AssetType::Material);
+								model.customMaterialOverrides[i] = handle;
+								p.reset();
+							}
+						}
+						{
+							auto &p = AssetBrowserPopup::s_fromMaterialSavedFile;
+							if (p.has_value())
+							{
+								auto handle = AssetManager::getOrCreateAssetHandle(p.value(), AssetType::Material);
+								MaterialSerializer serializer;
+								const auto path = ProjectManager::getConfig().getAssetDirectory() / p.value();
+								serializer.serialize(path, renderer->getMaterial(mesh.material));
+								model.customMaterialOverrides[i] = handle;
+								p.reset();
+							}
 						}
 
-						ImGui::EndTable();
+						ImGui::TreePop();
 					}
-
-					ImGui::TreePop();
 				}
-			}
-		});
-		ImGui::TreePop();
+			});
+			ImGui::TreePop();
+		}
 	}
-
-
-	}
+}
 
 void InspectorPanel::drawPointLightComponent() 
 {

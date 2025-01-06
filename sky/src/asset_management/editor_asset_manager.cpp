@@ -23,7 +23,7 @@ AssetType getAssetTypeFromFileExtension(const fs::path &extension)
     auto it = s_assetExtensionMap.find(extension);
     if (it == s_assetExtensionMap.end())
     {
-        SKY_CORE_WARN("Could not find AssetType for {}", extension.string());
+        //SKY_CORE_WARN("Could not find AssetType for {}", extension.string());
         return AssetType::None;
     }
 

@@ -247,7 +247,6 @@ AllocatedBuffer Device::createBuffer(size_t allocSize, VkBufferUsageFlags usage,
     return newBuffer;
 }
 
-
 void Device::createStorageBufferDescriptor() 
 {
     VkDescriptorPoolSize poolSize = {};
@@ -564,14 +563,18 @@ CommandBuffer Device::beginFrame()
     return CommandBuffer{cmd};
 }
 
+void Device::resetSwapchainFences() 
+{
+	// Fences are reset here to prevent the deadlock in case swapchain becomes dirty
+    m_swapchain.resetFences(m_device, getCurrentFrameIndex());
+}
+
 void Device::endFrame(CommandBuffer cmd, const AllocatedImage &drawImage) 
 {
     // get swapchain image
     const auto [swapchainImage, swapchainImageIndex] = m_swapchain.acquireImage(m_device, getCurrentFrameIndex());
     if (swapchainImage == VK_NULL_HANDLE)
-    {
         return;
-    }
 
     // Fences are reset here to prevent the deadlock in case swapchain becomes dirty
     m_swapchain.resetFences(m_device, getCurrentFrameIndex());
@@ -587,25 +590,11 @@ void Device::endFrame(CommandBuffer cmd, const AllocatedImage &drawImage)
         vkCmdClearColorImage(cmd, swapchainImage, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
     }
     {
-        vkutil::transitionImage(
-            cmd,
-            drawImage.image,
-            VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-        vkutil::transitionImage(
-            cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        swapchainLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-
-        vkutil::copyImageToImage(
-                cmd,
-                drawImage.image,
-                swapchainImage,
-                drawImage.getExtent2D(),
-                m_swapchain.getExtent());
-    }
-
-    {
         ZoneScopedN("Imgui draw");
+        // Prepare drawImage for ImGui
+        vkutil::transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
         vkutil::transitionImage(cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
         swapchainLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         m_imguiBackend.draw(cmd, *this, m_swapchain.getImageView(swapchainImageIndex), m_swapchain.getExtent());
@@ -614,11 +603,6 @@ void Device::endFrame(CommandBuffer cmd, const AllocatedImage &drawImage)
     // prepare for present
     vkutil::transitionImage(cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
     swapchainLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    {
-        // TODO: don't collect every frame?
-        auto &frame = getCurrentFrame();
-    }
 
     VK_CHECK(vkEndCommandBuffer(cmd));
 

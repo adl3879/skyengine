@@ -5,6 +5,7 @@
 
 #include "asset_management/asset.h"
 #include "material.h"
+#include "core/math/aabb.h"
 
 namespace sky
 {
@@ -64,6 +65,7 @@ struct Mesh
 	std::vector<uint32_t>	indices;
 	MaterialID				material;
 	std::string				name;
+    math::AABB              boundingBox;
 };
 
 using MeshID = UUID;
@@ -82,6 +84,7 @@ struct MeshDrawCommand
 	bool		 isVisible;
 	uint32_t	 uniqueId = 0;
     math::Sphere worldBoundingSphere;
+	math::AABB   worldAABB;
     MaterialID   material = NULL_MATERIAL_ID;
 };
 } // namespace sky

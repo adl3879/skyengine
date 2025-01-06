@@ -73,6 +73,11 @@ void SceneSerializer::serializeEntity(YAML::Emitter &out, Entity entity, AssetHa
 		out << YAML::Key << "model" << YAML::BeginMap;
 		out << YAML::Key << "handle" << YAML::Key << modelComponent.handle;
 		out << YAML::Key << "type" << YAML::Key << modelTypeToString(modelComponent.type);
+		out << YAML::Key << "builtinMaterial" << YAML::Key << modelComponent.builtinMaterial;
+		out << YAML::Key << "customMaterialOverrides" << YAML::BeginMap;
+		for (const auto &[index, handle] : modelComponent.customMaterialOverrides)
+			out << YAML::Key << index << YAML::Value << handle;
+		out << YAML::EndMap;
 		out << YAML::EndMap;
 
 		if (modelComponent.handle != NULL_UUID) 
@@ -119,6 +124,13 @@ void SceneSerializer::deserializeEntity(YAML::detail::iterator_value key, Entity
 		auto &modelComponent = entity.addComponent<ModelComponent>();
 		modelComponent.type = stringToModelType(model["type"].as<std::string>());
 		modelComponent.handle = model["handle"].as<UUID>();
+		modelComponent.builtinMaterial = model["builtinMaterial"].as<UUID>();
+		for (const auto &overrideNode : model["customMaterialOverrides"])
+		{
+			auto index = overrideNode.first.as<uint32_t>();
+			auto handle = overrideNode.second.as<AssetHandle>();
+			modelComponent.customMaterialOverrides[index] = handle;
+		}
     }
 	if (auto dl = key["directionalLight"])
     {

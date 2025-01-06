@@ -19,13 +19,14 @@
 #include "core/resource/material_serializer.h"
 #include "core/events/event_bus.h"
 #include "inspector_panel.h"
+#include "core/resource/custom_thumbnail.h"
 
 namespace sky
 {
 bool openCreateFilePopup = false;
 
 static char searchStr[128] = "";
-glm::vec2 thumbnailSize, defaultThumbnailSize = {120.0f, 110.0f};
+glm::vec2 thumbnailSize, defaultThumbnailSize = {120.0f, 120.0f};
 float dragRatio = 1.0f;
 
 struct ContentBrowserData
@@ -49,16 +50,6 @@ void AssetBrowserPanel::init()
 {
     m_baseDirectory = ProjectManager::getConfig().getAssetDirectory();
     m_currentDirectory = m_baseDirectory;
-
-	/*s_data->renameWatcher = std::make_unique<filewatch::FileWatch<std::string>>(
-	"C:\\dev\\3DEngine\\Sandbox\\SandboxProject\\Assets",
-	[](const std::string &path, const filewatch::Event change_type)
-	{
-		if (change_type == filewatch::Event::renamed_new)
-		{
-            // TODO: reimport asset
-		}
-	});*/
 }
 
 void AssetBrowserPanel::reset() 
@@ -81,7 +72,6 @@ void AssetBrowserPanel::render()
 
     ImGui::Begin("Asset Browser   ");
     if (m_showConfirmDelete) ImGui::OpenPopup("Confirm Delete");
-    if (m_showFileBrowserModal) ImGui::OpenPopup("File Browser");
 
     float panelWidth = ImGui::GetContentRegionAvail().x;
     float dirTreeWidth = panelWidth * 0.17;
@@ -211,7 +201,6 @@ void AssetBrowserPanel::render()
     ImGui::EndChild();
 
     confirmDeletePopup();
-    fileBrowserPopup();
  
     ImGui::End();
 
@@ -412,106 +401,6 @@ void AssetBrowserPanel::confirmDeletePopup()
     }
 }
 
-void AssetBrowserPanel::fileBrowserPopup() 
-{
-    if (ImGui::BeginPopupModal("File Browser", &m_showFileBrowserModal))
-    {
-        float panelWidth = ImGui::GetContentRegionAvail().x;
-        float dirTreeWidth = panelWidth * 0.17;
-
-        static float padding = 60.0f;
-        const float cellSize = thumbnailSize.x + padding;
-
-        thumbnailSize = defaultThumbnailSize * dragRatio;
-
-        int columnCount = static_cast<int>(panelWidth / cellSize);
-        if (columnCount < 1) columnCount = 1;
-
-        ImGui::BeginChild("Content Region", {0.f, 0.f}, false);
-        ImGui::BeginChild("ContentHeader", {0.f, 45.f}, false,
-                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5);
-        if (ImGui::ImageButton("##bk", m_icons["back"], {28, 24}, {0, 1}, {1, 0}))
-        {
-            if (m_currentDirectory != m_baseDirectory)
-            {
-                m_DirectoryStack.push_back(m_currentDirectory.stem());
-                m_currentDirectory = m_currentDirectory.parent_path();
-            }
-        }
-        ImGui::SameLine();
-
-        if (ImGui::ImageButton("##fwd", m_icons["forward"], {28, 24}, {0, 1}, {1, 0}))
-        {
-            if (!m_DirectoryStack.empty())
-            {
-                m_currentDirectory /= m_DirectoryStack.back();
-                m_DirectoryStack.pop_back();
-            }
-        }
-        ImGui::SameLine();
-
-        // Search bar
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 10);
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 4);
-        // search bar
-        ImGui::PushItemWidth(350);
-
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5, 5));
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10.0f);
-        ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.05f, 0.05f, 0.05f, 0.54f));
-        if (ImGui::InputTextWithHint("##Search", ICON_FA_SEARCH "  Search", searchStr, IM_ARRAYSIZE(searchStr)))
-        {
-            search(searchStr);
-        }
-        ImGui::PopStyleColor();
-        ImGui::PopStyleVar(2);
-
-        ImGui::PopItemWidth();
-
-        ImGui::SameLine();
-        ImGui::SetCursorPosY(0);
-        auto filepaths =
-            std::filesystem::relative(m_currentDirectory, ProjectManager::getConfig().getAssetDirectory()).string();
-        auto assetDirName = ProjectManager::getConfig().assetPath.string();
-        filepaths = filepaths == "." ? assetDirName : (assetDirName + "\\" + filepaths);
-        ImGui::TextColored({0.5f, 0.5f, 0.5f, 1.0f}, "%s", filepaths.c_str());
-
-        ImGui::SameLine();
-        ImGui::SetCursorPosX(ImGui::GetWindowWidth() - 150);
-
-        ImGui::PushItemWidth(150);
-        ImGui::SliderFloat("##Thumbnail_Size", &dragRatio, 1.0f, 5.0f);
-        ImGui::PopItemWidth();
-
-        ImGui::EndChild();
-
-        ImGui::BeginChild("Content", {0.f, 0.f}, false);
-
-        ImGui::Columns(columnCount, nullptr, false);
-
-        if (m_CurrentDirectoryEntries.empty())
-        {
-            if (fs::exists(m_currentDirectory))
-            {
-                for (auto &directoryEntry : std::filesystem::directory_iterator(m_currentDirectory))
-                    drawFileAssetBrowser(directoryEntry);
-            }
-        }
-        else
-            for (const auto &directoryEntry : m_CurrentDirectoryEntries) drawFileAssetBrowser(directoryEntry);
-
-        ImGui::Columns(1);
-        ImGui::EndChild();
-
-        // TODO: status bar
-        ImGui::EndChild();
-
-        ImGui::EndPopup();
-    }
-}
-
 void AssetBrowserPanel::search(const std::string &query)
 {
     m_CurrentDirectoryEntries.clear();
@@ -535,7 +424,7 @@ void AssetBrowserPanel::search(const std::string &query)
     }
 }
 
-void AssetBrowserPanel::drawFileAssetBrowser(std::filesystem::directory_entry directoryEntry) 
+void AssetBrowserPanel::drawFileAssetBrowser(fs::directory_entry directoryEntry) 
 {
     const auto &path = directoryEntry.path();
     const std::string filenameString = path.filename().string();
@@ -543,39 +432,32 @@ void AssetBrowserPanel::drawFileAssetBrowser(std::filesystem::directory_entry di
     auto relativePath = std::filesystem::relative(path, m_baseDirectory);
 
     if (path.stem() == "AssetRegistry") return;
-    if (path.extension() == ".import") return;
-    if (path.extension() == ".bin") return;
+    if (path.extension() == ".import")  return;
+    if (path.extension() == ".bin")     return;
 
     ImGui::PushID(filenameString.c_str());
-    auto icon = directoryEntry.is_directory() ? m_icons["directory"] : m_icons["file"];
+
+	auto icon = getOrCreateThumbnail(directoryEntry);
+	if (icon == NULL_IMAGE_ID) icon = m_icons["file"];
+
+    if (directoryEntry.is_directory()) icon = m_icons["directory"];
     if (path.extension() == ".scene") icon = m_icons["scene"];
-
-    if (path.extension() == ".png" || path.extension() == ".jpg" || path.extension() == ".jpeg")
-    {
-        icon = getOrCreateThumbnail(directoryEntry);
-        if (icon == NULL_IMAGE_ID) icon = m_icons["file"];
-    }
-
-    if (path.extension() == ".mat")
-    {
-        //icon = ThumbnailManager::Get().GetThumbnail(relativePath);
-        if (!icon) icon = m_icons["file"];
-    }
     if (path.extension() == ".gltf" || path.extension() == ".fbx" || path.extension() == ".glb")
     {
-        icon = m_icons["model"];
+        icon = CustomThumbnail::get().getOrCreateThumbnail(relativePath);
     }
+    if (path.extension() == ".mat") icon = CustomThumbnail::get().getOrCreateThumbnail(relativePath);
 
     ImGui::BeginGroup();
     ImGui::PushID(filenameString.c_str());
 
     auto scrPos = ImGui::GetCursorScreenPos();
-    auto thumbnailPadding = 20;
+    auto thumbnailPadding = 0;
 
     // change button color
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5, 0, 0, 0));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2, 0.2, 0.2, 0.2));
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(thumbnailPadding, 5));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(thumbnailPadding, thumbnailPadding));
     ImGui::ImageButton("##", icon, {thumbnailSize.x, thumbnailSize.y}, {0, 1}, {1, 0});
     ImGui::PopStyleVar();
     ImGui::PopStyleColor(2);
@@ -731,10 +613,11 @@ void AssetBrowserPanel::updateThumbnails()
     while (!m_queue.empty())
     {
         const auto &thumbnailInfo = m_queue.front();
+        const auto &path = thumbnailInfo.assetPath;
 
-        if (m_cachedImages.find(thumbnailInfo.assetPath) != m_cachedImages.end())
+        if (m_cachedImages.find(path) != m_cachedImages.end())
         {
-            auto &cachedImage = m_cachedImages.at(thumbnailInfo.assetPath);
+            auto &cachedImage = m_cachedImages.at(path);
             if (cachedImage.timestamp == thumbnailInfo.timestamp)
             {
                 m_queue.pop();
@@ -744,24 +627,26 @@ void AssetBrowserPanel::updateThumbnails()
 
        // Check if a task for this asset already exists
         auto existingTask =
-            Application::getTaskManager()->getTask<ImageID>("LoadImage_" + thumbnailInfo.assetPath.string());
+            Application::getTaskManager()->getTask<ImageID>("LoadThumbnail_" + path.string());
         if (!existingTask)
         {
             // Create a new task to load the image asynchronously
-            auto task =
-                CreateRef<Task<ImageID>>("LoadImage_" + thumbnailInfo.assetPath.string(),
-                                         [&]() -> ImageID { return helper::loadImageFromFile(thumbnailInfo.assetPath); });
+            auto task = CreateRef<Task<ImageID>>("LoadThumbnail_" + path.string(), [&]() -> ImageID { 
+                const auto assetType = getAssetTypeFromFileExtension(path.extension());
+                if (assetType == AssetType::Texture2D) return helper::loadImageFromFile(path);
+				return NULL_IMAGE_ID;
+            });
             Application::getTaskManager()->submitTask(task);
         }
 
         // Get the task's status and result
-        auto task = Application::getTaskManager()->getTask<ImageID>("LoadImage_" + thumbnailInfo.assetPath.string());
+        auto task = Application::getTaskManager()->getTask<ImageID>("LoadThumbnail_" + path.string());
         if (task->getStatus() == Task<ImageID>::Status::Completed)
         {
             auto result = task->getResult();
             if (result != NULL_IMAGE_ID)
             {
-                auto &cachedImage = m_cachedImages[thumbnailInfo.assetPath];
+                auto &cachedImage = m_cachedImages[path];
                 cachedImage.timestamp = thumbnailInfo.timestamp;
                 cachedImage.image = result.value();
             }

@@ -16,6 +16,8 @@ enum class EditorEventType
     Reset,
     Exit,
     OpenMaterialEditor,
+    CreateNewMaterialFrom,
+    CreateDefaultMaterial,
 };
 
 struct EditorEvent
