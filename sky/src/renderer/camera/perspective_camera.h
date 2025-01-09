@@ -76,7 +76,9 @@ class PerspectiveCamera : public Camera
      * @brief Get a constant reference to the position.
      * @return Constant reference to the position vector.
      */
-    SKY_INLINE const glm::vec4 &getPosition() const override { return glm::vec4{m_position, 1.f}; }
+    SKY_INLINE const glm::vec3 &getPosition() const override { return m_position; }
+
+    SKY_INLINE const glm::vec3 &getCameraDir() const override { return m_forward; }
 
     /**
      * @brief Set the camera view using a view matrix.

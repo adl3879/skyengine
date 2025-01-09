@@ -25,6 +25,7 @@ class ProjectManager
         fs::path getAssetRegistryPath() const { return getProjectFilePath() / assetPath / "assetRegistry.yaml"; }
         fs::path getAssetDirectory() const { return getProjectFilePath() / assetPath; }
         fs::path getImportedCachePath() const { return getProjectFilePath() / ".sky/imported"; }
+        fs::path getThumbnailCachePath() const { return getProjectFilePath() / ".sky/thumbnails"; }
     };
 
     struct ProjectInfo

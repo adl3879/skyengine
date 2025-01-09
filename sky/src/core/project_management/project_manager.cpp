@@ -14,8 +14,8 @@ void ProjectManager::createNewProject(ProjectConfig config)
     // create folders
     fs::create_directory(config.getProjectFilePath());
     fs::create_directory(config.getProjectFilePath() / config.assetPath);
-    fs::path importedDir = config.getProjectFilePath() / ".sky" / "imported";
-    fs::create_directories(importedDir);
+    fs::create_directories(config.getImportedCachePath()); //? if error
+    fs::create_directories(config.getThumbnailCachePath());
 
     serialize(config);
 

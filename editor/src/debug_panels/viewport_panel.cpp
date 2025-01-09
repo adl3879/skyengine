@@ -56,7 +56,7 @@ void ViewportPanel::render()
 			.mousePos = {mx * ratioX, my * ratioY},
 			.isFocus = isMouseInViewport && !m_itemIsDraggedOver,
 		});
-		ImGui::Image(renderer->getDrawImageId(), viewportSize);
+		ImGui::Image(renderer->getDrawImageId(), viewportSize, 	/*vertical flip*/ {0, 1}, {1, 0});
  
 		if (ImGui::BeginDragDropTarget())
 		{

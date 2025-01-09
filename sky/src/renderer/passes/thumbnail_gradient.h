@@ -11,15 +11,10 @@ class ThumbnailGradientPass : public Pass
 	ThumbnailGradientPass() = default;
 	~ThumbnailGradientPass() = default;
 
-	void init(const gfx::Device &device);
+	void init(const gfx::Device &device, VkFormat format);
 	void draw(gfx::Device &device, 
         gfx::CommandBuffer cmd,
 		VkExtent2D extent);
     void cleanup(const gfx::Device &device);
-
-  private:
-	struct PushConstants
-	{
-	};
 };
 }

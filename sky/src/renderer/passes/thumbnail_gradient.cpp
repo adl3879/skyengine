@@ -4,16 +4,12 @@
 
 namespace sky
 {
-void ThumbnailGradientPass::init(const gfx::Device &device) 
+void ThumbnailGradientPass::init(const gfx::Device &device, VkFormat format) 
 {
     const auto vertexShader = gfx::vkutil::loadShaderModule("shaders/thumbnail_gradient.vert.spv", device.getDevice());
     const auto fragShader = gfx::vkutil::loadShaderModule("shaders/thumbnail_gradient.frag.spv", device.getDevice());
-    const auto bufferRange = VkPushConstantRange{
-        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-        .offset = 0,
-        .size = sizeof(PushConstants),
-    };
-    const auto pushConstantRanges = std::array{bufferRange};
+    
+    const auto pushConstantRanges = std::array<VkPushConstantRange, 0>{};
     const auto layouts = std::array<VkDescriptorSetLayout, 0>{};
     m_pInfo.pipelineLayout = gfx::vkutil::createPipelineLayout(device.getDevice(), layouts, pushConstantRanges);
 
@@ -25,7 +21,7 @@ void ThumbnailGradientPass::init(const gfx::Device &device)
                            .setMultisamplingNone()
                            .enableBlending()
                            .disableDepthTest()
-                           .setColorAttachmentFormat(VK_FORMAT_R16G16B16A16_SFLOAT)
+                           .setColorAttachmentFormat(format)
                            .build(device.getDevice());
 }
 
@@ -48,13 +44,6 @@ void ThumbnailGradientPass::draw(gfx::Device &device, gfx::CommandBuffer cmd, Vk
     };
     vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-    const auto pcs = PushConstants{};
-    vkCmdPushConstants(cmd, 
-        m_pInfo.pipelineLayout, 
-        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 
-        0,
-        sizeof(PushConstants), 
-        &pcs);
     vkCmdDraw(cmd, 4, 1, 0, 0);
 }
 

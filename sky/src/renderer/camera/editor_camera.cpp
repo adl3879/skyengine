@@ -8,9 +8,7 @@ namespace sky
 EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
     : m_fov(fov), m_aspectRatio(aspectRatio), m_nearClip(nearClip), m_farClip(farClip)
 {
-    // set pitch to show the scene from an angle that looks like a floor
-    m_pitch = glm::radians(200.f);
-    //m_yaw = glm::radians(120.f);
+    m_pitch = 0.2613f;
     updateView();
 }
 
@@ -108,7 +106,7 @@ glm::vec3 EditorCamera::getRightDirection() const { return glm::rotate(getOrient
 
 glm::vec3 EditorCamera::getForwardDirection() const
 {
-    return glm::rotate(getOrientation(), glm::vec3(0.0f, 0.0f, 1.0f));
+    return glm::rotate(getOrientation(), glm::vec3(0.0f, 0.0f, -1.0f));
 }
 
 glm::vec3 EditorCamera::calculatePosition() const { return m_focalPoint - getForwardDirection() * m_distance; }
@@ -117,7 +115,7 @@ glm::quat EditorCamera::getOrientation() const { return glm::quat(glm::vec3(-m_p
 
 void EditorCamera::reset()
 {
-    //m_pitch = 0.2613f;
+    m_pitch = 0.2613f;
     m_yaw = 0.0f;
     m_distance = 10.0f;
     m_focalPoint = {0.0f, 0.0f, 0.0f};

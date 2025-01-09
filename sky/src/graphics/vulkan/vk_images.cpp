@@ -76,4 +76,20 @@ void vkutil::copyImageToImage(VkCommandBuffer cmd, VkImage source, VkImage desti
 
     vkCmdBlitImage2(cmd, &blitInfo);
 }
+
+void copyImageToBuffer(VkCommandBuffer cmd, VkImage image, VkBuffer buffer, VkExtent2D extent)
+{
+    VkBufferImageCopy copyRegion{};
+    copyRegion.bufferOffset = 0;
+    copyRegion.bufferRowLength = 0;
+    copyRegion.bufferImageHeight = 0;
+    copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    copyRegion.imageSubresource.mipLevel = 0;
+    copyRegion.imageSubresource.baseArrayLayer = 0;
+    copyRegion.imageSubresource.layerCount = 1;
+    copyRegion.imageOffset = {0, 0, 0};
+    copyRegion.imageExtent = {extent.width, extent.height, 1};
+
+    vkCmdCopyImageToBuffer(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer, 1, &copyRegion);
+}
 } // namespace sky::vkutil

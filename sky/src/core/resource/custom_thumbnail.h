@@ -4,6 +4,7 @@
 
 #include "renderer/scene_renderer.h"
 #include "renderer/passes/thumbnail_gradient.h"
+#include "renderer/passes/forward_renderer.h"
 
 namespace sky
 {
@@ -34,5 +35,7 @@ class CustomThumbnail
 	const glm::ivec2 m_size = {256, 256};
     LightCache m_lightCache;
 	ThumbnailGradientPass m_thumbnailGradientPass;
+    ForwardRendererPass m_forwardRenderer;
+	VkFormat m_drawImageFormat{VK_FORMAT_R8G8B8A8_UNORM};
 };
 } // namespace sky

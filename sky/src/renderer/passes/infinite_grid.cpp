@@ -4,7 +4,7 @@
 
 namespace sky
 {
-void InfiniteGridPass::init(const gfx::Device &device) 
+void InfiniteGridPass::init(const gfx::Device &device, VkFormat format) 
 {
     const auto vertexShader = gfx::vkutil::loadShaderModule("shaders/grid.vert.spv", device.getDevice());
     const auto fragShader = gfx::vkutil::loadShaderModule("shaders/grid.frag.spv", device.getDevice());

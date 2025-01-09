@@ -72,6 +72,7 @@ class AssetBrowserPanel
 	fs::path m_currentDirectory, m_baseDirectory;
     std::vector<fs::path> m_DirectoryStack;
     std::vector<fs::directory_entry> m_CurrentDirectoryEntries;
+    fs::path m_selectedAsset;
 
 	std::string m_searchQuery;
     bool m_renameRequested = false;

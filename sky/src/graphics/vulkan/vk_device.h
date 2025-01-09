@@ -7,6 +7,7 @@
 #include "vk_image_cache.h"
 #include "vk_utils.h"
 #include "vk_imgui_backend.h"
+#include "vk_images.h"
 
 #include "renderer/model_loader.h"
 #include "renderer/camera/camera.h"
@@ -20,7 +21,7 @@ class Window;
 
 namespace sky::gfx
 {
-static constexpr bool bUseValidationLayers = false;
+static constexpr bool bUseValidationLayers = true;
 static constexpr unsigned int DEPTH_ARRAY_SCALE = 512;
 
 struct DeletionQueue
@@ -64,6 +65,12 @@ struct PipelineInfo
 	VkPipelineLayout pipelineLayout;
 };
 
+struct DescriptorSetInfo
+{
+    VkDescriptorSet descriptorSet;
+    VkDescriptorSetLayout descriptorSetLayout;
+};
+
 class Device
 {
   public:
@@ -84,6 +91,9 @@ class Device
     float getMaxAnisotropy() const { return m_maxSamplerAnisotropy; }
 	void resetSwapchainFences();
 
+    auto getQueue() const { return m_graphicsQueue; }
+	auto getCommandPool() const { return m_frames[m_frameNumber % gfx::FRAME_OVERLAP].commandPool; }
+
 	CommandBuffer beginFrame();
     void endFrame(CommandBuffer cmd, const AllocatedImage &drawImage);
     void cleanup();
@@ -91,6 +101,7 @@ class Device
 	AllocatedBuffer createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 	void destroyBuffer(const AllocatedBuffer &buffer);
 	void immediateSubmit(std::function<void(VkCommandBuffer cmd)> &&function);
+	uint32_t getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound) const;
 
 	bool isInitialized() const { return m_isInitialized; }
 	bool needsSwapchainRecreate() const { return m_swapchain.needsRecreation(); }
@@ -130,6 +141,7 @@ class Device
 	vkb::PhysicalDevice m_physicalDevice;
 	vkb::Device m_device;
 	VmaAllocator m_allocator;
+	VkPhysicalDeviceMemoryProperties m_memoryProperties;
 
 	VkDebugUtilsMessengerEXT m_debugMessenger;// Vulkan debug output handle
 	VkSurfaceKHR m_surface;// Vulkan window surface

@@ -9,6 +9,7 @@
 #include "scene/scene.h"
 #include "material_cache.h"
 #include "core/transform/transform.h"
+#include "renderer/passes/sky_atmosphere.h"
 
 namespace sky
 {
@@ -47,7 +48,7 @@ class SceneRenderer
     ImageID getCheckerboardTexture() const { return m_device.getCheckerboardTextureID(); }
     gfx::AllocatedImage getDrawImage();
 
-    ImageID createNewDrawImage(glm::ivec2 size);
+    ImageID createNewDrawImage(glm::ivec2 size, VkFormat format);
     ImageID createNewDepthImage(glm::ivec2 size);
 
     ForwardRendererPass getForwardRendererPass() const { return m_forwardRenderer; }
@@ -95,6 +96,7 @@ class SceneRenderer
   private:
     ForwardRendererPass m_forwardRenderer;
     InfiniteGridPass m_infiniteGridPass;
+    SkyAtmosphere m_skyAtmospherePass;
 
     ImageID m_drawImageID{NULL_IMAGE_ID};
     ImageID m_depthImageID{NULL_IMAGE_ID};

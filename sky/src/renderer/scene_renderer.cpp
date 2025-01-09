@@ -34,8 +34,9 @@ void SceneRenderer::init(glm::ivec2 size)
     m_materialCache.init(m_device);
     initSceneData(); 
 
-    m_forwardRenderer.init(m_device);
-    m_infiniteGridPass.init(m_device);
+    m_forwardRenderer.init(m_device, m_drawImageFormat);
+    m_infiniteGridPass.init(m_device, m_drawImageFormat);
+    m_skyAtmospherePass.init(m_device);
 
     initBuiltins();
 }
@@ -116,7 +117,7 @@ void SceneRenderer::destroy()
     m_forwardRenderer.cleanup(m_device);
 }
 
-ImageID SceneRenderer::createNewDrawImage(glm::ivec2 size) 
+ImageID SceneRenderer::createNewDrawImage(glm::ivec2 size, VkFormat format) 
 {
     const auto drawImageExtent = VkExtent3D{
         .width = (std::uint32_t)size.x,
@@ -131,7 +132,7 @@ ImageID SceneRenderer::createNewDrawImage(glm::ivec2 size)
 	usages |= VK_IMAGE_USAGE_SAMPLED_BIT;
 
 	auto createImageInfo = gfx::vkutil::CreateImageInfo{
-		.format = m_drawImageFormat,
+		.format = format,
 		.usage = usages,
 		.extent = drawImageExtent,
 		.samples = m_samples,
@@ -159,7 +160,7 @@ ImageID SceneRenderer::createNewDepthImage(glm::ivec2 size)
 
 void SceneRenderer::createDrawImage(glm::ivec2 size)
 {
-    m_drawImageID = createNewDrawImage(size);
+    m_drawImageID = createNewDrawImage(size, m_drawImageFormat);
     m_depthImageID = createNewDepthImage(size);
 }
 
@@ -244,7 +245,7 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene)
             .view = camera.getView(),
             .proj = camera.getProjection(),
             .viewProj = camera.getViewProjection(),
-            .cameraPos = camera.getPosition(),
+            .cameraPos = {camera.getPosition(), 1.f},
             .mousePos = scene->getViewportInfo().mousePos,
             .ambientColor = LinearColorNoAlpha::white(),
             .ambientIntensity = 0.1f,
@@ -281,8 +282,12 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene)
         VK_IMAGE_LAYOUT_UNDEFINED, 
         VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 
+	m_skyAtmospherePass.draw(m_device, cmd, drawImage.getExtent2D(), camera);
+
     vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
     {
+        m_skyAtmospherePass.drawSky(m_device, cmd, drawImage.getExtent2D());
+
 		m_infiniteGridPass.draw(m_device, 
 			cmd, 
 			drawImage.getExtent2D(),

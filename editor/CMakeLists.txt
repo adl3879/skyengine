@@ -26,6 +26,11 @@ set(SHADERS
     "grid.frag"
     "thumbnail_gradient.vert"
     "thumbnail_gradient.frag"
+    "transmittance_lut.comp"
+    "multiscatter_lut.comp"
+    "sky_lut.comp"
+    "sky.vert"
+    "sky.frag"
     "imgui.frag"
     "imgui.vert")
 

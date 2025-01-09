@@ -149,6 +149,9 @@ void Device::initVulkan()
 
     checkDeviceCapabilities();
 
+    // Memory properties are used regularly for creating all kinds of buffers
+    vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &m_memoryProperties);
+
 	m_device = vkb::DeviceBuilder{m_physicalDevice}.build().value();
 
 	m_graphicsQueue = m_device.get_queue(vkb::QueueType::graphics).value();
@@ -219,6 +222,35 @@ void Device::checkDeviceCapabilities()
     }
 }
 
+uint32_t Device::getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound) const
+{
+    for (uint32_t i = 0; i < m_memoryProperties.memoryTypeCount; i++)
+    {
+        if ((typeBits & 1) == 1)
+        {
+            if ((m_memoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+            {
+                if (memTypeFound)
+                {
+                    *memTypeFound = true;
+                }
+                return i;
+            }
+        }
+        typeBits >>= 1;
+    }
+
+    if (memTypeFound)
+    {
+        *memTypeFound = false;
+        return 0;
+    }
+    else
+    {
+        throw std::runtime_error("Could not find a matching memory type");
+    }
+}
+
 AllocatedBuffer Device::createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage)
 {
     // allocate buffer
@@ -227,6 +259,7 @@ AllocatedBuffer Device::createBuffer(size_t allocSize, VkBufferUsageFlags usage,
     bufferInfo.size = allocSize;
 
     bufferInfo.usage = usage;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     VmaAllocationCreateInfo vmaallocInfo = {};
     vmaallocInfo.usage = memoryUsage;

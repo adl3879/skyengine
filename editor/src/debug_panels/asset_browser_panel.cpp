@@ -435,6 +435,9 @@ void AssetBrowserPanel::drawFileAssetBrowser(fs::directory_entry directoryEntry)
     if (path.extension() == ".import")  return;
     if (path.extension() == ".bin")     return;
 
+    // Add a condition to check if the asset is selected
+    bool isSelected = (m_selectedAsset == relativePath); 
+
     ImGui::PushID(filenameString.c_str());
 
 	auto icon = getOrCreateThumbnail(directoryEntry);
@@ -495,6 +498,8 @@ void AssetBrowserPanel::drawFileAssetBrowser(fs::directory_entry directoryEntry)
         ImGui::EndDragDropSource();
     }
 
+    if (ImGui::IsItemClicked()) m_selectedAsset = relativePath;
+
     if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
     {
         m_CurrentDirectoryEntries.clear();
@@ -520,6 +525,7 @@ void AssetBrowserPanel::drawFileAssetBrowser(fs::directory_entry directoryEntry)
             }
         }
     }
+
 
     std::string fileNameWithoutExtension = filenameString.substr(0, filenameString.find_last_of("."));
     std::string truncatedName = fileNameWithoutExtension;
@@ -579,6 +585,7 @@ void AssetBrowserPanel::drawFileAssetBrowser(fs::directory_entry directoryEntry)
             ImGui::EndTooltip();
         }
     }
+
 
     ImGui::PopID();
     ImGui::EndGroup();

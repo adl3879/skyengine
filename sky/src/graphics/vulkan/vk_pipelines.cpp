@@ -54,7 +54,6 @@ VkPipelineLayout createPipelineLayout(VkDevice device, std::span<const VkDescrip
     VK_CHECK(vkCreatePipelineLayout(device, &createInfo, nullptr, &layout));
     return layout;
 }
-
 } // end of namespace vkutil
 
 PipelineBuilder::PipelineBuilder(VkPipelineLayout pipelineLayout) : pipelineLayout(pipelineLayout) { clear(); }
