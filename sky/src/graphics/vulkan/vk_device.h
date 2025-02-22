@@ -55,7 +55,6 @@ struct FrameData
 struct CommandBuffer
 {
 	VkCommandBuffer handle;
-
 	operator VkCommandBuffer() const { return handle; }
 };
 

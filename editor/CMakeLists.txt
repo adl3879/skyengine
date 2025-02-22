@@ -31,6 +31,8 @@ set(SHADERS
     "sky_lut.comp"
     "sky.vert"
     "sky.frag"
+    "sprite.vert"
+    "sprite.frag"
     "imgui.frag"
     "imgui.vert")
 

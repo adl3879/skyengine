@@ -86,9 +86,10 @@ VkPipeline PipelineBuilder::build(VkDevice device)
         .pAttachments = &colorBlendAttachment,
     };
 
-    const auto vertexInputInfo = VkPipelineVertexInputStateCreateInfo{
+   /* const auto vertexInputInfo = VkPipelineVertexInputStateCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-    };
+    };*/
+    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
     auto dynamicStates = std::vector{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
     if (dynamicDepth)
@@ -326,6 +327,12 @@ PipelineBuilder &PipelineBuilder::enableDepthBias(float constantFactor, float sl
     rasterizer.depthBiasConstantFactor = constantFactor;
     rasterizer.depthBiasSlopeFactor = slopeFactor;
 
+    return *this;
+}
+
+PipelineBuilder &PipelineBuilder::setVertexInputState(const VkPipelineVertexInputStateCreateInfo &vertexInputState)
+{
+    vertexInputInfo = vertexInputState;
     return *this;
 }
 

@@ -3,10 +3,11 @@
 #include <skypch.h>
 
 #include "graphics/vulkan/vk_device.h"
+#include "renderer/environment.h"
 
 namespace sky
 {
-class SkyAtmosphere
+class SkyAtmospherePass
 {
   public:
     void init(gfx::Device &device);
@@ -16,7 +17,8 @@ class SkyAtmosphere
         gfx::Device &device, 
         gfx::CommandBuffer cmd, 
         VkExtent2D extent,
-        Camera &camera);
+        Camera &camera,
+        const SkyAtmosphere &sky);
     void drawSky(
         gfx::Device &device, 
         gfx::CommandBuffer cmd, 
@@ -74,6 +76,15 @@ class SkyAtmosphere
         glm::vec2   msLUTRes;
         glm::vec2   skyLUTRes;
         glm::vec4   cameraDir;
+
+        glm::vec3   groundAlbedo;
+        float       mieScatteringBase;
+        glm::vec3   rayleighScatteringBase;
+        float       mieAbsorptionBase;
+        glm::vec3   ozoneAbsorptionBase;
+        float       exposure;
+        float       rayleighAbsorptionBase; 
+        glm::vec3   padding;
     };
 
     struct PushConstants

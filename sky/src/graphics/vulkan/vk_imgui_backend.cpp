@@ -38,10 +38,10 @@ void ImGuiBackend::init(Device &gfxDevice, VkFormat swapchainFormat)
                    sizeof(ImDrawVert) * MAX_VTX_COUNT, gfx::FRAME_OVERLAP, "ImGui vertex buffer");
 
     auto &io = ImGui::GetIO();
-    io.BackendRendererName = "EDBR ImGui Backend";
+    io.BackendRendererName = "Sky ImGui Backend";
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
 
-    s_fonts["bold"] =    io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Bold.ttf", 27.0f);
+    s_fonts["bold"] = io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Bold.ttf", 27.0f);
     s_fonts["h4:bold"] = io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Bold.ttf", 35.0f);
 
     s_fonts["h2"] = io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", 55.0f);

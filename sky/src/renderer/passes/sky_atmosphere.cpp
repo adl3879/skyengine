@@ -5,7 +5,7 @@
 
 namespace sky
 {
-void SkyAtmosphere::init(gfx::Device &device) 
+void SkyAtmospherePass::init(gfx::Device &device) 
 {
     initTransmittanceLUT(device);
     initMultiScatteringLUT(device);
@@ -13,7 +13,7 @@ void SkyAtmosphere::init(gfx::Device &device)
     initSky(device, VK_FORMAT_R16G16B16A16_SFLOAT);
 }
 
-void SkyAtmosphere::initSky(gfx::Device &device, VkFormat format) 
+void SkyAtmospherePass::initSky(gfx::Device &device, VkFormat format) 
 {
     VkDescriptorPool descPool;
     { // create pool
@@ -103,7 +103,7 @@ void SkyAtmosphere::initSky(gfx::Device &device, VkFormat format)
         VkDescriptorBufferInfo bufferInfo = {};
         bufferInfo.buffer = m_viewParamsBuffer.buffer;
         bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(SkyAtmosphere::ViewParams);
+        bufferInfo.range = sizeof(SkyAtmospherePass::ViewParams);
 
         VkSampler transmittanceLUTSampler = createSampler(device); 
         VkDescriptorImageInfo transmittanceLUTImageInfo = {};
@@ -150,7 +150,7 @@ void SkyAtmosphere::initSky(gfx::Device &device, VkFormat format)
     }
 }
 
-void SkyAtmosphere::drawSky(
+void SkyAtmospherePass::drawSky(
         gfx::Device &device, 
         gfx::CommandBuffer cmd, 
         VkExtent2D extent)
@@ -178,46 +178,34 @@ void SkyAtmosphere::drawSky(
     };
     vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-    /*const auto pushConstants = PushConstants{
-        .sceneDataBuffer = sceneDataBuffer.address,
-    };
-
-    vkCmdPushConstants(cmd, 
-        m_skyPipelineInfo.pipelineLayout, 
-        VK_SHADER_STAGE_FRAGMENT_BIT, 
-        0, 
-        sizeof(PushConstants),
-	    &pushConstants);*/
-
     vkCmdDraw(cmd, 6, 1, 0, 0);
 }
 
-void SkyAtmosphere::draw(gfx::Device &device, 
+void SkyAtmospherePass::draw(gfx::Device &device, 
 	gfx::CommandBuffer cmd, 
 	VkExtent2D extent,
-    Camera &camera) 
+    Camera &camera,
+    const SkyAtmosphere &sky) 
 {
-    // In your render code where you set shader parameters:
-    auto viewPos =  glm::normalize(camera.getPosition()); // This is in your world units
-
-    // Scale to match atmospheric scale where Earth radius is 6.36 million meters
-    // If your world unit is 1 meter:
-    const float EARTH_RADIUS = 6.360f;         // This matches groundRadiusMM in shader
-    const float EARTH_SURFACE_HEIGHT = 0.001f; // 1km above surface
-
-    // Transform camera position to atmospheric scale
-    glm::vec3 scaledViewPos = glm::normalize(viewPos) * (EARTH_RADIUS + EARTH_SURFACE_HEIGHT);
-    // 200M above the ground.
-    const glm::vec3 viewPos2 = glm::vec3(0, 1 * EARTH_RADIUS + (0.0002), 0.0);
+    static const float EARTH_RADIUS = 6.360f;
+    const glm::vec3 viewPos = glm::vec3(0, EARTH_RADIUS + (0.0002), 0);
+    auto cm = camera.getCameraDir();
 
     const auto viewParams = ViewParams{
-        .viewPos = viewPos2,
-        .time = 15.f,
+        .viewPos = viewPos,
+        .time = sky.time,
         .resolution = glm::vec2{extent.width, extent.height},
         .tLUTRes = m_transmittanceLUTRes,
         .msLUTRes = m_multiScatteringLUTRes,
         .skyLUTRes = m_multiScatteringLUTRes,
-        .cameraDir = {0.f, 0.27f, -1.f, 0.f},
+        .cameraDir = {cm.x, cm.y, -glm::abs(cm.z) , 0.f},
+        .groundAlbedo = sky.groundAlbedo,
+        .mieScatteringBase = sky.mieScatteringBase,
+        .rayleighScatteringBase = sky.rayleighScatteringBase,
+        .mieAbsorptionBase = sky.mieAbsorptionBase,
+	    .ozoneAbsorptionBase = sky.ozoneAbsorptionBase,
+        .exposure = sky.exposure,
+        .rayleighAbsorptionBase = sky.rayleighAbsorptionBase,
     };
 
     // Map memory
@@ -226,34 +214,28 @@ void SkyAtmosphere::draw(gfx::Device &device,
     std::memcpy(data, &viewParams, sizeof(ViewParams));
     vmaUnmapMemory(device.getAllocator(), m_viewParamsBuffer.allocation);
 
-    gfx::vkutil::transitionImage(cmd, m_transmittanceLUTImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
-		VK_IMAGE_LAYOUT_GENERAL);
+    gfx::vkutil::transitionImage(cmd, m_transmittanceLUTImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
     updateTransmittanceLUT(device, cmd);
 
-    gfx::vkutil::transitionImage(cmd, m_transmittanceLUTImage.image, VK_IMAGE_LAYOUT_GENERAL,
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    gfx::vkutil::transitionImage(cmd, m_multiScatteringLUTImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
-	    VK_IMAGE_LAYOUT_GENERAL);
+    gfx::vkutil::transitionImage(cmd, m_transmittanceLUTImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    gfx::vkutil::transitionImage(cmd, m_multiScatteringLUTImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
     updateMultiScatteringLUT(device, cmd);
 
-    gfx::vkutil::transitionImage(cmd, m_multiScatteringLUTImage.image, VK_IMAGE_LAYOUT_GENERAL,
-		 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    gfx::vkutil::transitionImage(cmd, m_skyLUTImage.image, VK_IMAGE_LAYOUT_UNDEFINED, 
-        VK_IMAGE_LAYOUT_GENERAL);
+    gfx::vkutil::transitionImage(cmd, m_multiScatteringLUTImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    gfx::vkutil::transitionImage(cmd, m_skyLUTImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
     updateSkyLUT(device, cmd);
 
-    gfx::vkutil::transitionImage(cmd, m_skyLUTImage.image, VK_IMAGE_LAYOUT_GENERAL, 
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    gfx::vkutil::transitionImage(cmd, m_skyLUTImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
-void SkyAtmosphere::cleanup(const gfx::Device &device) 
+void SkyAtmospherePass::cleanup(const gfx::Device &device) 
 {
 }
 
-void SkyAtmosphere::initTransmittanceLUT(gfx::Device &device) 
+void SkyAtmospherePass::initTransmittanceLUT(gfx::Device &device) 
 {
     VkDescriptorPool descPool;
     { // create pool
@@ -331,7 +313,7 @@ void SkyAtmosphere::initTransmittanceLUT(gfx::Device &device)
         unsigned int width = m_transmittanceLUTRes.x;
         unsigned int height = m_transmittanceLUTRes.y;
 
-        m_viewParamsBuffer = device.createBuffer(sizeof(SkyAtmosphere::ViewParams), 
+        m_viewParamsBuffer = device.createBuffer(sizeof(SkyAtmospherePass::ViewParams), 
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
         m_transmittanceLUTImage = device.createImageRaw({
@@ -351,7 +333,7 @@ void SkyAtmosphere::initTransmittanceLUT(gfx::Device &device)
         VkDescriptorBufferInfo bufferInfo = {};
         bufferInfo.buffer = m_viewParamsBuffer.buffer;
         bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(SkyAtmosphere::ViewParams);
+        bufferInfo.range = sizeof(SkyAtmospherePass::ViewParams);
 
         VkDescriptorImageInfo imageInfo = {};
         imageInfo.imageView = m_transmittanceLUTImage.imageView;
@@ -382,7 +364,7 @@ void SkyAtmosphere::initTransmittanceLUT(gfx::Device &device)
     }
 }
 
-void SkyAtmosphere::updateTransmittanceLUT(gfx::Device &device, gfx::CommandBuffer cmd)
+void SkyAtmospherePass::updateTransmittanceLUT(gfx::Device &device, gfx::CommandBuffer cmd)
 {
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_transmittanceLUTPipelineInfo.pipeline);
     
@@ -398,7 +380,7 @@ void SkyAtmosphere::updateTransmittanceLUT(gfx::Device &device, gfx::CommandBuff
     vkCmdDispatch(cmd, m_transmittanceLUTRes.x, m_transmittanceLUTRes.y, 1);
 }
 
-void SkyAtmosphere::initMultiScatteringLUT(gfx::Device &device) 
+void SkyAtmospherePass::initMultiScatteringLUT(gfx::Device &device) 
 {
 	VkDescriptorPool descPool;
     { // create pool
@@ -496,7 +478,7 @@ void SkyAtmosphere::initMultiScatteringLUT(gfx::Device &device)
         VkDescriptorBufferInfo bufferInfo = {};
         bufferInfo.buffer = m_viewParamsBuffer.buffer;
         bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(SkyAtmosphere::ViewParams);
+        bufferInfo.range = sizeof(SkyAtmospherePass::ViewParams);
 
         VkSampler transmittanceLUTSampler = createSampler(device); 
         VkDescriptorImageInfo transmittanceLUTImageInfo = {};
@@ -541,7 +523,7 @@ void SkyAtmosphere::initMultiScatteringLUT(gfx::Device &device)
     }
 }
 
-void SkyAtmosphere::updateMultiScatteringLUT(gfx::Device &device, gfx::CommandBuffer cmd) 
+void SkyAtmospherePass::updateMultiScatteringLUT(gfx::Device &device, gfx::CommandBuffer cmd) 
 {
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_multiScatteringLUTPipelineInfo.pipeline);
     
@@ -557,7 +539,7 @@ void SkyAtmosphere::updateMultiScatteringLUT(gfx::Device &device, gfx::CommandBu
     vkCmdDispatch(cmd, m_multiScatteringLUTRes.x, m_multiScatteringLUTRes.y, 1);
 }
 
-void SkyAtmosphere::initSkyLUT(gfx::Device &device) 
+void SkyAtmospherePass::initSkyLUT(gfx::Device &device) 
 {
 	VkDescriptorPool descPool;
     { // create pool
@@ -662,7 +644,7 @@ void SkyAtmosphere::initSkyLUT(gfx::Device &device)
         VkDescriptorBufferInfo bufferInfo = {};
         bufferInfo.buffer = m_viewParamsBuffer.buffer;
         bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(SkyAtmosphere::ViewParams);
+        bufferInfo.range = sizeof(SkyAtmospherePass::ViewParams);
 
         VkSampler transmittanceLUTSampler = createSampler(device); 
         VkDescriptorImageInfo transmittanceLUTImageInfo = {};
@@ -721,7 +703,7 @@ void SkyAtmosphere::initSkyLUT(gfx::Device &device)
     }
 }
 
-void SkyAtmosphere::updateSkyLUT(gfx::Device &device, gfx::CommandBuffer cmd) 
+void SkyAtmospherePass::updateSkyLUT(gfx::Device &device, gfx::CommandBuffer cmd) 
 {
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_skyLUTPipelineInfo.pipeline);
 
@@ -737,7 +719,7 @@ void SkyAtmosphere::updateSkyLUT(gfx::Device &device, gfx::CommandBuffer cmd)
     vkCmdDispatch(cmd, m_skyLUTRes.x, m_skyLUTRes.y, 1);
 }
 
-VkSampler SkyAtmosphere::createSampler(gfx::Device &device) 
+VkSampler SkyAtmospherePass::createSampler(gfx::Device &device) 
 {
 	VkSamplerCreateInfo samplerCreateInfo{};
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;

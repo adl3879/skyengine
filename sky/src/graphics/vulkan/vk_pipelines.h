@@ -40,6 +40,7 @@ class PipelineBuilder
     PipelineBuilder &disableDepthTest();
     PipelineBuilder &enableDynamicDepth();
     PipelineBuilder &enableDepthBias(float constantFactor, float slopeFactor);
+    PipelineBuilder &setVertexInputState(const VkPipelineVertexInputStateCreateInfo &vertexInputState);
 
   private:
     void clear();
@@ -53,6 +54,7 @@ class PipelineBuilder
     VkPipelineRenderingCreateInfo renderInfo;
     VkFormat colorAttachmentformat;
     VkPipelineLayout pipelineLayout;
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     bool dynamicDepth{false};
 };
 

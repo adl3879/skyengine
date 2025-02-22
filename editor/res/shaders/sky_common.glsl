@@ -5,23 +5,33 @@
 const float PI = 3.14159265358;
 const float groundRadiusMM = 6.360;
 const float atmosphereRadiusMM = 6.460;
-const vec3  groundAlbedo = vec3(0.3);
-const vec3  rayleighScatteringBase = vec3(5.802, 19.558, 33.1);
-const float rayleighAbsorptionBase = 0.0;
-const float mieScatteringBase = 3.996;
-const float mieAbsorptionBase = 4.4;
-const vec3  ozoneAbsorptionBase = vec3(0.650, 1.881, .085);
 
 // Uniform buffer object for view parameters
 layout(set = 0, binding = 0) uniform ViewParams {
-    vec3 viewPos;
-    float time;
-    vec2 resolution;
-    vec2 tLUTRes;
-    vec2 msLUTRes;
-    vec2 skyLUTRes;
-    vec4 camDir;
+    vec3    viewPos;
+    float   time;
+    vec2    resolution;
+    vec2    tLUTRes;
+    vec2    msLUTRes;
+    vec2    skyLUTRes;
+    vec4    camDir;
+
+    vec3    groundAlbedo;
+    float   mieScatteringBase;
+    vec3    rayleighScatteringBase; 
+    float   mieAbsorptionBase;
+    vec3    ozoneAbsorptionBase;
+    float   exposure;
+    float   rayleighAbsorptionBase;
+    vec3    padding;
 } view;
+
+vec3  groundAlbedo = view.groundAlbedo;
+vec3  rayleighScatteringBase = view.rayleighScatteringBase;
+float rayleighAbsorptionBase = view.rayleighAbsorptionBase;
+float mieScatteringBase = view.mieScatteringBase;
+float mieAbsorptionBase = view.mieAbsorptionBase;
+vec3  ozoneAbsorptionBase = view.ozoneAbsorptionBase;
 
 // Utility functions
 float safeacos(float x) {

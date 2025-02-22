@@ -10,6 +10,7 @@
 #include "material_cache.h"
 #include "core/transform/transform.h"
 #include "renderer/passes/sky_atmosphere.h"
+#include "sprite_renderer.h"
 
 namespace sky
 {
@@ -95,8 +96,9 @@ class SceneRenderer
 
   private:
     ForwardRendererPass m_forwardRenderer;
-    InfiniteGridPass m_infiniteGridPass;
-    SkyAtmosphere m_skyAtmospherePass;
+    InfiniteGridPass    m_infiniteGridPass;
+    SkyAtmospherePass   m_skyAtmospherePass;
+    SpriteBatchRenderer m_spriteRenderer;
 
     ImageID m_drawImageID{NULL_IMAGE_ID};
     ImageID m_depthImageID{NULL_IMAGE_ID};

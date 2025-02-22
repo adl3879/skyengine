@@ -34,6 +34,7 @@ void SceneRenderer::init(glm::ivec2 size)
     m_materialCache.init(m_device);
     initSceneData(); 
 
+    m_spriteRenderer.init(m_device, m_drawImageFormat);
     m_forwardRenderer.init(m_device, m_drawImageFormat);
     m_infiniteGridPass.init(m_device, m_drawImageFormat);
     m_skyAtmospherePass.init(m_device);
@@ -235,6 +236,10 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene)
                     visibility, static_cast<uint32_t>(e), material);
             }
 		}
+
+		/*m_spriteRenderer.addSprite(m_device, {
+			.color = {1, 0, 0, 1}
+		});*/
     }
     updateLights(scene);
 
@@ -282,26 +287,31 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene)
         VK_IMAGE_LAYOUT_UNDEFINED, 
         VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 
-	m_skyAtmospherePass.draw(m_device, cmd, drawImage.getExtent2D(), camera);
+	//m_skyAtmospherePass.draw(m_device, cmd, drawImage.getExtent2D(), camera, SkyAtmosphere{});
 
     vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
     {
-        m_skyAtmospherePass.drawSky(m_device, cmd, drawImage.getExtent2D());
+        //m_skyAtmospherePass.drawSky(m_device, cmd, drawImage.getExtent2D());
 
-		m_infiniteGridPass.draw(m_device, 
+		/*m_infiniteGridPass.draw(m_device, 
 			cmd, 
 			drawImage.getExtent2D(),
-			m_sceneDataBuffer.getBuffer());
+			m_sceneDataBuffer.getBuffer());*/
 
-		m_forwardRenderer.draw(m_device,
+		/*m_forwardRenderer.draw(m_device,
 			cmd,
 			drawImage.getExtent2D(),
 			camera,
 			m_sceneDataBuffer.getBuffer(),
 			m_meshCache,
-			m_meshDrawCommands);
+			m_meshDrawCommands);*/
 
-		mousePicking(scene);
+		m_spriteRenderer.flush(m_device, 
+			cmd, 
+			drawImage.getExtent2D(), 
+			m_sceneDataBuffer.getBuffer());
+
+		//mousePicking(scene);
 	}
     vkCmdEndRendering(cmd);
 

@@ -87,14 +87,14 @@ void main() {
             sunLum *= 0.0;
         } else {
             vec2 transmittanceUV = vec2(0.5 + 0.5*dot(normalize(view.viewPos), sunDir),
-                                      max(0.0, min(1.0, (length(view.viewPos) - groundRadiusMM)/(atmosphereRadiusMM - groundRadiusMM))));
+                max(0.0, min(1.0, (length(view.viewPos) - groundRadiusMM)/(atmosphereRadiusMM - groundRadiusMM))));
             sunLum *= texture(transmittanceLUT, transmittanceUV).rgb;
         }
     }
     lum += sunLum;
     
     // Tonemapping and gamma correction
-    lum *= 20.0;
+    lum *= view.exposure;
     lum = pow(lum, vec3(1.3));
     lum /= (smoothstep(0.0, 0.2, clamp(sunDir.y, 0.0, 1.0))*2.0 + 0.15);
     

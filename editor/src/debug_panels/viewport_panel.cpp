@@ -147,7 +147,6 @@ bool ViewportPanel::onKeyPressed(KeyPressedEvent &e)
 
 const glm::vec3 &ViewportPanel::getRayIntersectionPoint()
 {
-    // TODO: insert return statement here
 	auto windowSize = ImGui::GetWindowSize();
 	auto viewportOffset = ImGui::GetCursorPos();
 	auto miniBound = ImGui::GetWindowPos();
@@ -171,7 +170,7 @@ const glm::vec3 &ViewportPanel::getRayIntersectionPoint()
 
 	glm::vec4 rayClip = glm::vec4(x_ndc, y_ndc, 1.0, 1.0);
 	glm::vec4 rayEye = glm::inverse(proj) * rayClip;
-	rayEye = glm::vec4(rayEye.x, rayEye.y, -1.0, 0.0);
+	rayEye = glm::vec4(-rayEye.x, rayEye.y, 1.0, 0.0);
 	glm::vec3 rayWorld = glm::normalize(glm::vec3(glm::inverse(view) * rayEye));
 
 	float t = -camPos.y / rayWorld.y;
@@ -311,11 +310,6 @@ void ViewportPanel::drawGizmo(const glm::vec2 &size)
 
     glm::mat4 cameraView = m_context->getCamera().getView();
     glm::mat4 cameraProjection = m_context->getCamera().getProjection();
-
-    cameraView[0][1] = -cameraView[0][1];
-    cameraView[1][1] = -cameraView[1][1];
-    cameraView[2][1] = -cameraView[2][1];
-    cameraView[3][1] = -cameraView[3][1];
 
     ImGuizmo::SetOrthographic(false);
     ImGuizmo::SetDrawlist();

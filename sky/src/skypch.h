@@ -26,6 +26,7 @@
 #include <array>
 #include <map>
 #include <set>
+#include <optional>
 
 #include <typeindex>
 #include <typeinfo>

@@ -70,19 +70,16 @@ void main() {
     
     float azimuthAngle = (u - 0.5)*2.0*PI;
     
-    float adjV;
-    if (v < 0.5) {
-        float coord = 1.0 - 2.0*v;
-        adjV = -coord*coord;
-    } else {
-        float coord = v*2.0 - 1.0;
-        adjV = coord*coord;
-    }
+    // Simplified V mapping for flat horizon
+    float adjV = (v - 0.5) * PI; // Maps v [0,1] to [-PI/2, PI/2]
     
     float height = length(view.viewPos);
     vec3 up = view.viewPos / height;
-    float horizonAngle = safeacos(sqrt(height * height - groundRadiusMM * groundRadiusMM) / height) - 0.5*PI;
-    float altitudeAngle = adjV*0.5*PI - horizonAngle;
+    // float horizonAngle = safeacos(sqrt(height * height - groundRadiusMM * groundRadiusMM) / height) - 0.5*PI;
+
+    vec4 normalizedCameraDir = normalize(view.camDir);
+    float cameraPitch = asin(normalizedCameraDir.y); // Get pitch from camera direction
+    float altitudeAngle = adjV + cameraPitch;
     
     float cosAltitude = cos(altitudeAngle);
     vec3 rayDir = vec3(cosAltitude*sin(azimuthAngle), sin(altitudeAngle), -cosAltitude*cos(azimuthAngle));

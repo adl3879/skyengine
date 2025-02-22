@@ -344,7 +344,7 @@ void Device::destroyBuffer(const AllocatedBuffer &buffer)
     vmaDestroyBuffer(m_allocator, buffer.buffer, buffer.allocation);
 }
 
-void Device::immediateSubmit(std::function<void(VkCommandBuffer cmd)> &&function) 
+void Device::immediateSubmit(std::function<void(VkCommandBuffer)> &&function) 
 {
     VK_CHECK(vkResetFences(m_device, 1, &m_immFence));
     VK_CHECK(vkResetCommandBuffer(m_immCommandBuffer, 0));
