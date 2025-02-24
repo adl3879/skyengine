@@ -25,6 +25,7 @@ SceneRenderer::~SceneRenderer()
 {
     m_forwardRenderer.cleanup(m_device);
     m_infiniteGridPass.cleanup(m_device);
+    m_spriteRenderer.cleanup(m_device);
 }
 
 void SceneRenderer::init(glm::ivec2 size) 
@@ -237,9 +238,21 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene)
             }
 		}
 
-		/*m_spriteRenderer.addSprite(m_device, {
+		m_spriteRenderer.drawSprite(m_device, {
 			.color = {1, 0, 0, 1}
-		});*/
+		});
+		m_spriteRenderer.drawSprite(m_device, {
+            .position = {0.5f, -0.5f},
+			.color = {0.4, 0, 0.3, 1},
+		});
+		m_spriteRenderer.drawSprite(m_device, {
+            .position = {0.5f, -1.5f},
+			.color = {0.254f, 0.567f, 0.3f, 1},
+		});
+		m_spriteRenderer.drawSprite(m_device, {
+            .position = {-0.5f, -1.5f},
+			.color = {0.54f, 0.267f, 0.13f, 1},
+		});
     }
     updateLights(scene);
 

@@ -18,11 +18,11 @@ struct QuadVertex
 
 struct Sprite
 {
-    glm::vec2	position{0.f, 0.f};
-    glm::vec2	size{0.5f, 0.5f};
+    glm::vec2	position{-0.5f, -0.5f};
+    glm::vec2	size{1.f, 1.f};
     glm::vec4	color;
 	float		rotation{0.f};
-	glm::vec2	origin{0.5, 0.5};
+	glm::vec2	origin{-0.5f, -0.5f};
 	ImageID		textureId;
 	glm::vec2	texCoord{0.f, 0.f};
 };

@@ -14,19 +14,6 @@ void SpriteBatchRenderer::init(gfx::Device &device, VkFormat format)
 {
     m_currentVertexCount = 0;
 
-	m_vertices = {
-        {{-0.5f, -0.5f}, {0.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, 0}, // Bottom-left
-        {{0.5f, -0.5f}, {1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, 0}, // Bottom-right
-        {{0.5f, 0.5f}, {1.0f, 1.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, 0}, // Top-right
-        {{-0.5f, 0.5f}, {0.0f, 1.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, 0}  // Top-left
-    };
-    m_indices = {
-        0, 1, 2,
-        2, 3, 0
-    };
-	const size_t vertexBufferSize = m_vertices.size() * sizeof(QuadVertex);
-	const size_t indexBufferSize = m_indices.size() * sizeof(uint32_t);
-
     m_vertexBuffer = device.createBuffer(
         vertexBufferSize,
 		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -37,28 +24,26 @@ void SpriteBatchRenderer::init(gfx::Device &device, VkFormat format)
         VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         VMA_MEMORY_USAGE_GPU_ONLY);
 
-    //m_stagingBuffer = device.createBuffer(
-    //    vertexBufferSize + indexBufferSize,
-    //    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-    //    VMA_MEMORY_USAGE_CPU_ONLY);
+    m_stagingBuffer = device.createBuffer(
+        vertexBufferSize + indexBufferSize,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VMA_MEMORY_USAGE_CPU_ONLY);
 
-    //m_indices.reserve(MAX_INDICES);
-    //m_vertices.reserve(MAX_VERTICES);
+    m_indices.reserve(MAX_INDICES);
+    m_vertices.reserve(MAX_VERTICES);
 
-    //for (uint32_t i = 0; i < MAX_SPRITES; ++i)
-    //{
-    //    uint32_t baseIndex = i * VERTICES_PER_QUAD;
-    //    m_indices.push_back(baseIndex + 0);
-    //    m_indices.push_back(baseIndex + 1);
-    //    m_indices.push_back(baseIndex + 2);
-    //    m_indices.push_back(baseIndex + 2);
-    //    m_indices.push_back(baseIndex + 3);
-    //    m_indices.push_back(baseIndex + 0);
-    //}
+    for (uint32_t i = 0; i < MAX_SPRITES; ++i)
+    {
+        uint32_t baseIndex = i * VERTICES_PER_QUAD;
+        m_indices.push_back(baseIndex + 0);
+        m_indices.push_back(baseIndex + 1);
+        m_indices.push_back(baseIndex + 2);
+        m_indices.push_back(baseIndex + 2);
+        m_indices.push_back(baseIndex + 3);
+        m_indices.push_back(baseIndex + 0);
+    }
 
-    //uploadBuffers(device);
-
-     // Vertex input bindings and attributes
+    // Vertex input bindings and attributes
     VkVertexInputBindingDescription bindingDescription{
         .binding = 0, .stride = sizeof(QuadVertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX};
 
@@ -105,45 +90,21 @@ void SpriteBatchRenderer::init(gfx::Device &device, VkFormat format)
                            .build(device.getDevice());
 }
 
-void SpriteBatchRenderer::shutdown(gfx::Device &device) {}
+void SpriteBatchRenderer::cleanup(gfx::Device &device) 
+{
+    device.destroyBuffer(m_vertexBuffer);
+    device.destroyBuffer(m_indexBuffer);
+    device.destroyBuffer(m_stagingBuffer);
+}
 
-void SpriteBatchRenderer::addSprite(gfx::Device &device, const Sprite &sprite) 
+void SpriteBatchRenderer::drawSprite(gfx::Device &device, const Sprite &sprite) 
 {
    auto transformedVertices = calculateTransformedVertices(sprite);
 
-    /*m_vertices.push_back({transformedVertices[0], sprite.texCoord, sprite.color, sprite.textureId});
+    m_vertices.push_back({transformedVertices[0], sprite.texCoord, sprite.color, sprite.textureId});
     m_vertices.push_back({transformedVertices[1], sprite.texCoord + glm::vec2(1.0f, 0.0f), sprite.color, sprite.textureId});
     m_vertices.push_back({transformedVertices[2], sprite.texCoord + glm::vec2(1.0f, 1.0f), sprite.color, sprite.textureId});
-    m_vertices.push_back({transformedVertices[3], sprite.texCoord + glm::vec2(0.0f, 1.0f), sprite.color, sprite.textureId});*/
-
-   // Calculate the four vertices of the quad
-   float x = sprite.position.x;
-   float y = sprite.position.y;
-   float width = sprite.size.x;
-   float height = sprite.size.y;
-
-   /* m_vertices.push_back({{x, y}, {0.0f, 0.0f}, sprite.color, sprite.textureId});
-    m_vertices.push_back({{x + width, y}, {1.0f, 0.0f}, sprite.color, sprite.textureId});
-    m_vertices.push_back({{x + width, y + height}, {1.0f, 1.0f}, sprite.color, sprite.textureId});
-    m_vertices.push_back({{x, y + height}, {0.0f, 1.0f}, sprite.color, sprite.textureId});*/
-
-   m_vertices = {
-       {{0.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, 0}, // Bottom-left
-       {{1.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, 0}, // Bottom-right
-       {{1.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, 0}, // Top-right
-       {{0.0f, 1.0f}, {0.0f, 1.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, 0}  // Top-left
-   };
-
-    /*m_indices.push_back(m_currentVertexCount + 0);
-    m_indices.push_back(m_currentVertexCount + 1);
-    m_indices.push_back(m_currentVertexCount + 2);
-    m_indices.push_back(m_currentVertexCount + 2);
-    m_indices.push_back(m_currentVertexCount + 3);
-    m_indices.push_back(m_currentVertexCount + 0);*/
-
-   //m_indices = {
-   //     0, 1, 2, 2, 3, 0
-   //};
+    m_vertices.push_back({transformedVertices[3], sprite.texCoord + glm::vec2(0.0f, 1.0f), sprite.color, sprite.textureId});
 
     m_currentVertexCount += VERTICES_PER_QUAD;
 }
@@ -153,7 +114,9 @@ void SpriteBatchRenderer::flush(gfx::Device &device,
     VkExtent2D extent,
 	const gfx::AllocatedBuffer &sceneDataBuffer) 
 {
-    //if (m_currentVertexCount == 0) return;
+    if (m_currentVertexCount == 0) return;
+
+    uploadBuffers(device);
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInfo.pipeline);
     device.bindDescriptorSets(cmd, m_pInfo.pipelineLayout, {device.getBindlessDescSet()});
@@ -192,9 +155,8 @@ void SpriteBatchRenderer::flush(gfx::Device &device,
 
     vkCmdDrawIndexed(cmd, m_indices.size(), 1, 0, 0, 0);
 
-    //m_vertices.clear();
-    //m_indices.clear();
-    //m_currentVertexCount = 0;
+    m_vertices.clear();
+    m_currentVertexCount = 0;
 }
 
 void SpriteBatchRenderer::uploadBuffers(gfx::Device &device) 
@@ -202,12 +164,7 @@ void SpriteBatchRenderer::uploadBuffers(gfx::Device &device)
 	const size_t vBufferSize = m_vertices.size() * sizeof(QuadVertex);
     const size_t iBufferSize = m_indices.size() * sizeof(uint32_t);
 
-     auto stagingBuffer = device.createBuffer(
-        vBufferSize + iBufferSize,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VMA_MEMORY_USAGE_CPU_ONLY);
-
-    void *mappedMemory = stagingBuffer.info.pMappedData;
+    void *mappedMemory = m_stagingBuffer.info.pMappedData;
     memcpy(mappedMemory, m_vertices.data(), vBufferSize);
     memcpy(static_cast<char *>(mappedMemory) + vBufferSize, m_indices.data(), iBufferSize);
 
@@ -219,18 +176,15 @@ void SpriteBatchRenderer::uploadBuffers(gfx::Device &device)
             vertexCopy.srcOffset = 0;
             vertexCopy.size = vBufferSize;
 
-            vkCmdCopyBuffer(cmd, stagingBuffer.buffer, m_vertexBuffer.buffer, 1, &vertexCopy);
+            vkCmdCopyBuffer(cmd, m_stagingBuffer.buffer, m_vertexBuffer.buffer, 1, &vertexCopy);
             
             VkBufferCopy indexCopy{0};
             indexCopy.dstOffset = 0;
             indexCopy.srcOffset = vBufferSize;
             indexCopy.size = iBufferSize;
 
-            vkCmdCopyBuffer(cmd, stagingBuffer.buffer, m_indexBuffer.buffer, 1, &indexCopy);
+            vkCmdCopyBuffer(cmd, m_stagingBuffer.buffer, m_indexBuffer.buffer, 1, &indexCopy);
         });
-
-	vkQueueWaitIdle(device.getQueue());
-    device.destroyBuffer(stagingBuffer);
 }
 
 std::array<glm::vec2, 4> SpriteBatchRenderer::calculateTransformedVertices(const Sprite &sprite)
@@ -269,7 +223,6 @@ std::array<glm::vec2, 4> SpriteBatchRenderer::calculateTransformedVertices(const
         topLeft = rotate(topLeft);
     }
 
-    // Return the transformed vertices
     return {bottomLeft, bottomRight, topRight, topLeft};
 }
 } // namespace sky

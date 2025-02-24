@@ -8,7 +8,7 @@ namespace sky
 EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
     : m_fov(fov), m_aspectRatio(aspectRatio), m_nearClip(nearClip), m_farClip(farClip)
 {
-    m_pitch = 0.2613f;
+    //m_pitch = 0.2613f;
     updateView();
 }
 
@@ -20,7 +20,7 @@ void EditorCamera::updateProjection()
 
 void EditorCamera::updateView()
 {
-     //m_yaw = m_pitch = 0.0f; // Lock the camera's rotation
+     m_yaw = m_pitch = 0.0f; // Lock the camera's rotation
     m_position = calculatePosition();
 
     glm::quat orientation = getOrientation();

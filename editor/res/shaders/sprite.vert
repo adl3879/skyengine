@@ -21,8 +21,6 @@ layout (push_constant) uniform constants
 
 void main()
 {
-    // QuadVertex v = pcs.vertexBuffer.vertices[gl_VertexIndex];
-
     gl_Position = pcs.sceneData.viewProj * vec4(inPosition, 0.0f, 1.0f);
 
     outUV = inUV;

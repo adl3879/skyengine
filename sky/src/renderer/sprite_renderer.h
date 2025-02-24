@@ -8,7 +8,7 @@
 
 namespace sky
 {
-const uint32_t MAX_SPRITES = 2;
+const uint32_t MAX_SPRITES = 1000;
 const uint32_t VERTICES_PER_QUAD = 4;
 const uint32_t INDICES_PER_QUAD = 6;
 
@@ -20,9 +20,9 @@ class SpriteBatchRenderer : public Pass
 {
   public:
 	void init(gfx::Device &device, VkFormat format);
-    void shutdown(gfx::Device &device);
+    void cleanup(gfx::Device &device);
 
-	void addSprite(gfx::Device &device, const Sprite &sprite);
+	void drawSprite(gfx::Device &device, const Sprite &sprite);
     void flush(gfx::Device &device, 
 		gfx::CommandBuffer cmd,
 		VkExtent2D extent, 	
