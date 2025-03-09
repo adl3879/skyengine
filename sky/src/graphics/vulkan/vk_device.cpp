@@ -346,6 +346,10 @@ void Device::destroyBuffer(const AllocatedBuffer &buffer)
 
 void Device::immediateSubmit(std::function<void(VkCommandBuffer)> &&function) 
 {
+    std::lock_guard<std::mutex> lock(m_queueMutex);
+
+    VK_CHECK(vkWaitForFences(m_device, 1, &m_immFence, true, 9999999999));
+
     VK_CHECK(vkResetFences(m_device, 1, &m_immFence));
     VK_CHECK(vkResetCommandBuffer(m_immCommandBuffer, 0));
 

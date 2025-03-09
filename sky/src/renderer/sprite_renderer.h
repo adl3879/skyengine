@@ -46,7 +46,6 @@ class SpriteBatchRenderer : public Pass
 	struct PushConstants
     {
 		VkDeviceAddress sceneDataBuffer;
-        VkDeviceAddress vertexBuffer;
     };
 };
 }

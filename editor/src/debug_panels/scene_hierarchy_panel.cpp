@@ -293,6 +293,12 @@ Entity SceneHierarchyPanel::createEntityPopup()
         ImGui::EndPopup();
     }
     ImGui::Separator();
+    if (ImGui::MenuItem("Sprite Renderer"))
+    {
+        entity = m_context->createEntity("Empty entity");
+        auto spriteRenderer = entity.addComponent<SpriteRendererComponent>();
+    }
+    ImGui::Separator();
     if (ImGui::MenuItem("Create empty entity"))
     {
         entity = m_context->createEntity("Empty entity");

@@ -12,6 +12,7 @@
 #include "core/events/input.h"
 #include "scene/entity.h"
 #include "frustum_culling.h"
+#include "core/helpers/image.h"
 
 namespace sky
 {
@@ -237,22 +238,24 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene)
                     visibility, static_cast<uint32_t>(e), material);
             }
 		}
+    }
+    {
+        auto view = scene->getRegistry().view<TransformComponent, SpriteRendererComponent, VisibilityComponent>();
+        for (auto &e : view)
+        {
+            auto [transform, spriteRenderer, visibility] =
+                view.get<TransformComponent, SpriteRendererComponent, VisibilityComponent>(e);
 
-		m_spriteRenderer.drawSprite(m_device, {
-			.color = {1, 0, 0, 1}
-		});
-		m_spriteRenderer.drawSprite(m_device, {
-            .position = {0.5f, -0.5f},
-			.color = {0.4, 0, 0.3, 1},
-		});
-		m_spriteRenderer.drawSprite(m_device, {
-            .position = {0.5f, -1.5f},
-			.color = {0.254f, 0.567f, 0.3f, 1},
-		});
-		m_spriteRenderer.drawSprite(m_device, {
-            .position = {-0.5f, -1.5f},
-			.color = {0.54f, 0.267f, 0.13f, 1},
-		});
+            auto texture = AssetManager::getAsset<Texture2D>(spriteRenderer.textureHandle);
+			m_spriteRenderer.drawSprite(m_device, {
+				.position = {transform.getPosition().x - 0.5, transform.getPosition().y - 0.5},
+				.size = {transform.getScale().x, transform.getScale().y},
+				.color = spriteRenderer.tint,
+				.rotation = transform.getRotation().z,
+				.textureId = helper::loadImageFromTexture(texture, VK_FORMAT_R8G8B8A8_SRGB),
+                .uniqueId = static_cast<uint32_t>(e) + 1,
+			});
+		}
     }
     updateLights(scene);
 
@@ -285,7 +288,7 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene)
     const auto renderInfo = gfx::vkutil::createRenderingInfo({
         .renderExtent = drawImage.getExtent2D(),
         .colorImageView = drawImage.imageView,
-        .colorImageClearValue = glm::vec4{0.f, 0.f, 0.f, 1.f},
+        .colorImageClearValue = glm::vec4{0.01f, 0.01f, 0.01f, 1.f},
         .depthImageView = depthImage.imageView,
         .depthImageClearValue = 1.f,
     });
@@ -306,10 +309,10 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene)
     {
         //m_skyAtmospherePass.drawSky(m_device, cmd, drawImage.getExtent2D());
 
-		/*m_infiniteGridPass.draw(m_device, 
-			cmd, 
-			drawImage.getExtent2D(),
-			m_sceneDataBuffer.getBuffer());*/
+		//m_infiniteGridPass.draw(m_device, 
+		//	cmd, 
+		//	drawImage.getExtent2D(),
+		//	m_sceneDataBuffer.getBuffer());
 
 		/*m_forwardRenderer.draw(m_device,
 			cmd,
@@ -324,7 +327,7 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene)
 			drawImage.getExtent2D(), 
 			m_sceneDataBuffer.getBuffer());
 
-		//mousePicking(scene);
+		mousePicking(scene);
 	}
     vkCmdEndRendering(cmd);
 
@@ -382,9 +385,10 @@ void SceneRenderer::mousePicking(Ref<Scene> scene)
 		int selectedID = -1;
 		for (int i = 0; i < gfx::DEPTH_ARRAY_SCALE; i++)
 		{
-			if (u[i] != 0)
+            // Should be u[i]. this will only work in 2d
+			if (u[0] != 0)
 			{
-				selectedID = u[i];
+				selectedID = u[0];
 				auto ent = Entity{(entt::entity)(selectedID - 1), scene.get()};
 				scene->setSelectedEntity(ent);
 				break;

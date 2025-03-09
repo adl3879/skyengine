@@ -34,4 +34,10 @@ struct HierarchyComponent
     UUID parent;
     std::vector<UUID> children;
 };
+
+struct SpriteRendererComponent
+{
+    AssetHandle textureHandle = NULL_UUID;
+    glm::vec4 tint{1.f, 1.f, 1.f, 1.f};
+};
 }

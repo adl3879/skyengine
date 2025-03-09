@@ -15,16 +15,4 @@ layout (buffer_reference, std430) readonly buffer VertexBuffer {
 	Vertex vertices[];
 };
 
-struct QuadVertex {
-    vec2 position;
-    vec2 uv;
-    vec4 color;
-    uint textureIndex;
-    vec3 padding;
-};
-
-layout (buffer_reference, std430) readonly buffer QuadVertexBuffer {
-    QuadVertex vertices[];
-};
-
 #endif // VERTEX_GLSL

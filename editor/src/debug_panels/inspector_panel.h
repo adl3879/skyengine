@@ -40,6 +40,7 @@ class InspectorPanel
 	void drawDirectionalLightComponent();
 	void drawPointLightComponent();
 	void drawSpotLightComponent();
+	void drawSpriteRendererComponent();
 
   private:
 	Ref<Scene> m_context;

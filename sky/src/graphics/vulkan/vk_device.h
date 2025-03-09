@@ -83,7 +83,7 @@ class Device
     ImageID getWhiteTextureID() const { return m_whiteImageId; }
     ImageID getCheckerboardTextureID() const { return m_checkerboardImageId; }
 	VkDescriptorSetLayout getBindlessDescSetLayout() const;
-	VkDescriptorSetLayout getStrorageBufferLayout() const { return m_storageBufferLayout; }
+	VkDescriptorSetLayout getStorageBufferLayout() const { return m_storageBufferLayout; }
 	VkDescriptorSet getBindlessDescSet() const { return m_imageCache.bindlessSetManager.getDescSet(); }
 	VkDescriptorSet getStorageBufferDescSet() const { return m_storageBufferDescriptorSet; }
 	AllocatedBuffer getStorageBuffer() const { return m_storageBuffer; }
@@ -134,6 +134,7 @@ class Device
 	uint32_t m_frameNumber = 0;	
 	VkQueue m_graphicsQueue;
 	uint32_t m_graphicsQueueFamily;
+	std::mutex m_queueMutex;
 
   private:
     vkb::Instance m_instance;

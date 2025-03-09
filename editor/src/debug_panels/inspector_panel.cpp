@@ -176,6 +176,9 @@ void InspectorPanel::drawDefaultView()
 		helper::imguiCollapsingHeaderStyle("SPOT LIGHT", [&](){
 			drawSpotLightComponent();
 		}, entity.hasComponent<SpotLightComponent>());
+		helper::imguiCollapsingHeaderStyle(
+			"SPRITE RENDERER", [&]() { drawSpriteRendererComponent(); 
+		}, entity.hasComponent<SpriteRendererComponent>());
 	}
 }
 
@@ -700,6 +703,47 @@ void InspectorPanel::drawSpotLightComponent()
 
 		ImGui::EndTable();
 	}
+}
+
+void InspectorPanel::drawSpriteRendererComponent() 
+{
+	auto entity = m_context->getSelectedEntity();
+    if (ImGui::BeginTable("SpriteRendererTable", 2, ImGuiTableFlags_Resizable))
+    {
+        auto &sr = entity.getComponent<SpriteRendererComponent>();
+		
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		ImGui::Text("Sprite");
+		ImGui::TableNextColumn();
+		auto path = AssetManager::getMetadata(sr.textureHandle).filepath;
+		ImGui::Button(path.string().c_str(), ImVec2(-1, 40));
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const auto *payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+			{
+				fs::path path = (const char *)payload->Data;
+				auto assetType = getAssetTypeFromFileExtension(path.extension());
+				if (assetType == AssetType::Texture2D)
+				{
+					const auto handle = AssetManager::getOrCreateAssetHandle(path, AssetType::Texture2D);
+					sr.textureHandle = handle;
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("Color");
+        ImGui::TableNextColumn();
+        ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+        float col[] = {(float)sr.tint.r, (float)sr.tint.g, (float)sr.tint.b};
+        ImGui::ColorEdit3("##dl", col);
+        sr.tint = {col[0], col[1], col[2], 1.f};
+
+		ImGui::EndTable();
+    }
 }
 
 void InspectorPanel::drawDirectionalLightComponent() 

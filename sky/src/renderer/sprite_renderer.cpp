@@ -51,7 +51,8 @@ void SpriteBatchRenderer::init(gfx::Device &device, VkFormat format)
         {0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(QuadVertex, position)},    // position
         {1, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(QuadVertex, texCoord)},    // uv
         {2, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(QuadVertex, color)}, // color
-        {3, 0, VK_FORMAT_R32_UINT, offsetof(QuadVertex, textureId)}         // textureId
+        {3, 0, VK_FORMAT_R32_UINT, offsetof(QuadVertex, textureId)},        // textureId
+        {4, 0, VK_FORMAT_R32_UINT, offsetof(QuadVertex, uniqueId)}          // uniqueId
     };
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
@@ -71,8 +72,10 @@ void SpriteBatchRenderer::init(gfx::Device &device, VkFormat format)
     };
 
     const auto pushConstantRanges = std::array{bufferRange};
-    const auto layouts = std::array<VkDescriptorSetLayout, 1>{
-        device.getBindlessDescSetLayout()};
+    const auto layouts = std::array<VkDescriptorSetLayout, 2>{
+        device.getBindlessDescSetLayout(),
+        device.getStorageBufferLayout()
+    };
 
     m_pInfo.pipelineLayout = gfx::vkutil::createPipelineLayout(device.getDevice(), layouts, pushConstantRanges);
 
@@ -83,7 +86,7 @@ void SpriteBatchRenderer::init(gfx::Device &device, VkFormat format)
                            .setPolygonMode(VK_POLYGON_MODE_FILL)
                            .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
                            .setMultisamplingNone()
-                           .disableBlending()
+						   .enableBlending()
                            .enableDepthTest(true, VK_COMPARE_OP_ALWAYS)
                            .setColorAttachmentFormat(format)
                            .setDepthFormat(VK_FORMAT_D32_SFLOAT)
@@ -99,12 +102,16 @@ void SpriteBatchRenderer::cleanup(gfx::Device &device)
 
 void SpriteBatchRenderer::drawSprite(gfx::Device &device, const Sprite &sprite) 
 {
+   ImageID textureId;
+   textureId = sprite.textureId == NULL_IMAGE_ID ? device.getWhiteTextureID() 
+       : sprite.textureId;
+
    auto transformedVertices = calculateTransformedVertices(sprite);
 
-    m_vertices.push_back({transformedVertices[0], sprite.texCoord, sprite.color, sprite.textureId});
-    m_vertices.push_back({transformedVertices[1], sprite.texCoord + glm::vec2(1.0f, 0.0f), sprite.color, sprite.textureId});
-    m_vertices.push_back({transformedVertices[2], sprite.texCoord + glm::vec2(1.0f, 1.0f), sprite.color, sprite.textureId});
-    m_vertices.push_back({transformedVertices[3], sprite.texCoord + glm::vec2(0.0f, 1.0f), sprite.color, sprite.textureId});
+    m_vertices.push_back({transformedVertices[0], sprite.texCoord, sprite.color, textureId, sprite.uniqueId});
+    m_vertices.push_back({transformedVertices[1], sprite.texCoord + glm::vec2(1.0f, 0.0f), sprite.color, textureId, sprite.uniqueId});
+    m_vertices.push_back({transformedVertices[2], sprite.texCoord + glm::vec2(1.0f, 1.0f), sprite.color, textureId, sprite.uniqueId});
+    m_vertices.push_back({transformedVertices[3], sprite.texCoord + glm::vec2(0.0f, 1.0f), sprite.color, textureId, sprite.uniqueId});
 
     m_currentVertexCount += VERTICES_PER_QUAD;
 }
@@ -119,7 +126,11 @@ void SpriteBatchRenderer::flush(gfx::Device &device,
     uploadBuffers(device);
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInfo.pipeline);
-    device.bindDescriptorSets(cmd, m_pInfo.pipelineLayout, {device.getBindlessDescSet()});
+    VkDescriptorSet descriptorSets[] = {
+        device.getBindlessDescSet(),
+        device.getStorageBufferDescSet(),
+    };
+    device.bindDescriptorSets(cmd, m_pInfo.pipelineLayout, descriptorSets);
 
     const auto viewport = VkViewport{
         .x = 0.f,
@@ -139,7 +150,6 @@ void SpriteBatchRenderer::flush(gfx::Device &device,
 
     const auto pushConstants = PushConstants{
         .sceneDataBuffer = sceneDataBuffer.address,
-        .vertexBuffer = m_vertexBuffer.address,
     };
 
     vkCmdPushConstants(cmd, 
@@ -161,12 +171,9 @@ void SpriteBatchRenderer::flush(gfx::Device &device,
 
 void SpriteBatchRenderer::uploadBuffers(gfx::Device &device) 
 { 
-	const size_t vBufferSize = m_vertices.size() * sizeof(QuadVertex);
-    const size_t iBufferSize = m_indices.size() * sizeof(uint32_t);
-
     void *mappedMemory = m_stagingBuffer.info.pMappedData;
-    memcpy(mappedMemory, m_vertices.data(), vBufferSize);
-    memcpy(static_cast<char *>(mappedMemory) + vBufferSize, m_indices.data(), iBufferSize);
+    memcpy(mappedMemory, m_vertices.data(), vertexBufferSize);
+    memcpy(static_cast<char *>(mappedMemory) + vertexBufferSize, m_indices.data(), indexBufferSize);
 
     device.immediateSubmit(
         [&](VkCommandBuffer cmd)
@@ -174,14 +181,14 @@ void SpriteBatchRenderer::uploadBuffers(gfx::Device &device)
             VkBufferCopy vertexCopy{0};
             vertexCopy.dstOffset = 0;
             vertexCopy.srcOffset = 0;
-            vertexCopy.size = vBufferSize;
+            vertexCopy.size = vertexBufferSize;
 
             vkCmdCopyBuffer(cmd, m_stagingBuffer.buffer, m_vertexBuffer.buffer, 1, &vertexCopy);
             
             VkBufferCopy indexCopy{0};
             indexCopy.dstOffset = 0;
-            indexCopy.srcOffset = vBufferSize;
-            indexCopy.size = iBufferSize;
+            indexCopy.srcOffset = vertexBufferSize;
+            indexCopy.size = indexBufferSize;
 
             vkCmdCopyBuffer(cmd, m_stagingBuffer.buffer, m_indexBuffer.buffer, 1, &indexCopy);
         });

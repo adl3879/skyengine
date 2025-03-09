@@ -14,7 +14,7 @@ layout (location = 0) out vec4 outFragColor;
 layout (location = 0) in vec3 worldPos;
 
 void main() {
-   const float thicknessNorm = 0.60f; // grid line size (in pixels)
+    const float thicknessNorm = 0.60f; // grid line size (in pixels)
     const float thicknessBold = 2.0 * thicknessNorm;
     const float frequencyBold = 10.0;
     const float maxCameraDist = 100.0;

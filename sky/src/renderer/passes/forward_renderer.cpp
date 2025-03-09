@@ -21,7 +21,7 @@ void ForwardRendererPass::init(const gfx::Device &device, VkFormat format)
     const auto pushConstantRanges = std::array{bufferRange};
     const auto layouts = std::array<VkDescriptorSetLayout, 2>{
         device.getBindlessDescSetLayout(), 
-        device.getStrorageBufferLayout()
+        device.getStorageBufferLayout()
     };
 
     m_pInfo.pipelineLayout = gfx::vkutil::createPipelineLayout(device.getDevice(), layouts, pushConstantRanges);

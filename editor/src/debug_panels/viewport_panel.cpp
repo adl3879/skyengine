@@ -22,13 +22,9 @@ void ViewportPanel::render()
 {
     ZoneScopedN("Viewport render");
     auto renderer = Application::getRenderer();
-
-    for (const auto &scene : SceneManager::get().getOpenedScenes())
-    {	
-        bool show = true;
-
+    {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-		ImGui::Begin(scene.string().c_str(), &show);
+		ImGui::Begin("Scene");
 
 		auto viewportOffset = ImGui::GetCursorPos();
 		auto viewportSize = ImGui::GetContentRegionAvail();
@@ -53,7 +49,7 @@ void ViewportPanel::render()
 
 		m_context->setViewportInfo({
 			.size = {viewportSize.x, viewportSize.y},
-			.mousePos = {mx * ratioX, my * ratioY},
+			.mousePos = {mx * ratioX, (windowSize.y - my) * ratioY},
 			.isFocus = isMouseInViewport && !m_itemIsDraggedOver,
 		});
 		ImGui::Image(renderer->getDrawImageId(), viewportSize, 	/*vertical flip*/ {0, 1}, {1, 0});
@@ -64,25 +60,6 @@ void ViewportPanel::render()
 			ImGui::EndDragDropTarget(); 
             m_itemIsDraggedOver = true;
 		} else m_itemIsDraggedOver = false;
-
-		if (scene != "[empty]")
-		{
-			bool isFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
-			ImVec2 mousePos = ImGui::GetMousePos();
-			ImVec2 windowPos = ImGui::GetWindowPos();
-			ImVec2 windowSize = ImGui::GetWindowSize();
-
-			// Calculate the title bar region (assume fixed title bar height)
-			const float titleBarHeight = ImGui::GetFrameHeight();
-			bool isMouseOverTitleBar = mousePos.x >= windowPos.x && mousePos.x <= (windowPos.x + windowSize.x) &&
-									   mousePos.y >= windowPos.y && mousePos.y <= (windowPos.y + titleBarHeight);
-
-			if (isFocused && isMouseOverTitleBar && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-			{
-				SceneManager::get().openScene(scene);
-			}
-			if (show == false) SceneManager::get().closeScene(scene);
-		}
 
 		// controls
 		ImGui::SetItemAllowOverlap();
@@ -116,8 +93,6 @@ void ViewportPanel::render()
 		ImGui::PopStyleVar(2);
 
 		drawGizmo({viewportSize.x, viewportSize.y});
-        //TDOD: FIX! 
-        //updateCameraManipulator({viewportSize.x, viewportSize.y});
 
 		ImGui::End();
 		ImGui::PopStyleVar();
@@ -311,7 +286,7 @@ void ViewportPanel::drawGizmo(const glm::vec2 &size)
     glm::mat4 cameraView = m_context->getCamera().getView();
     glm::mat4 cameraProjection = m_context->getCamera().getProjection();
 
-    ImGuizmo::SetOrthographic(false);
+    ImGuizmo::SetOrthographic(true);
     ImGuizmo::SetDrawlist();
     ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, size.x, size.y);
 
