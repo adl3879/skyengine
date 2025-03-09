@@ -28,7 +28,7 @@ Frustum createFrustumFromCamera(const Camera &camera)
 {
     Frustum frustum;
 
-	const glm::vec3 camPos = {camera.getPosition().x, camera.getPosition().y, camera.getPosition().z }; 
+	const glm::vec3 camPos = { camera.getPosition().x, camera.getPosition().y, camera.getPosition().z }; 
     glm::mat4 viewMatrix = camera.getView(); // Assume you have a method to get the view matrix
 
 	// Extract Right, Up, Front from the matrix

@@ -98,6 +98,10 @@ void SceneSerializer::serializeEntity(YAML::Emitter &out, Entity entity, AssetHa
 		auto &slComponent = entity.getComponent<SpotLightComponent>();
 		slComponent.light.serialize(out);
     }
+	if (entity.hasComponent<SpriteRendererComponent>())
+    {
+		const auto &spriteRenderer = entity.getComponent<SpriteRendererComponent>();
+    }
 
 	out << YAML::EndMap;
 }
@@ -152,6 +156,9 @@ void SceneSerializer::deserializeEntity(YAML::detail::iterator_value key, Entity
 		slComponent.light.type = LightType::Spot;
 		slComponent.light.deserialize(key);
 		slComponent.light.id = m_scene->addLightToCache(slComponent.light, entity.getComponent<TransformComponent>());
+    }
+	if (auto sprite = key["spriteRenderer"])
+    {
     }
 }
 } // namespace sky
