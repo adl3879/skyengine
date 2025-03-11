@@ -19,7 +19,6 @@ glm::vec3 findNormal(const std::array<glm::vec3, 8> &points, const std::array<in
     const auto e2 = glm::normalize(points[is[2]] - points[is[1]]);
     return glm::cross(e1, e2);
 }
-
 } // namespace
 
 namespace edge

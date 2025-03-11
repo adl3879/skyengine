@@ -6,6 +6,8 @@
 #include "core/application.h"
 #include "graphics/vulkan/vk_images.h"
 #include "asset_management/texture_importer.h"
+#include "graphics/vulkan/vk_types.h"
+#include "renderer/camera/camera.h"
 #include "scene/components.h"
 #include "asset_management/asset_manager.h"
 #include "core/color.h"
@@ -164,6 +166,7 @@ ImageID SceneRenderer::createNewDepthImage(glm::ivec2 size)
 void SceneRenderer::createDrawImage(glm::ivec2 size)
 {
     m_drawImageID = createNewDrawImage(size, m_drawImageFormat);
+    m_gameDrawImageID = createNewDrawImage(size, m_drawImageFormat);
     m_depthImageID = createNewDepthImage(size);
 }
 
@@ -199,12 +202,68 @@ void SceneRenderer::drawModel(Ref<Model> model, const glm::mat4 &transform)
     }
 }
 
-void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene) 
+void SceneRenderer::render(gfx::CommandBuffer &cmd, 
+    Ref<Scene> scene, 
+    Camera &camera, 
+    ImageID drawImageID) 
+{
+    update(cmd, scene, camera);
+
+    auto drawImage = m_device.getImage(drawImageID);
+    auto depthImage = m_device.getImage(m_depthImageID);
+
+    const auto renderInfo = gfx::vkutil::createRenderingInfo({
+        .renderExtent = drawImage.getExtent2D(),
+        .colorImageView = drawImage.imageView,
+        .colorImageClearValue = glm::vec4{0.01f, 0.01f, 0.01f, 1.f},
+        .depthImageView = depthImage.imageView,
+        .depthImageClearValue = 1.f,
+    });
+
+    gfx::vkutil::transitionImage(cmd, 
+        drawImage.image, 
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+    gfx::vkutil::transitionImage(cmd, 
+        depthImage.image, 
+        VK_IMAGE_LAYOUT_UNDEFINED, 
+        VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+
+	//m_skyAtmospherePass.draw(m_device, cmd, drawImage.getExtent2D(), camera, SkyAtmosphere{});
+
+    vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
+    {
+        //m_skyAtmospherePass.drawSky(m_device, cmd, drawImage.getExtent2D());
+
+		//m_infiniteGridPass.draw(m_device, 
+		//	cmd, 
+		//	drawImage.getExtent2D(),
+		//	m_sceneDataBuffer.getBuffer());
+
+		/*m_forwardRenderer.draw(m_device,
+			cmd,
+			drawImage.getExtent2D(),
+			camera,
+			m_sceneDataBuffer.getBuffer(),
+			m_meshCache,
+			m_meshDrawCommands);*/
+
+		m_spriteRenderer.flush(m_device, 
+			cmd, 
+			drawImage.getExtent2D(), 
+			m_sceneDataBuffer.getBuffer());
+
+		mousePicking(scene);
+	}
+    vkCmdEndRendering(cmd);
+
+   clearDrawCommands();
+}
+
+void SceneRenderer::update(gfx::CommandBuffer &cmd, Ref<Scene> scene, Camera &camera) 
 {
     ZoneScopedN("Scene Renderer");
-
-    auto drawImage = m_device.getImage(m_drawImageID);
-    auto depthImage = m_device.getImage(m_depthImageID);
 
     {
 		auto view = scene->getRegistry().view<TransformComponent, ModelComponent, VisibilityComponent>();
@@ -259,7 +318,6 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene)
     }
     updateLights(scene);
 
-    auto &camera = scene->getCamera();
     auto &lightCache = scene->getLightCache();
     {
         const auto gpuSceneData = GPUSceneData{
@@ -284,54 +342,6 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene)
         m_materialCache.upload(m_device, cmd);
         lightCache.upload(m_device, cmd);
 	}
-
-    const auto renderInfo = gfx::vkutil::createRenderingInfo({
-        .renderExtent = drawImage.getExtent2D(),
-        .colorImageView = drawImage.imageView,
-        .colorImageClearValue = glm::vec4{0.01f, 0.01f, 0.01f, 1.f},
-        .depthImageView = depthImage.imageView,
-        .depthImageClearValue = 1.f,
-    });
-
-    gfx::vkutil::transitionImage(cmd, 
-        drawImage.image, 
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-    gfx::vkutil::transitionImage(cmd, 
-        depthImage.image, 
-        VK_IMAGE_LAYOUT_UNDEFINED, 
-        VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
-
-	//m_skyAtmospherePass.draw(m_device, cmd, drawImage.getExtent2D(), camera, SkyAtmosphere{});
-
-    vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
-    {
-        //m_skyAtmospherePass.drawSky(m_device, cmd, drawImage.getExtent2D());
-
-		//m_infiniteGridPass.draw(m_device, 
-		//	cmd, 
-		//	drawImage.getExtent2D(),
-		//	m_sceneDataBuffer.getBuffer());
-
-		/*m_forwardRenderer.draw(m_device,
-			cmd,
-			drawImage.getExtent2D(),
-			camera,
-			m_sceneDataBuffer.getBuffer(),
-			m_meshCache,
-			m_meshDrawCommands);*/
-
-		m_spriteRenderer.flush(m_device, 
-			cmd, 
-			drawImage.getExtent2D(), 
-			m_sceneDataBuffer.getBuffer());
-
-		mousePicking(scene);
-	}
-    vkCmdEndRendering(cmd);
-
-   clearDrawCommands();
 }
 
 void SceneRenderer::updateMaterial(MaterialID id, Material material) 

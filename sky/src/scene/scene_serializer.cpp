@@ -1,8 +1,9 @@
 #include "scene_serializer.h"
 
-#include "core/helpers/yaml.h"
+// #include "core/helpers/yaml.h"
 #include "components.h"
 #include "asset_management/asset_manager.h"
+#include "yaml-cpp/emittermanip.h"
 
 namespace sky
 {
@@ -71,9 +72,9 @@ void SceneSerializer::serializeEntity(YAML::Emitter &out, Entity entity, AssetHa
     {
 		const auto &modelComponent = entity.getComponent<ModelComponent>();
 		out << YAML::Key << "model" << YAML::BeginMap;
-		out << YAML::Key << "handle" << YAML::Key << modelComponent.handle;
-		out << YAML::Key << "type" << YAML::Key << modelTypeToString(modelComponent.type);
-		out << YAML::Key << "builtinMaterial" << YAML::Key << modelComponent.builtinMaterial;
+		out << YAML::Key << "handle" << YAML::Value << modelComponent.handle;
+		out << YAML::Key << "type" << YAML::Value << modelTypeToString(modelComponent.type);
+		out << YAML::Key << "builtinMaterial" << YAML::Value << modelComponent.builtinMaterial;
 		out << YAML::Key << "customMaterialOverrides" << YAML::BeginMap;
 		for (const auto &[index, handle] : modelComponent.customMaterialOverrides)
 			out << YAML::Key << index << YAML::Value << handle;
@@ -101,6 +102,10 @@ void SceneSerializer::serializeEntity(YAML::Emitter &out, Entity entity, AssetHa
 	if (entity.hasComponent<SpriteRendererComponent>())
     {
 		const auto &spriteRenderer = entity.getComponent<SpriteRendererComponent>();
+        out << YAML::Key << "spriteRenderer" << YAML::BeginMap;
+        out << YAML::Key << "tint" << YAML::Value << spriteRenderer.tint;
+        out << YAML::Key << "texture" << YAML::Value << spriteRenderer.textureHandle;
+        out << YAML::EndMap;
     }
 
 	out << YAML::EndMap;
@@ -159,6 +164,9 @@ void SceneSerializer::deserializeEntity(YAML::detail::iterator_value key, Entity
     }
 	if (auto sprite = key["spriteRenderer"])
     {
+        auto &spriteRenderer = entity.addComponent<SpriteRendererComponent>();
+        spriteRenderer.tint = sprite["tint"].as<glm::vec4>();
+        spriteRenderer.textureHandle = sprite["texture"].as<AssetHandle>();
     }
 }
 } // namespace sky

@@ -15,6 +15,7 @@ class ViewportPanel
     void onEvent(Event &e);
 
   private:
+    void drawViewport(const char* title, ImageID image);
 	void handleViewportDrop();
 	void drawControls(const char *icon, const char *tooltip, bool isActive, std::function<void()> action);
 	void drawGizmo(const glm::vec2 &size);

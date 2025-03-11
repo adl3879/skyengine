@@ -10,6 +10,7 @@
 #include "asset_management/asset_manager.h"
 #include "asset_management/mesh_importer.h"
 #include "asset_management/texture_importer.h"
+#include "graphics/vulkan/vk_types.h"
 #include "scene/components.h"
 #include "scene/entity.h"
 #include "scene/scene_manager.h"
@@ -18,13 +19,19 @@
 
 namespace sky
 {
-void ViewportPanel::render() 
+void ViewportPanel::render()
+{
+    auto renderer = Application::getRenderer();
+    drawViewport("Scene", renderer->getDrawImageId());
+    drawViewport("Game", renderer->getGameDrawImageId());
+}
+
+void ViewportPanel::drawViewport(const char* title, ImageID image) 
 {
     ZoneScopedN("Viewport render");
-    auto renderer = Application::getRenderer();
     {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-		ImGui::Begin("Scene");
+		ImGui::Begin(title);
 
 		auto viewportOffset = ImGui::GetCursorPos();
 		auto viewportSize = ImGui::GetContentRegionAvail();
@@ -52,7 +59,7 @@ void ViewportPanel::render()
 			.mousePos = {mx * ratioX, (windowSize.y - my) * ratioY},
 			.isFocus = isMouseInViewport && !m_itemIsDraggedOver,
 		});
-		ImGui::Image(renderer->getDrawImageId(), viewportSize, 	/*vertical flip*/ {0, 1}, {1, 0});
+		ImGui::Image(image, viewportSize, /*vertical flip*/ {0, 1}, {1, 0});
  
 		if (ImGui::BeginDragDropTarget())
 		{

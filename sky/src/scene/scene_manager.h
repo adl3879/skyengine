@@ -32,13 +32,11 @@ class SceneManager
     void closeScene(const fs::path &path);
     void saveActiveScene();
     void saveAll();
-    std::set<fs::path> getOpenedScenes();
     const fs::path &getCurrentViewport() const { return m_currentViewport; }
 
   private:
     Ref<Scene> m_activeScene;
     SceneState m_sceneState;
-    std::set<fs::path> m_openedScenes;
 	fs::path m_currentViewport;
 };
 }

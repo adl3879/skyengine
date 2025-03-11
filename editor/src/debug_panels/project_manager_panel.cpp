@@ -58,12 +58,13 @@ void ProjectManagerPanel::render()
         ImGui::SameLine();
         if (ImGui::Button("Create", buttonSize))
         {
-            ProjectManager::createNewProject({
-                .projectName = projectName,
-                .projectPath = projectPath,
-                .createdDate = helper::getCurrentDate(),
-                .lastModifiedDate = helper::getCurrentDate(),
-            });
+            ProjectManager::ProjectConfig config;
+            config.projectName = projectName;
+            config.projectPath = projectPath;
+            config.createdDate = helper::getCurrentDate();
+            config.lastModifiedDate = helper::getCurrentDate();
+            
+            ProjectManager::createNewProject(config);
             strcpy(projectName, "Untitled");
 
             ImGui::CloseCurrentPopup();

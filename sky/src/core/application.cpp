@@ -66,8 +66,10 @@ void Application::run()
 
         {
             auto cmd = m_gfxDevice->beginFrame();
+            auto scene = SceneManager::get().getActiveScene();
             CustomThumbnail::get().render(cmd);
-            m_renderer->render(cmd, SceneManager::get().getActiveScene());
+            m_renderer->render(cmd, scene, scene->getEditorCamera(), m_renderer->getDrawImageId());
+            m_renderer->render(cmd, scene, scene->getEditorCamera(), m_renderer->getGameDrawImageId());
             m_gfxDevice->endFrame(cmd, m_renderer->getDrawImage());
 
             if (m_gfxDevice->needsSwapchainRecreate())

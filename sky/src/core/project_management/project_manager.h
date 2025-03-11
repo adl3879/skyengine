@@ -11,14 +11,20 @@ class ProjectManager
   public:
     struct ProjectConfig
     {
-        std::string projectName = "untitled";
-        fs::path    projectPath = "C:\\Users\\Toyosi Adekanmbi";
-        std::string version = "1.0";
+        std::string projectName;
+        fs::path    projectPath;
+        std::string version;
         std::string createdDate;
         std::string lastModifiedDate;
-
-        fs::path assetPath = "assets";
+        fs::path assetPath;
         fs::path startScene;
+
+        ProjectConfig() :
+            projectName("untitled"),
+            projectPath("C:\\Users\\Toyosi Adekanmbi"),
+            version("1.0"),
+            assetPath("assets")
+        {}
         
         fs::path getProjectFilePath() const { return projectPath / projectName; }
         fs::path getProjectConfigFilePath() const { return getProjectFilePath() / (projectName + ".skyproj"); }

@@ -24,7 +24,9 @@ class SceneRenderer
     SceneRenderer operator=(SceneRenderer &) = delete;
 
     void init(glm::ivec2 size);
-    void render(gfx::CommandBuffer &cmd, Ref<Scene> scene);
+    void render(gfx::CommandBuffer &cmd, Ref<Scene> scene, Camera &cam, ImageID drawImage);
+    void update(gfx::CommandBuffer &cmd, Ref<Scene> scene, Camera &cam);
+
     void initBuiltins();
     void drawMesh(MeshID id, const glm::mat4 &transform, bool visibility, 
         uint32_t uniqueId, MaterialID mat = NULL_MATERIAL_ID);
@@ -40,6 +42,7 @@ class SceneRenderer
     bool isTempModelLoaded(const fs::path &path) { return m_tempModels.contains(path); }
 
     ImageID getDrawImageId() const { return m_drawImageID; }
+    ImageID getGameDrawImageId() const { return m_gameDrawImageID; }
     gfx::Device &getDevice() const { return m_device; }
     const Mesh &getMesh(MeshID id) const { return m_meshCache.getCPUMesh(id); }
     const Material &getMaterial(MaterialID id) const { return m_materialCache.getMaterial(id); }
@@ -101,6 +104,7 @@ class SceneRenderer
     SpriteBatchRenderer m_spriteRenderer;
 
     ImageID m_drawImageID{NULL_IMAGE_ID};
+    ImageID m_gameDrawImageID{NULL_IMAGE_ID};
     ImageID m_depthImageID{NULL_IMAGE_ID};
 
     VkFormat m_drawImageFormat{VK_FORMAT_R16G16B16A16_SFLOAT};
