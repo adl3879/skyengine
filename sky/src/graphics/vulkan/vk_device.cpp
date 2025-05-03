@@ -606,7 +606,7 @@ void Device::resetSwapchainFences()
     m_swapchain.resetFences(m_device, getCurrentFrameIndex());
 }
 
-void Device::endFrame(CommandBuffer cmd, const AllocatedImage &drawImage) 
+void Device::endFrame(CommandBuffer cmd) 
 {
     // get swapchain image
     const auto [swapchainImage, swapchainImageIndex] = m_swapchain.acquireImage(m_device, getCurrentFrameIndex());
@@ -628,10 +628,6 @@ void Device::endFrame(CommandBuffer cmd, const AllocatedImage &drawImage)
     }
     {
         ZoneScopedN("Imgui draw");
-        // Prepare drawImage for ImGui
-        vkutil::transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
         vkutil::transitionImage(cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
         swapchainLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         m_imguiBackend.draw(cmd, *this, m_swapchain.getImageView(swapchainImageIndex), m_swapchain.getExtent());

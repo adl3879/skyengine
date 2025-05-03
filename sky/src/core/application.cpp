@@ -7,8 +7,8 @@
 #include <imgui_impl_vulkan.h>
 #include <ImGuizmo.h>
 #include <tracy/Tracy.hpp>
+#include <vulkan/vulkan_core.h>
 
-#include "renderer/model_loader.h"
 #include "scene/scene_manager.h"
 #include "core/events/event_bus.h"
 #include "core/resource/custom_thumbnail.h"
@@ -64,19 +64,20 @@ void Application::run()
         // make imgui calculate internal draw structures
         ImGui::Render();
 
-        {
-            auto cmd = m_gfxDevice->beginFrame();
-            auto scene = SceneManager::get().getActiveScene();
-            CustomThumbnail::get().render(cmd);
-            m_renderer->render(cmd, scene, scene->getEditorCamera(), m_renderer->getDrawImageId());
-            m_renderer->render(cmd, scene, scene->getEditorCamera(), m_renderer->getGameDrawImageId());
-            m_gfxDevice->endFrame(cmd, m_renderer->getDrawImage());
+        auto scene = SceneManager::get().getActiveScene();
+        auto cmd = m_gfxDevice->beginFrame();
+        CustomThumbnail::get().render(cmd);
+        m_renderer->update(scene);
+        m_renderer->render(cmd, scene, *scene->getEditorCamera(), m_renderer->getDrawImageId());
 
-            if (m_gfxDevice->needsSwapchainRecreate())
-            {
-                auto extent = m_window->getExtent();
-                m_gfxDevice->recreateSwapchain(cmd, extent.width, extent.height);
-            }
+        // m_renderer->update(scene);
+        // m_renderer->render(cmd, scene, *scene->getGameCamera(), m_renderer->getGameDrawImageId());
+        m_gfxDevice->endFrame(cmd);
+        
+        if (m_gfxDevice->needsSwapchainRecreate())
+        {
+            auto extent = m_window->getExtent();
+            m_gfxDevice->recreateSwapchain(cmd, extent.width, extent.height);
         }
 
         for (Layer *layer : m_layerStack) layer->onUpdate(m_fps.getDeltaTime());

@@ -3,8 +3,8 @@
 #include <skypch.h>
 
 #include <entt/entt.hpp>
-#include "renderer/camera/perspective_camera.h"
 #include "renderer/camera/editor_camera.h"
+#include "renderer/camera/orthographic_camera.h"
 #include "core/uuid.h"
 #include "core/filesystem.h"
 #include "asset_management/asset.h"
@@ -14,6 +14,15 @@ namespace sky
 {
 class Entity;
 
+enum class SceneType
+{
+    Scene2D,
+    Scene3D,
+    SceneUI
+};
+
+std::string sceneTypeToString(SceneType type);
+SceneType sceneTypeFromString(const std::string &type);
 class Scene : public Asset
 {
   public:
@@ -25,7 +34,7 @@ class Scene : public Asset
     };
 
   public:
-    Scene(const std::string &name = "Untitled");
+    Scene(const std::string &name = "Untitled", SceneType type = SceneType::Scene3D);
     ~Scene() = default;
 
     void init();
@@ -38,16 +47,21 @@ class Scene : public Asset
     void destroyEntity(Entity entity);
     void processDestructionQueue(); // Processes the queue
 
+    std::string getName() const { return m_sceneName; }
+    void setName(const std::string &name) { m_sceneName = name; }
+    SceneType getSceneType() const { return m_sceneType; }
+    void setSceneType(SceneType type) { m_sceneType = type; }
+
     entt::registry &getRegistry() { return m_registry; }
-    Camera &getCamera();
-    EditorCamera &getEditorCamera() { return m_editorCamera; }
+    const auto &getEditorCamera() { return m_editorCamera; }
+    const auto &getGameCamera() { return m_orthographicCamera; }
     Entity getEntityFromUUID(UUID uuid);
     LightCache &getLightCache() { return m_lightCache; }
 
-	LightID addLightToCache(const Light &light, const Transform &transform); 
+    LightID addLightToCache(const Light &light, const Transform &transform);
     bool hasDirectionalLight() const { return m_lightCache.getSunlightIndex() > -1; }
 
-	Entity getSelectedEntity();
+    Entity getSelectedEntity();
     void setSelectedEntity(Entity entity);
 
     void setPath(const fs::path &path) { m_path = path; }
@@ -56,7 +70,7 @@ class Scene : public Asset
     void setViewportInfo(ViewportInfo info) { m_viewportInfo = info; }
     ViewportInfo getViewportInfo() const { return m_viewportInfo; }
 
-	[[nodiscard]] AssetType getType() const override { return AssetType::Scene; }
+    [[nodiscard]] AssetType getType() const override { return AssetType::Scene; }
 
   private:
     void newScene(const std::string &name);
@@ -66,6 +80,7 @@ class Scene : public Asset
     friend class Entity;
     entt::registry m_registry;
     std::string m_sceneName;
+    SceneType m_sceneType;
     std::unordered_map<UUID, entt::entity> m_entityMap;
     std::vector<entt::entity> m_destructionQueue;
     ViewportInfo m_viewportInfo;
@@ -73,9 +88,9 @@ class Scene : public Asset
     entt::entity m_selectedEntity{entt::null};
     fs::path m_path;
 
-    PerspectiveCamera m_mainCamera;
-    EditorCamera m_editorCamera{45.f, 16/9, 0.1f, 1000.f};
+    Ref<EditorCamera> m_editorCamera;
+    Ref<OrthographicCamera> m_orthographicCamera;
 
     LightCache m_lightCache;
 };
-}
+} // namespace sky

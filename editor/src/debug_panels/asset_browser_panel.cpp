@@ -11,15 +11,14 @@
 #include "core/project_management/project_manager.h"
 #include "core/helpers/file_dialogs.h"
 #include "core/application.h"
-#include "asset_management/texture_importer.h"
 #include "core/tasks/task_manager.h"
 #include "core/helpers/image.h"
 #include "core/helpers/imgui.h"
 #include "scene/scene_manager.h"
-#include "core/resource/material_serializer.h"
 #include "core/events/event_bus.h"
 #include "inspector_panel.h"
 #include "core/resource/custom_thumbnail.h"
+#include "scene/scene_serializer.h"
 
 namespace sky
 {
@@ -170,11 +169,17 @@ void AssetBrowserPanel::render()
     ImGui::GetStyle().ItemSpacing.y = 12;
     if (ImGui::BeginPopupContextWindow())
     {
-		if (ImGui::MenuItem(ICON_FA_PHOTO_VIDEO "   New Scene")) openCreateFilePopup(AssetType::Scene);
-        if (ImGui::MenuItem(ICON_FA_PAINT_BRUSH "   New Material")) openCreateFilePopup(AssetType::Material);
-        if (ImGui::MenuItem(ICON_FA_FILE_CODE "   New Shader")) openCreateFilePopup(AssetType::Shader);
+		if (ImGui::BeginMenu(ICON_FA_PHOTO_VIDEO "   New Scene")) 
+        {
+            if (ImGui::MenuItem("2D Scene")) createScene(SceneType::Scene2D);
+            if (ImGui::MenuItem("3D Scene")) createScene(SceneType::Scene3D);
+            if (ImGui::MenuItem("UI Scene")) createScene(SceneType::SceneUI);
+            ImGui::EndMenu();
+        }
+        if (ImGui::MenuItem(ICON_FA_PAINT_BRUSH "   New Material")) createAssetFile(AssetType::Material);
+        if (ImGui::MenuItem(ICON_FA_FILE_CODE "   New Shader")) createAssetFile(AssetType::Shader);
 		ImGui::Separator();
-		if (ImGui::MenuItem(ICON_FA_FOLDER "   New Folder")) openCreateFilePopup(AssetType::Folder);
+		if (ImGui::MenuItem(ICON_FA_FOLDER "   New Folder")) createAssetFile(AssetType::Folder);
         if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN "   Open in File Browser"))
         {
             helper::openFolderInExplorer(ProjectManager::getConfig().getAssetDirectory() / m_currentDirectory);
@@ -341,26 +346,66 @@ void AssetBrowserPanel::displayFileHierarchy(const fs::path &directory)
     }
 }
 
-void AssetBrowserPanel::openCreateFilePopup(AssetType type) 
+void AssetBrowserPanel::createAssetFile(AssetType type) 
 {
+    std::filesystem::path newPath;
+    std::string defaultName;
+    
     if (type == AssetType::Folder)
     {
-        std::filesystem::create_directory(m_currentDirectory / "New Folder");
-        m_renameRequested = true;
-        m_renamePath = m_currentDirectory / "New Folder";
+        defaultName = "New Folder";
+        newPath = m_currentDirectory / defaultName;
+        std::filesystem::create_directory(newPath);
     }
     else
     {
-        std::string defaultName = type == AssetType::Scene       ? "New Scene.scene"
-                                  : type == AssetType::Material  ? "New Material.mat"
-                                  : type == AssetType::Shader    ? "New Shader.shader"
-                                                                 : "New File.txt";
-
-        std::ofstream file(m_currentDirectory / defaultName);
+        switch (type)
+        {
+            case AssetType::Scene:    defaultName = "New Scene.scene"; break;
+            case AssetType::Material: defaultName = "New Material.mat"; break;
+            case AssetType::Shader:   defaultName = "New Shader.shader"; break;
+            default:                  defaultName = "New File.txt"; break;
+        }
+        
+        newPath = m_currentDirectory / defaultName;
+        std::ofstream file(newPath);
         file.close();
-        m_renameRequested = true;
-        m_renamePath = m_currentDirectory / defaultName;
-	}
+    }
+    
+    // Set up for rename operation
+    m_renameRequested = true;
+    m_renamePath = newPath;
+}
+
+void AssetBrowserPanel::createScene(SceneType type) 
+{
+    std::string sceneTypePrefix;
+    
+    switch (type)
+    {
+        case SceneType::Scene2D: sceneTypePrefix = "2D_"; break;
+        case SceneType::Scene3D: sceneTypePrefix = "3D_"; break;
+        case SceneType::SceneUI: sceneTypePrefix = "UI_"; break;
+        default: sceneTypePrefix = ""; break;
+    }
+    
+    std::string defaultName = "New_" + sceneTypePrefix + "Scene.scene";
+    std::filesystem::path newPath = m_currentDirectory / defaultName;
+    
+    // Create a new scene file with the appropriate scene type
+    auto scene = CreateRef<Scene>("Untitled", type);
+    
+    // Create the empty file first
+    std::ofstream file(newPath);
+    file.close();
+    
+    // Then serialize the scene with the correct type
+    SceneSerializer serializer(scene);
+    serializer.serialize(newPath);
+    
+    // Set up for rename operation
+    m_renameRequested = true;
+    m_renamePath = newPath;
 }
 
 void AssetBrowserPanel::confirmDeletePopup() 

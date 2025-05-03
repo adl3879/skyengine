@@ -94,7 +94,7 @@ class Device
 	auto getCommandPool() const { return m_frames[m_frameNumber % gfx::FRAME_OVERLAP].commandPool; }
 
 	CommandBuffer beginFrame();
-    void endFrame(CommandBuffer cmd, const AllocatedImage &drawImage);
+    void endFrame(CommandBuffer cmd);
     void cleanup();
 
 	AllocatedBuffer createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);

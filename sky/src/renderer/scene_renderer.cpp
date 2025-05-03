@@ -3,9 +3,7 @@
 #include <ImGuizmo.h>
 #include <tracy/Tracy.hpp>
 
-#include "core/application.h"
 #include "graphics/vulkan/vk_images.h"
-#include "asset_management/texture_importer.h"
 #include "graphics/vulkan/vk_types.h"
 #include "renderer/camera/camera.h"
 #include "scene/components.h"
@@ -207,7 +205,33 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
     Camera &camera, 
     ImageID drawImageID) 
 {
-    update(cmd, scene, camera);
+    auto &lightCache = scene->getLightCache();
+    {
+        const auto gpuSceneData = GPUSceneData{
+            .view = camera.getView(),
+            .proj = camera.getProjection(),
+            .viewProj = camera.getViewProjection(),
+            .cameraPos = {camera.getPosition(), 1.f},
+            .mousePos = scene->getViewportInfo().mousePos,
+            .ambientColor = LinearColorNoAlpha::white(),
+            .ambientIntensity = 0.1f,
+            .lightsBuffer = lightCache.getBuffer().address,
+            .numLights = (uint32_t)lightCache.getSize(),
+            //.sunlightIndex = lightCache.getSunlightIndex(), 
+            .materialsBuffer = m_materialCache.getMaterialDataBufferAddress(),
+        };
+        uint32_t bufferIndex = (drawImageID == m_gameDrawImageID) ? 
+            (m_device.getCurrentFrameIndex() + 1) % gfx::FRAME_OVERLAP : 
+            m_device.getCurrentFrameIndex();
+        m_sceneDataBuffer.uploadNewData(
+            cmd, 
+            bufferIndex, 
+            (void *)&gpuSceneData,
+            sizeof(GPUSceneData));
+
+        m_materialCache.upload(m_device, cmd);
+        lightCache.upload(m_device, cmd);
+	}
 
     auto drawImage = m_device.getImage(drawImageID);
     auto depthImage = m_device.getImage(m_depthImageID);
@@ -230,24 +254,24 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
         VK_IMAGE_LAYOUT_UNDEFINED, 
         VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 
-	//m_skyAtmospherePass.draw(m_device, cmd, drawImage.getExtent2D(), camera, SkyAtmosphere{});
+	m_skyAtmospherePass.draw(m_device, cmd, drawImage.getExtent2D(), camera, SkyAtmosphere{});
 
     vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
     {
-        //m_skyAtmospherePass.drawSky(m_device, cmd, drawImage.getExtent2D());
+        // m_skyAtmospherePass.drawSky(m_device, cmd, drawImage.getExtent2D());
 
-		//m_infiniteGridPass.draw(m_device, 
-		//	cmd, 
-		//	drawImage.getExtent2D(),
-		//	m_sceneDataBuffer.getBuffer());
+		m_infiniteGridPass.draw(m_device, 
+			cmd, 
+			drawImage.getExtent2D(),
+			m_sceneDataBuffer.getBuffer());
 
-		/*m_forwardRenderer.draw(m_device,
+		m_forwardRenderer.draw(m_device,
 			cmd,
 			drawImage.getExtent2D(),
 			camera,
 			m_sceneDataBuffer.getBuffer(),
 			m_meshCache,
-			m_meshDrawCommands);*/
+			m_meshDrawCommands);
 
 		m_spriteRenderer.flush(m_device, 
 			cmd, 
@@ -261,7 +285,7 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
    clearDrawCommands();
 }
 
-void SceneRenderer::update(gfx::CommandBuffer &cmd, Ref<Scene> scene, Camera &camera) 
+void SceneRenderer::update(Ref<Scene> scene) 
 {
     ZoneScopedN("Scene Renderer");
 
@@ -316,32 +340,8 @@ void SceneRenderer::update(gfx::CommandBuffer &cmd, Ref<Scene> scene, Camera &ca
 			});
 		}
     }
+
     updateLights(scene);
-
-    auto &lightCache = scene->getLightCache();
-    {
-        const auto gpuSceneData = GPUSceneData{
-            .view = camera.getView(),
-            .proj = camera.getProjection(),
-            .viewProj = camera.getViewProjection(),
-            .cameraPos = {camera.getPosition(), 1.f},
-            .mousePos = scene->getViewportInfo().mousePos,
-            .ambientColor = LinearColorNoAlpha::white(),
-            .ambientIntensity = 0.1f,
-            .lightsBuffer = lightCache.getBuffer().address,
-            .numLights = (uint32_t)lightCache.getSize(),
-            //.sunlightIndex = lightCache.getSunlightIndex(), 
-            .materialsBuffer = m_materialCache.getMaterialDataBufferAddress(),
-        };
-        m_sceneDataBuffer.uploadNewData(
-            cmd, 
-            m_device.getCurrentFrameIndex(), 
-            (void *)&gpuSceneData,
-            sizeof(GPUSceneData));
-
-        m_materialCache.upload(m_device, cmd);
-        lightCache.upload(m_device, cmd);
-	}
 }
 
 void SceneRenderer::updateMaterial(MaterialID id, Material material) 
@@ -396,9 +396,9 @@ void SceneRenderer::mousePicking(Ref<Scene> scene)
 		for (int i = 0; i < gfx::DEPTH_ARRAY_SCALE; i++)
 		{
             // Should be u[i]. this will only work in 2d
-			if (u[0] != 0)
+			if (u[i] != 0)
 			{
-				selectedID = u[0];
+				selectedID = u[i];
 				auto ent = Entity{(entt::entity)(selectedID - 1), scene.get()};
 				scene->setSelectedEntity(ent);
 				break;

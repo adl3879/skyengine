@@ -1,7 +1,7 @@
 #include "editor_camera.h"
 
 #include "core/events/input.h"
-#include "core/application.h"
+#include "scene/scene_manager.h"
 
 namespace sky
 {
@@ -20,7 +20,9 @@ void EditorCamera::updateProjection()
 
 void EditorCamera::updateView()
 {
-     m_yaw = m_pitch = 0.0f; // Lock the camera's rotation
+    if (SceneManager::get().sceneIsType(SceneType::Scene2D)) 
+        m_yaw = m_pitch = 0.0f; // Lock the camera's rotation
+
     m_position = calculatePosition();
 
     glm::quat orientation = getOrientation();

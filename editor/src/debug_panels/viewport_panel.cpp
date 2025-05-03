@@ -8,12 +8,10 @@
 
 #include "core/application.h"
 #include "asset_management/asset_manager.h"
-#include "asset_management/mesh_importer.h"
 #include "asset_management/texture_importer.h"
 #include "graphics/vulkan/vk_types.h"
 #include "scene/components.h"
 #include "scene/entity.h"
-#include "scene/scene_manager.h"
 #include "core/events/input.h"
 #include "core/helpers/image.h"
 
@@ -99,11 +97,50 @@ void ViewportPanel::drawViewport(const char* title, ImageID image)
 
 		ImGui::PopStyleVar(2);
 
-		drawGizmo({viewportSize.x, viewportSize.y});
+		drawGizmo({viewportSize.x, viewportSize.y}); 
+        // drawCameraRect();
 
 		ImGui::End();
 		ImGui::PopStyleVar();
     }
+}
+
+void ViewportPanel::drawCameraRect()
+{
+    // Use editor camera instead of game camera
+    auto camera = m_context->getEditorCamera();
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    
+    // Get window dimensions and position
+    ImVec2 windowPos = ImGui::GetWindowPos();
+    ImVec2 windowSize = ImGui::GetWindowSize();
+    
+    // Calculate center of the window
+    float centerX = windowPos.x + windowSize.x * 0.5f;
+    float centerY = windowPos.y + windowSize.y * 0.5f;
+    
+    // Rectangle dimensions
+    float width = 400.0f;
+    float height = 200.0f;
+    
+    // Get camera position from editor camera
+    glm::vec3 cameraPos = camera->getPosition();
+    
+    // Calculate rectangle bounds from center, offset by camera position
+    float left = centerX - width * 0.5f + cameraPos.x;
+    float top = centerY - height * 0.5f + cameraPos.y;
+    float right = left + width;
+    float bottom = top + height;
+    
+    // Draw a yellow rectangle
+    drawList->AddRect(
+        ImVec2(left, top), 
+        ImVec2(right, bottom), 
+        IM_COL32(255, 255, 0, 255), 
+        0.0f, 
+        0, 
+        2.0f
+    );
 }
 
 void ViewportPanel::onEvent(Event &e) 
@@ -127,7 +164,7 @@ bool ViewportPanel::onKeyPressed(KeyPressedEvent &e)
     return true;
 }
 
-const glm::vec3 &ViewportPanel::getRayIntersectionPoint()
+const glm::vec3 ViewportPanel::getRayIntersectionPoint()
 {
 	auto windowSize = ImGui::GetWindowSize();
 	auto viewportOffset = ImGui::GetCursorPos();
@@ -143,9 +180,9 @@ const glm::vec3 &ViewportPanel::getRayIntersectionPoint()
 	mx -= m_viewportBounds[0].x;
 	my -= m_viewportBounds[0].y;
 
-	auto proj = m_context->getEditorCamera().getProjectionMatrix();
-	auto view = m_context->getEditorCamera().getViewMatrix();
-	auto camPos = m_context->getEditorCamera().getPosition();
+	auto proj = m_context->getEditorCamera()->getProjectionMatrix();
+	auto view = m_context->getEditorCamera()->getViewMatrix();
+	auto camPos = m_context->getEditorCamera()->getPosition();
 
 	float x_ndc = (2.0f * mx / windowSize.x) - 1.0f;
 	float y_ndc = 1.0f - (2.0f * -my / windowSize.y);
@@ -156,9 +193,7 @@ const glm::vec3 &ViewportPanel::getRayIntersectionPoint()
 	glm::vec3 rayWorld = glm::normalize(glm::vec3(glm::inverse(view) * rayEye));
 
 	float t = -camPos.y / rayWorld.y;
-	glm::vec3 intersectionPoint = glm::vec3{camPos.x, camPos.y, camPos.z} + t * rayWorld;
-
-    return intersectionPoint;
+    return glm::vec3{camPos.x, camPos.y, camPos.z} + t * rayWorld;
 }
 
 void ViewportPanel::handleViewportDrop() 
@@ -260,40 +295,14 @@ void ViewportPanel::drawControls(const char *icon, const char *tooltip, bool isA
     ImGui::PopStyleColor(2);
 }
 
-void ViewportPanel::updateCameraManipulator(const ImVec2 &size)
-{
-    glm::mat4 cameraView = m_context->getCamera().getView();
-    float *cameraViewPtr = glm::value_ptr(cameraView);
-
-    // Add a small deadzone to prevent micro-adjustments
-    static glm::mat4 lastView = cameraView;
-    ImGuizmo::SetOrthographic(false);
-    ImGuizmo::SetDrawlist();
-    ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, size.x, size.y);
-
-    ImGuizmo::ViewManipulate(cameraViewPtr,
-                             10.0f,                   // Distance
-                             ImVec2(size.x + 400, size.y - 100), // Position
-                             ImVec2(200, 200),        // Size
-                             0x10101010               // Background color (slight gray to see the widget)
-    );
-
-    // Only update if the change is significant
-    if (!glm::all(glm::epsilonEqual(glm::vec3(cameraView[3]), glm::vec3(lastView[3]), 0.0001f)))
-    {
-        lastView = cameraView;
-        m_context->getCamera().setView(cameraView);
-    }
-}
-
 void ViewportPanel::drawGizmo(const glm::vec2 &size) 
 {
     auto selectedEntity = m_context->getSelectedEntity();
 
-    glm::mat4 cameraView = m_context->getCamera().getView();
-    glm::mat4 cameraProjection = m_context->getCamera().getProjection();
+    auto cameraView = m_context->getEditorCamera()->getView();
+    auto cameraProjection = m_context->getEditorCamera()->getProjection();
 
-    ImGuizmo::SetOrthographic(true);
+    ImGuizmo::SetOrthographic(false);
     ImGuizmo::SetDrawlist();
     ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, size.x, size.y);
 

@@ -8,7 +8,6 @@
 #include "graphics/vulkan/vk_device.h"
 #include "scene/scene.h"
 #include "material_cache.h"
-#include "core/transform/transform.h"
 #include "renderer/passes/sky_atmosphere.h"
 #include "sprite_renderer.h"
 
@@ -25,18 +24,18 @@ class SceneRenderer
 
     void init(glm::ivec2 size);
     void render(gfx::CommandBuffer &cmd, Ref<Scene> scene, Camera &cam, ImageID drawImage);
-    void update(gfx::CommandBuffer &cmd, Ref<Scene> scene, Camera &cam);
+    void update(Ref<Scene> scene);
 
     void initBuiltins();
-    void drawMesh(MeshID id, const glm::mat4 &transform, bool visibility, 
-        uint32_t uniqueId, MaterialID mat = NULL_MATERIAL_ID);
+    void drawMesh(MeshID id, const glm::mat4 &transform, bool visibility, uint32_t uniqueId,
+                  MaterialID mat = NULL_MATERIAL_ID);
     void drawModel(Ref<Model> model, const glm::mat4 &transform);
     void clearDrawCommands() { m_meshDrawCommands.clear(); }
-    
+
     MeshID addMeshToCache(const Mesh &mesh);
     MaterialID addMaterialToCache(const Material &material);
     void updateMaterial(MaterialID id, Material material);
-    ImageID createImage(const gfx::vkutil::CreateImageInfo& createInfo, void* pixelData);
+    ImageID createImage(const gfx::vkutil::CreateImageInfo &createInfo, void *pixelData);
     void addTempModel(const fs::path &path, Ref<Model> model);
     Ref<Model> getTempModel(const fs::path &path) { return m_tempModels.at(path); }
     bool isTempModelLoaded(const fs::path &path) { return m_tempModels.contains(path); }
@@ -95,12 +94,12 @@ class SceneRenderer
         VkDeviceAddress materialsBuffer;
     };
 
-    gfx::NBuffer m_sceneDataBuffer; 
+    gfx::NBuffer m_sceneDataBuffer;
 
   private:
     ForwardRendererPass m_forwardRenderer;
-    InfiniteGridPass    m_infiniteGridPass;
-    SkyAtmospherePass   m_skyAtmospherePass;
+    InfiniteGridPass m_infiniteGridPass;
+    SkyAtmospherePass m_skyAtmospherePass;
     SpriteBatchRenderer m_spriteRenderer;
 
     ImageID m_drawImageID{NULL_IMAGE_ID};

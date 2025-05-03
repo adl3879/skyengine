@@ -2,12 +2,15 @@
 
 #include "entity.h"
 #include "components.h"
+#include "renderer/camera/editor_camera.h"
 #include "scene_manager.h"
 #include "core/application.h"
+#include "skypch.h"
 
 namespace sky
 {
-Scene::Scene(const std::string &name): m_sceneName(name) 
+Scene::Scene(const std::string &name, SceneType type)
+    : m_sceneName(name), m_sceneType(type) 
 {
 	newScene(name);
     m_registry.on_destroy<HierarchyComponent>().connect<&Scene::onEntityDestroyed>(*this);
@@ -16,6 +19,11 @@ Scene::Scene(const std::string &name): m_sceneName(name)
 void Scene::init() 
 {
     m_lightCache.init(Application::getRenderer()->getDevice());
+    
+    m_editorCamera = CreateRef<EditorCamera>(45.f, 16 / 9, 0.1f, 1000.f);
+
+    m_orthographicCamera = CreateRef<OrthographicCamera>(-1.0f, 1.0f, -1.0f, 1.0f);
+    m_orthographicCamera->setProjection(16/9, 1.f);
 }
 
 void Scene::update(float dt) 
@@ -23,14 +31,14 @@ void Scene::update(float dt)
     auto sceneState = SceneManager::get().getSceneState();
     if (sceneState == SceneState::Edit)
     {
-        m_editorCamera.setViewportSize(m_viewportInfo.size);
-        m_editorCamera.update(dt);
+        m_editorCamera->setViewportSize(m_viewportInfo.size);
+        m_editorCamera->update(dt);
     }
 }
 
 void Scene::onEvent(Event& e)
 {
-    if (m_viewportInfo.isFocus) m_editorCamera.onEvent(e);
+    if (m_viewportInfo.isFocus) m_editorCamera->onEvent(e);
 }
 
 void Scene::cleanup() {}
@@ -86,13 +94,6 @@ Entity Scene::getEntityFromUUID(UUID uuid)
     return {m_entityMap.at(uuid), this};
 }
 
-Camera &Scene::getCamera()
-{
-    auto sceneState = SceneManager::get().getSceneState();
-    if (sceneState == SceneState::Edit) return m_editorCamera;
-    else return m_mainCamera;
-}
-
 void Scene::newScene(const std::string &name) 
 {
 }
@@ -122,5 +123,24 @@ void Scene::setSelectedEntity(Entity entity)
 LightID Scene::addLightToCache(const Light &light, const Transform &transform)
 {
     return m_lightCache.addLight(light, transform);
+}
+
+std::string sceneTypeToString(SceneType type)
+{
+    switch (type)
+    {
+        case SceneType::Scene2D: return "Scene2D";
+        case SceneType::Scene3D: return "Scene3D";
+        case SceneType::SceneUI: return "SceneUI";
+        default: return "Scene3D"; // Default to 3D if typ
+    }
+}
+
+SceneType sceneTypeFromString(const std::string &type)
+{
+    if (type == "Scene2D") return SceneType::Scene2D;
+    if (type == "Scene3D") return SceneType::Scene3D;
+    if (type == "SceneUI") return SceneType::SceneUI;
+    return SceneType::Scene3D;
 }
 }

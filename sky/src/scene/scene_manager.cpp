@@ -62,4 +62,11 @@ void SceneManager::saveAll()
 	// 	serializer.serialize(path);
     // }
 }
+
+bool SceneManager::sceneIsType(SceneType type) const 
+{
+    if (m_activeScene == nullptr) return false;
+    
+    return m_activeScene->getSceneType() == type;
+}
 } // namespace sky

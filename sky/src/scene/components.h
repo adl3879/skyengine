@@ -4,7 +4,6 @@
 
 #include "core/transform/transform.h"
 #include "renderer/scene_renderer.h"
-#include "renderer/camera/perspective_camera.h"
 #include "renderer/light.h"
 #include "core/uuid.h"
 
@@ -13,7 +12,6 @@ namespace sky
 using IDComponent = UUID;
 using TagComponent = std::string;
 using TransformComponent = Transform;
-using CameraComponent = PerspectiveCamera;
 using VisibilityComponent = bool;
 
 // Lights

@@ -9,7 +9,7 @@ Ref<Scene> SceneImporter::importAsset(AssetHandle handle, AssetMetadata &metadat
 {
 	auto path = ProjectManager::getConfig().getAssetDirectory() / metadata.filepath;
 	auto scene = CreateRef<Scene>();
-	//scene->handle = handle;
+    
 	SceneSerializer serializer(scene);
 	if (serializer.deserialize(path)) SKY_CORE_INFO("Scene: {} successfully loaded", path.string());
 	return scene;

@@ -241,9 +241,9 @@ void CustomThumbnail::generateMaterialThumbnail(gfx::CommandBuffer cmd, Material
     renderer->getMaterialCache().upload(device, cmd);
 
     gfx::vkutil::transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
-		 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     gfx::vkutil::transitionImage(cmd, depthImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
-		 VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+		VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 
 	const auto renderInfo = gfx::vkutil::createRenderingInfo({
         .renderExtent = drawImage.getExtent2D(),
