@@ -13,6 +13,8 @@
 #include "scene/entity.h"
 #include "frustum_culling.h"
 #include "core/helpers/image.h"
+#include "scene/scene.h"
+#include "scene/scene_manager.h"
 
 namespace sky
 {
@@ -260,10 +262,12 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
     {
         // m_skyAtmospherePass.drawSky(m_device, cmd, drawImage.getExtent2D());
 
-		m_infiniteGridPass.draw(m_device, 
-			cmd, 
-			drawImage.getExtent2D(),
-			m_sceneDataBuffer.getBuffer());
+        if (SceneManager::get().sceneIsType(SceneType::Scene3D)) {
+            m_infiniteGridPass.draw(m_device, 
+                cmd, 
+                drawImage.getExtent2D(),
+                m_sceneDataBuffer.getBuffer());
+        }
 
 		m_forwardRenderer.draw(m_device,
 			cmd,
@@ -274,7 +278,7 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
 			m_meshDrawCommands);
 
 		m_spriteRenderer.flush(m_device, 
-			cmd, 
+			cmd,
 			drawImage.getExtent2D(), 
 			m_sceneDataBuffer.getBuffer());
 

@@ -89,7 +89,7 @@ void SceneSerializer::serializeEntity(YAML::Emitter &out, Entity entity, AssetHa
 		out << YAML::EndMap;
 
 		if (modelComponent.handle != NULL_UUID) 
-			AssetManager::addToDependecyList(handle, modelComponent.handle);
+			AssetManager::addToDependencyList(handle, modelComponent.handle);
     }
 	if (entity.hasComponent<DirectionalLightComponent>())
     {

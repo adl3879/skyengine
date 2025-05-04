@@ -16,7 +16,7 @@ static Material createMaterialFromPaths(MaterialPaths materialPaths,
     if (materialPaths.albedoTexture != "")
     {
         auto textureHandle = AssetManager::getOrCreateAssetHandle(materialPaths.albedoTexture, AssetType::Texture2D);
-        AssetManager::addToDependecyList(handle, textureHandle);
+        AssetManager::addToDependencyList(handle, textureHandle);
         auto tex = AssetManager::getAsset<Texture2D>(textureHandle);
         material.albedoTexture = helper::loadImageFromTexture(tex, VK_FORMAT_R8G8B8A8_SRGB);
         material.albedoTextureHandle = textureHandle;
@@ -25,7 +25,7 @@ static Material createMaterialFromPaths(MaterialPaths materialPaths,
     if (materialPaths.normalMapTexture != "")
     {
         auto textureHandle = AssetManager::getOrCreateAssetHandle(materialPaths.normalMapTexture, AssetType::Texture2D);
-        AssetManager::addToDependecyList(handle, textureHandle);
+        AssetManager::addToDependencyList(handle, textureHandle);
         auto tex = AssetManager::getAsset<Texture2D>(textureHandle);
         material.normalMapTexture = helper::loadImageFromTexture(tex, VK_FORMAT_R8G8B8A8_UNORM);
         material.normalMapTextureHandle = textureHandle;
@@ -34,7 +34,7 @@ static Material createMaterialFromPaths(MaterialPaths materialPaths,
     if (materialPaths.metallicsTexture != "")
     {
         auto textureHandle = AssetManager::getOrCreateAssetHandle(materialPaths.metallicsTexture, AssetType::Texture2D);
-        AssetManager::addToDependecyList(handle, textureHandle);
+        AssetManager::addToDependencyList(handle, textureHandle);
         auto tex = AssetManager::getAsset<Texture2D>(textureHandle);
         material.metallicTexture = helper::loadImageFromTexture(tex, VK_FORMAT_R8G8B8A8_UNORM);
         material.metallicTextureHandle = textureHandle;
@@ -43,7 +43,7 @@ static Material createMaterialFromPaths(MaterialPaths materialPaths,
     if (materialPaths.roughnessTexture != "")
     {
         auto textureHandle = AssetManager::getOrCreateAssetHandle(materialPaths.roughnessTexture, AssetType::Texture2D);
-        AssetManager::addToDependecyList(handle, textureHandle);
+        AssetManager::addToDependencyList(handle, textureHandle);
         auto tex = AssetManager::getAsset<Texture2D>(textureHandle);
         material.roughnessTexture = helper::loadImageFromTexture(tex, VK_FORMAT_R8G8B8A8_UNORM);
         material.roughnessTextureHandle = textureHandle;
@@ -52,7 +52,7 @@ static Material createMaterialFromPaths(MaterialPaths materialPaths,
     if (materialPaths.ambientOcclusionTexture != "")
     {
         auto textureHandle = AssetManager::getOrCreateAssetHandle(materialPaths.ambientOcclusionTexture, AssetType::Texture2D);
-        AssetManager::addToDependecyList(handle, textureHandle);
+        AssetManager::addToDependencyList(handle, textureHandle);
         auto tex = AssetManager::getAsset<Texture2D>(textureHandle);
         material.ambientOcclusionTexture = helper::loadImageFromTexture(tex, VK_FORMAT_R8G8B8A8_UNORM);
         material.ambientOcclusionTextureHandle = textureHandle;
@@ -61,7 +61,7 @@ static Material createMaterialFromPaths(MaterialPaths materialPaths,
     if (materialPaths.emissiveTexture != "")
     {
         auto textureHandle = AssetManager::getOrCreateAssetHandle(materialPaths.emissiveTexture, AssetType::Texture2D);
-        AssetManager::addToDependecyList(handle, textureHandle);
+        AssetManager::addToDependencyList(handle, textureHandle);
         auto tex = AssetManager::getAsset<Texture2D>(textureHandle);
         material.emissiveTexture = helper::loadImageFromTexture(tex, VK_FORMAT_R8G8B8A8_SRGB);
         material.emissiveTextureHandle = textureHandle;

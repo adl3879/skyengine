@@ -8,7 +8,9 @@ namespace sky
 EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
     : m_fov(fov), m_aspectRatio(aspectRatio), m_nearClip(nearClip), m_farClip(farClip)
 {
-    //m_pitch = 0.2613f;
+    if (SceneManager::get().sceneIsType(SceneType::Scene3D)) 
+        m_pitch = 0.2613f;
+
     updateView();
 }
 
