@@ -22,6 +22,7 @@ target_include_directories(sky
     PUBLIC
     src
     ${Vulkan_INCLUDE_DIR}
+    vendor/glfw/include
     vendor/spdlog/include
     vendor/vma
     vendor/stb_image
