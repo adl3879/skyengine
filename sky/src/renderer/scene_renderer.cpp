@@ -2,9 +2,11 @@
 
 #include <ImGuizmo.h>
 #include <tracy/Tracy.hpp>
+#include <vulkan/vulkan_core.h>
 
 #include "graphics/vulkan/vk_images.h"
 #include "graphics/vulkan/vk_types.h"
+#include "graphics/vulkan/vk_utils.h"
 #include "renderer/camera/camera.h"
 #include "scene/components.h"
 #include "asset_management/asset_manager.h"
@@ -29,6 +31,13 @@ SceneRenderer::~SceneRenderer()
     m_forwardRenderer.cleanup(m_device);
     m_infiniteGridPass.cleanup(m_device);
     m_spriteRenderer.cleanup(m_device);
+    m_depthResolvePass.cleanup(m_device);
+    m_postFXPass.cleanup(m_device);
+}
+
+bool SceneRenderer::isMultisamplingEnabled() const
+{
+    return m_samples == VK_SAMPLE_COUNT_4_BIT;
 }
 
 void SceneRenderer::init(glm::ivec2 size) 
@@ -39,9 +48,11 @@ void SceneRenderer::init(glm::ivec2 size)
     initSceneData(); 
 
     m_spriteRenderer.init(m_device, m_drawImageFormat);
-    m_forwardRenderer.init(m_device, m_drawImageFormat);
-    m_infiniteGridPass.init(m_device, m_drawImageFormat);
-    m_skyAtmospherePass.init(m_device);
+    m_forwardRenderer.init(m_device, m_drawImageFormat, m_samples);
+    m_infiniteGridPass.init(m_device, m_drawImageFormat, m_samples);
+    // m_skyAtmospherePass.init(m_device);
+    m_depthResolvePass.init(m_device, m_depthImageFormat);
+    m_postFXPass.init(m_device, m_drawImageFormat);
 
     initBuiltins();
 }
@@ -165,9 +176,62 @@ ImageID SceneRenderer::createNewDepthImage(glm::ivec2 size)
 
 void SceneRenderer::createDrawImage(glm::ivec2 size)
 {
-    m_drawImageID = createNewDrawImage(size, m_drawImageFormat);
-    m_gameDrawImageID = createNewDrawImage(size, m_drawImageFormat);
-    m_depthImageID = createNewDepthImage(size);
+    const auto drawImageExtent = VkExtent3D{
+        .width = (std::uint32_t)size.x,
+        .height = (std::uint32_t)size.y,
+        .depth = 1,
+    };
+    { // setup draw image
+        VkImageUsageFlags usages{};
+        usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        usages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        usages |= VK_IMAGE_USAGE_SAMPLED_BIT;
+
+        auto createInfo = gfx::vkutil::CreateImageInfo{
+            .format = m_drawImageFormat,
+            .usage = usages,
+            .extent = drawImageExtent,
+            .samples = m_samples,
+        };
+
+        m_drawImageID = m_device.createImage(createInfo);
+        m_gameDrawImageID = m_device.createImage(createInfo);
+        { // postFX
+            createInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+            m_postFXImageID = m_device.createImage(createInfo);
+        }
+    }
+
+    { // setup resolve image
+        VkImageUsageFlags usages{};
+        usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        usages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        usages |= VK_IMAGE_USAGE_SAMPLED_BIT;
+
+        m_resolveImageID = m_device.createImage(gfx::vkutil::CreateImageInfo{
+            .format = m_drawImageFormat,
+            .usage = usages,
+            .extent = drawImageExtent,
+        });
+    }
+
+    { // setup depth image
+        auto createInfo = gfx::vkutil::CreateImageInfo{
+            .format = m_depthImageFormat,
+            .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            .extent = drawImageExtent,
+            .samples = m_samples,
+        };
+        m_depthImageID = m_device.createImage(createInfo);
+
+        if (isMultisamplingEnabled()) 
+        {
+            createInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+            m_resolveDepthImageID = m_device.createImage(createInfo);
+        }
+    }
 }
 
 gfx::AllocatedImage SceneRenderer::getDrawImage() 
@@ -235,16 +299,9 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
         lightCache.upload(m_device, cmd);
 	}
 
-    auto drawImage = m_device.getImage(drawImageID);
-    auto depthImage = m_device.getImage(m_depthImageID);
-
-    const auto renderInfo = gfx::vkutil::createRenderingInfo({
-        .renderExtent = drawImage.getExtent2D(),
-        .colorImageView = drawImage.imageView,
-        .colorImageClearValue = glm::vec4{0.01f, 0.01f, 0.01f, 1.f},
-        .depthImageView = depthImage.imageView,
-        .depthImageClearValue = 1.f,
-    });
+    const auto &drawImage = m_device.getImage(m_drawImageID);
+    const auto &resolveImage = m_device.getImage(m_resolveImageID);
+    const auto &depthImage = m_device.getImage(m_depthImageID);
 
     gfx::vkutil::transitionImage(cmd, 
         drawImage.image, 
@@ -256,7 +313,22 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
         VK_IMAGE_LAYOUT_UNDEFINED, 
         VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 
-	m_skyAtmospherePass.draw(m_device, cmd, drawImage.getExtent2D(), camera, SkyAtmosphere{});
+    if (isMultisamplingEnabled())
+    {
+        gfx::vkutil::transitionImage(cmd, 
+            resolveImage.image, 
+            VK_IMAGE_LAYOUT_UNDEFINED, 
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    }
+
+    const auto renderInfo = gfx::vkutil::createRenderingInfo({
+        .renderExtent = drawImage.getExtent2D(),
+        .colorImageView = drawImage.imageView,
+        .colorImageClearValue = glm::vec4{0.01f, 0.01f, 0.01f, 1.f},
+        .depthImageView = depthImage.imageView,
+        .depthImageClearValue = 1.f,
+        .resolveImageView = isMultisamplingEnabled() ? resolveImage.imageView : VK_NULL_HANDLE
+    });
 
     vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
     {
@@ -285,8 +357,71 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
 		mousePicking(scene);
 	}
     vkCmdEndRendering(cmd);
+    
+    gfx::vkutil::transitionImagesToShaderReadable(
+        cmd,
+        isMultisamplingEnabled() ? resolveImage.image : drawImage.image,
+        depthImage.image);
 
-   clearDrawCommands();
+    if (isMultisamplingEnabled())
+    {
+        const auto &resolveDepthImage = m_device.getImage(m_resolveDepthImageID);
+
+        gfx::vkutil::transitionImage(
+            cmd,
+            resolveDepthImage.image,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+
+        const auto renderInfo = gfx::vkutil::createRenderingInfo({
+            .renderExtent = resolveDepthImage.getExtent2D(),
+            .depthImageView = resolveDepthImage.imageView,
+        });
+
+        vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
+
+        m_depthResolvePass.draw(m_device, cmd, m_depthImageID, gfx::vkutil::sampleCountToInt(m_samples));
+
+        vkCmdEndRendering(cmd);
+
+        // sync with post fx
+        gfx::vkutil::transitionImage(
+            cmd,
+            resolveDepthImage.image,
+            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    }
+
+    { // post fx
+        ImageID sourceImageID = isMultisamplingEnabled() ? m_resolveImageID : m_drawImageID;
+        ImageID depthImageID = isMultisamplingEnabled() ? m_resolveDepthImageID : m_depthImageID;
+
+        const auto &postFXImage = m_device.getImage(m_postFXImageID);
+        
+        gfx::vkutil::transitionImage(
+            cmd,
+            postFXImage.image,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            
+        const auto renderInfo = gfx::vkutil::createRenderingInfo({
+            .renderExtent = postFXImage.getExtent2D(),
+            .colorImageView = postFXImage.imageView,
+        });
+        
+        vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
+        
+        m_postFXPass.draw(
+            m_device,
+            cmd,
+            sourceImageID,
+            depthImageID,
+            m_sceneDataBuffer.getBuffer());
+            
+        vkCmdEndRendering(cmd);
+    }
+
+    clearDrawCommands();
 }
 
 void SceneRenderer::update(Ref<Scene> scene) 

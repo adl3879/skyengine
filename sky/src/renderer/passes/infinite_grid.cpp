@@ -4,7 +4,7 @@
 
 namespace sky
 {
-void InfiniteGridPass::init(const gfx::Device &device, VkFormat format) 
+void InfiniteGridPass::init(const gfx::Device &device, VkFormat format, VkSampleCountFlagBits samples) 
 {
     const auto vertexShader = gfx::vkutil::loadShaderModule("shaders/grid.vert.spv", device.getDevice());
     const auto fragShader = gfx::vkutil::loadShaderModule("shaders/grid.frag.spv", device.getDevice());
@@ -25,7 +25,7 @@ void InfiniteGridPass::init(const gfx::Device &device, VkFormat format)
                            .setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP)
                            .setPolygonMode(VK_POLYGON_MODE_FILL)
                            .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
-                           .setMultisamplingNone()
+                           .setMultisampling(samples)
                            .enableBlending()
                            .disableDepthTest()
                            .setColorAttachmentFormat(VK_FORMAT_R16G16B16A16_SFLOAT)

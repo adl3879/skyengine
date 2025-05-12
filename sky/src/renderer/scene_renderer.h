@@ -2,6 +2,8 @@
 
 #include <skypch.h>
 
+#include "passes/post_fx.h"
+#include "renderer/passes/depth_resolve.h"
 #include "renderer/camera/camera.h"
 #include "renderer/passes/forward_renderer.h"
 #include "renderer/passes/infinite_grid.h"
@@ -27,8 +29,7 @@ class SceneRenderer
     void update(Ref<Scene> scene);
 
     void initBuiltins();
-    void drawMesh(MeshID id, const glm::mat4 &transform, bool visibility, uint32_t uniqueId,
-                  MaterialID mat = NULL_MATERIAL_ID);
+    void drawMesh(MeshID id, const glm::mat4 &transform, bool visibility, uint32_t uniqueId, MaterialID mat = NULL_MATERIAL_ID);
     void drawModel(Ref<Model> model, const glm::mat4 &transform);
     void clearDrawCommands() { m_meshDrawCommands.clear(); }
 
@@ -40,22 +41,24 @@ class SceneRenderer
     Ref<Model> getTempModel(const fs::path &path) { return m_tempModels.at(path); }
     bool isTempModelLoaded(const fs::path &path) { return m_tempModels.contains(path); }
 
-    ImageID getDrawImageId() const { return m_drawImageID; }
     ImageID getGameDrawImageId() const { return m_gameDrawImageID; }
     gfx::Device &getDevice() const { return m_device; }
     const Mesh &getMesh(MeshID id) const { return m_meshCache.getCPUMesh(id); }
     const Material &getMaterial(MaterialID id) const { return m_materialCache.getMaterial(id); }
     auto getMeshCache() const { return m_meshCache; }
     auto getMaterialCache() const { return m_materialCache; }
-
+    
     ImageID getCheckerboardTexture() const { return m_device.getCheckerboardTextureID(); }
     gfx::AllocatedImage getDrawImage();
 
     ImageID createNewDrawImage(glm::ivec2 size, VkFormat format);
     ImageID createNewDepthImage(glm::ivec2 size);
-
+    
     ForwardRendererPass getForwardRendererPass() const { return m_forwardRenderer; }
     auto getSphereMesh() const { return m_builtinModels.at(ModelType::Sphere); }
+
+    // Final draw image from the scene renderer
+    ImageID getSceneImage() const { return m_postFXImageID; }
 
   private:
     void destroy();
@@ -63,6 +66,7 @@ class SceneRenderer
     void initSceneData();
     void updateLights(Ref<Scene> scene);
     void mousePicking(Ref<Scene> scene);
+    bool isMultisamplingEnabled() const;
 
   private:
     gfx::Device &m_device;
@@ -101,14 +105,19 @@ class SceneRenderer
     InfiniteGridPass m_infiniteGridPass;
     SkyAtmospherePass m_skyAtmospherePass;
     SpriteBatchRenderer m_spriteRenderer;
+    DepthResolvePass m_depthResolvePass;
+    PostFXPass m_postFXPass;
 
     ImageID m_drawImageID{NULL_IMAGE_ID};
     ImageID m_gameDrawImageID{NULL_IMAGE_ID};
     ImageID m_depthImageID{NULL_IMAGE_ID};
+    ImageID m_resolveImageID{NULL_IMAGE_ID};
+    ImageID m_resolveDepthImageID{NULL_IMAGE_ID};
+    ImageID m_postFXImageID{NULL_IMAGE_ID};
 
     VkFormat m_drawImageFormat{VK_FORMAT_R16G16B16A16_SFLOAT};
     VkFormat m_depthImageFormat{VK_FORMAT_D32_SFLOAT};
-    VkSampleCountFlagBits m_samples{VK_SAMPLE_COUNT_1_BIT};
+    VkSampleCountFlagBits m_samples{VK_SAMPLE_COUNT_4_BIT};
 
     std::unordered_map<ModelType, MeshID> m_builtinModels;
     std::unordered_map<fs::path, Ref<Model>> m_tempModels;

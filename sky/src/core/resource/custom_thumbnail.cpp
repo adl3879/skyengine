@@ -10,6 +10,7 @@
 #include "renderer/camera/camera.h"
 
 #include <stb_image_write.h>
+#include <vulkan/vulkan_core.h>
 
 namespace sky
 {
@@ -138,7 +139,7 @@ CustomThumbnail::CustomThumbnail()
         .intensity = 5.f}, transform);
 
     m_thumbnailGradientPass.init(device, m_drawImageFormat);
-	m_forwardRenderer.init(device, m_drawImageFormat);
+	m_forwardRenderer.init(device, m_drawImageFormat, VK_SAMPLE_COUNT_4_BIT);
 }
 
 CustomThumbnail::~CustomThumbnail()

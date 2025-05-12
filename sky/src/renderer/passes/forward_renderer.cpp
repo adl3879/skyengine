@@ -5,7 +5,10 @@
 
 namespace sky
 {
-void ForwardRendererPass::init(const gfx::Device &device, VkFormat format) 
+void ForwardRendererPass::init(
+    const gfx::Device &device, 
+    VkFormat format, 
+    VkSampleCountFlagBits samples) 
 {
     const auto vertexShader = gfx::vkutil::loadShaderModule("shaders/mesh.vert.spv", device.getDevice());
     const auto fragShader = gfx::vkutil::loadShaderModule("shaders/mesh.frag.spv", device.getDevice());
@@ -29,7 +32,7 @@ void ForwardRendererPass::init(const gfx::Device &device, VkFormat format)
                          .setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
                          .setPolygonMode(VK_POLYGON_MODE_FILL)
                          .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
-                         .setMultisamplingNone()
+                         .setMultisampling(samples)
                          .disableBlending()
                          .enableDepthTest(true, VK_COMPARE_OP_LESS)
                          .setColorAttachmentFormat(format)

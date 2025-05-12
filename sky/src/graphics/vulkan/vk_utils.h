@@ -2,7 +2,7 @@
 
 #include <skypch.h>
 
-#include "vk_types.h"
+#include "vk_initializers.h"
 
 namespace sky::gfx::vkutil
 {
@@ -43,4 +43,46 @@ void clearColorImage(VkCommandBuffer cmd, VkExtent2D colorImageExtent, VkImageVi
 int sampleCountToInt(VkSampleCountFlagBits count);
 
 const char *sampleCountToString(VkSampleCountFlagBits count);
-} // namespace sky::vkutils
+
+/**
+    * Transitions a color image and depth image to shader readable layout
+    * @param cmd Command buffer to record the transition into
+    * @param colorImage The color image to transition
+    * @param depthImage The depth image to transition
+    */
+inline void transitionImagesToShaderReadable(
+    VkCommandBuffer cmd,
+    VkImage colorImage,
+    VkImage depthImage)
+{
+    const auto imageBarrier = VkImageMemoryBarrier2{
+        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+        .srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        .srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+        .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+        .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        .image = colorImage,
+        .subresourceRange = gfx::vkinit::imageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT),
+    };
+    const auto depthBarrier = VkImageMemoryBarrier2{
+        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+        .srcStageMask = VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+        .srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+        .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+        .oldLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        .image = depthImage,
+        .subresourceRange = gfx::vkinit::imageSubresourceRange(VK_IMAGE_ASPECT_DEPTH_BIT),
+    };
+    const auto barriers = std::array{imageBarrier, depthBarrier};
+    const auto dependencyInfo = VkDependencyInfo{
+        .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+        .imageMemoryBarrierCount = barriers.size(),
+        .pImageMemoryBarriers = barriers.data(),
+    };
+    vkCmdPipelineBarrier2(cmd, &dependencyInfo);
+}
+}

@@ -113,7 +113,7 @@ void EditorLayer::onImGuiRender()
     m_sceneHierarchyPanel.render();
     m_projectManagerPanel.render();
     m_inspectorPanel.render();
-    m_assetBrowserPanel.render();
+    // m_assetBrowserPanel.render();
     m_assetBrowserPopup.render();
     m_logPanel.render();
 

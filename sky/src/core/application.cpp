@@ -68,7 +68,7 @@ void Application::run()
         auto cmd = m_gfxDevice->beginFrame();
         CustomThumbnail::get().render(cmd);
         m_renderer->update(scene);
-        m_renderer->render(cmd, scene, *scene->getEditorCamera(), m_renderer->getDrawImageId());
+        m_renderer->render(cmd, scene, *scene->getEditorCamera(), m_renderer->getSceneImage());
 
         // m_renderer->update(scene);
         // m_renderer->render(cmd, scene, *scene->getGameCamera(), m_renderer->getGameDrawImageId());

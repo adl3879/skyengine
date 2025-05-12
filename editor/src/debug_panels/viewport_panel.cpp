@@ -20,7 +20,7 @@ namespace sky
 void ViewportPanel::render()
 {
     auto renderer = Application::getRenderer();
-    drawViewport("Scene", renderer->getDrawImageId());
+    drawViewport("Scene", renderer->getSceneImage());
     drawViewport("Game", renderer->getGameDrawImageId());
 }
 

@@ -102,6 +102,7 @@ void EditorCamera::mouseZoom(float delta)
 {
     m_distance -= delta * zoomSpeed();
     if (m_distance < 1.0f) m_distance = 1.0f;
+    if (m_distance > 200.0f) m_distance = 200.0f; // Add maximum zoom distance limit
 }
 
 glm::vec3 EditorCamera::getUpDirection() const { return glm::rotate(getOrientation(), glm::vec3(0.0f, 1.0f, 0.0f)); }

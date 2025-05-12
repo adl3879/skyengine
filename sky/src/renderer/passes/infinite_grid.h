@@ -11,7 +11,7 @@ class InfiniteGridPass : public Pass
 	InfiniteGridPass() = default;
 	~InfiniteGridPass() = default;
 
-	void init(const gfx::Device &device, VkFormat format);
+	void init(const gfx::Device &device, VkFormat format, VkSampleCountFlagBits samples);
 	void draw(gfx::Device &device, 
         gfx::CommandBuffer cmd,
 		VkExtent2D extent,

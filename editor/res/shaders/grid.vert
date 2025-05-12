@@ -11,7 +11,7 @@ layout (push_constant) uniform constants
 
 layout (location = 0) out vec3 worldPos;
 
-float gridSize = 150.0;
+float gridSize = 500.0; 
 
 const vec3 pos[4] = vec3[4](
 	vec3(-1.0, 0.0, -1.0),
