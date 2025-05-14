@@ -14,14 +14,14 @@ layout (location = 0) out vec4 outFragColor;
 layout (location = 0) in vec3 worldPos;
 
 void main() {
-    const float thicknessNorm = 0.60f; // grid line size (in pixels)
-    const float thicknessBold = 2.0 * thicknessNorm;
-    const float frequencyBold = 10.0;
+    const float thicknessNorm = 0.10f; // grid line size (in pixels)
+    const float thicknessBold = 3.0 * thicknessNorm;
+    const float frequencyBold = 20.0;
     const float maxCameraDist = 500.0; // Increased from 100.0 to allow viewing from further away
     const vec3 colorDefault   = vec3(0.10, 0.10, 0.10);
     const vec3 colorBold      = vec3(0.85, 0.85, 0.85);
-    const vec3 colorAxisX     = vec3(0.85, 0.40, 0.30);
-    const vec3 colorAxisZ     = vec3(0.40, 0.50, 0.85);
+    const vec3 colorAxisX     = vec3(0.9, 0.30, 0.20);
+    const vec3 colorAxisZ     = vec3(0.30, 0.40, 0.9);
     
     // Improved anti-aliasing for grid lines
     // Get the rate of change of the world position for better AA

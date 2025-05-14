@@ -2,6 +2,7 @@
 
 #include "core/events/input.h"
 #include "core/application.h"
+#include "core/log/log.h"
 
 namespace sky
 {

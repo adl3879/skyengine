@@ -1,7 +1,11 @@
 #include "editor_camera.h"
 
 #include "core/events/input.h"
+#include "core/events/key_codes.h"
+#include "core/events/key_event.h"
+#include "core/log/log.h"
 #include "scene/scene_manager.h"
+#include "skypch.h"
 
 namespace sky
 {
@@ -25,10 +29,18 @@ void EditorCamera::updateView()
     if (SceneManager::get().sceneIsType(SceneType::Scene2D)) 
         m_yaw = m_pitch = 0.0f; // Lock the camera's rotation
 
-    m_position = calculatePosition();
-
+    
     glm::quat orientation = getOrientation();
-    m_viewMatrix = glm::lookAt(m_position, m_focalPoint, getUpDirection());
+    if (!m_isFreeLook)
+    {
+        m_position = calculatePosition();
+        m_viewMatrix = glm::lookAt(m_position, m_focalPoint, getUpDirection());
+    }
+    else 
+    {
+        glm::vec3 forward = glm::rotate(orientation, glm::vec3(0.0f, 0.0f, -1.0f));
+        m_viewMatrix = glm::lookAt(m_position, m_position + forward, getUpDirection());
+    }
 }
 
 std::pair<float, float> EditorCamera::panSpeed() const
@@ -55,17 +67,10 @@ float EditorCamera::zoomSpeed() const
 
 void EditorCamera::update(float ts)
 {
-    auto mousePos = Input::getMousePosition();
-    const glm::vec2 &mouse{mousePos.x, mousePos.y};
-    if (Input::isKeyPressed(Key::LeftAlt))
-    {
-        glm::vec2 delta = (mouse - m_initialMousePosition) * 0.003f;
-        m_initialMousePosition = mouse;
-
-        if (Input::isKeyPressed(Key::LeftControl)) mousePan(delta);
-        else if (Input::isMouseButtonPressed(Mouse::ButtonLeft)) mouseRotate(delta);
-    }
-    m_initialMousePosition = mouse;
+    if (m_isFreeLook)
+        updateFreeLook(ts);
+    else
+        updateOrbit(ts);
 
     updateView();
 }
@@ -74,6 +79,7 @@ void EditorCamera::onEvent(Event& e)
 {
     EventDispatcher dispatcher(e);
     dispatcher.dispatch<MouseScrolledEvent>(SKY_BIND_EVENT_FN(EditorCamera::onMouseScrolled));
+    dispatcher.dispatch<KeyPressedEvent>(SKY_BIND_EVENT_FN(EditorCamera::onKeyPressed));
 }
 
 bool EditorCamera::onMouseScrolled(MouseScrolledEvent &e)
@@ -82,6 +88,19 @@ bool EditorCamera::onMouseScrolled(MouseScrolledEvent &e)
     mouseZoom(delta);
     updateView();
     return false;
+}
+
+bool EditorCamera::onKeyPressed(KeyPressedEvent &e)
+{
+    if (Input::isKeyPressed(Key::LeftShift))
+    {
+        if (e.getKeyCode() == Key::F)
+        {
+            m_isFreeLook = !m_isFreeLook;
+            Input::showMouseCursor(!m_isFreeLook);
+        }
+    }
+    return true;
 }
 
 void EditorCamera::mousePan(const glm::vec2 &delta)
@@ -125,5 +144,44 @@ void EditorCamera::reset()
     m_distance = 10.0f;
     m_focalPoint = {0.0f, 0.0f, 0.0f};
     updateView();
+}
+
+void EditorCamera::updateFreeLook(float dt)
+{
+    glm::vec3 direction{0.0f};
+
+    if (Input::isKeyPressed(Key::W)) direction += getForwardDirection();
+    if (Input::isKeyPressed(Key::S)) direction -= getForwardDirection();
+    if (Input::isKeyPressed(Key::A)) direction -= getRightDirection();
+    if (Input::isKeyPressed(Key::D)) direction += getRightDirection();
+    if (Input::isKeyPressed(Key::Q)) direction -= getUpDirection();
+    if (Input::isKeyPressed(Key::E)) direction += getUpDirection();
+
+    if (glm::length(direction) > 0.0f)
+        m_position += glm::normalize(direction) * 5.f * dt;
+
+    // Mouse look
+    glm::vec2 mousePos = Input::getMousePosition();
+    glm::vec2 delta = (mousePos - m_initialMousePosition) * 0.002f;
+    m_initialMousePosition = mousePos;
+
+    m_yaw   -= delta.x;
+    m_pitch -= delta.y;
+    m_pitch = std::clamp(m_pitch, -1.5f, 1.5f);
+}
+
+void EditorCamera::updateOrbit(float dt)
+{
+    auto mousePos = Input::getMousePosition();
+    const glm::vec2 &mouse{mousePos.x, mousePos.y};
+    if (Input::isKeyPressed(Key::LeftAlt))
+    {
+        glm::vec2 delta = (mouse - m_initialMousePosition) * 0.003f;
+        m_initialMousePosition = mouse;
+
+        if (Input::isKeyPressed(Key::LeftControl)) mousePan(delta);
+        else if (Input::isMouseButtonPressed(Mouse::ButtonLeft)) mouseRotate(delta);
+    }
+    m_initialMousePosition = mouse;
 }
 }

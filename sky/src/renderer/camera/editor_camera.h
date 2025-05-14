@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/events/key_event.h"
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
 
@@ -48,18 +49,24 @@ class EditorCamera : public Camera
 
     float getPitch() const { return m_pitch; }
     float getYaw() const { return m_yaw; }
-
-    bool onMouseScrolled(MouseScrolledEvent &e);
+    bool isFreeLook() const { return m_isFreeLook; }
 
     void reset();
-
+    
+    bool onMouseScrolled(MouseScrolledEvent &e);
+    bool onKeyPressed(KeyPressedEvent &e);
+    
   private:
     void updateProjection();
     void updateView();
-
+    
+    void updateFreeLook(float dt);
+    void updateOrbit(float dt);
+    
     void mousePan(const glm::vec2 &delta);
     void mouseRotate(const glm::vec2 &delta);
     void mouseZoom(float delta);
+
 
     glm::vec3 calculatePosition() const;
 
@@ -79,5 +86,7 @@ class EditorCamera : public Camera
     float m_distance = 10.0f;
     float m_pitch = 0.0f, m_yaw = 0.0f;
     float m_viewportWidth = 1280, m_viewportHeight = 720;
+
+    bool m_isFreeLook = false;
 };
 } // namespace sky

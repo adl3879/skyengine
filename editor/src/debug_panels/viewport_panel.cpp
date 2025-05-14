@@ -153,6 +153,8 @@ void ViewportPanel::onEvent(Event &e)
 
 bool ViewportPanel::onKeyPressed(KeyPressedEvent &e) 
 {
+    if (m_context->isEditorCameraFreeLook()) return true;
+
     switch (e.getKeyCode())
     {
         case Key::Q: m_gizmoType = -1; break;

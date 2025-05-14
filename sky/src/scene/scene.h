@@ -57,6 +57,7 @@ class Scene : public Asset
     const auto &getGameCamera() { return m_orthographicCamera; }
     Entity getEntityFromUUID(UUID uuid);
     LightCache &getLightCache() { return m_lightCache; }
+    bool isEditorCameraFreeLook() const { return m_editorCamera->isFreeLook(); }
 
     LightID addLightToCache(const Light &light, const Transform &transform);
     bool hasDirectionalLight() const { return m_lightCache.getSunlightIndex() > -1; }

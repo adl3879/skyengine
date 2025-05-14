@@ -7,7 +7,10 @@
 #include <FileWatch.h>
 #include <tracy/Tracy.hpp>
 
+#include "asset_management/asset.h"
 #include "asset_management/asset_manager.h"
+#include "asset_management/editor_asset_manager.h"
+#include "core/log/log.h"
 #include "core/project_management/project_manager.h"
 #include "core/helpers/file_dialogs.h"
 #include "core/application.h"
@@ -519,7 +522,7 @@ void AssetBrowserPanel::search(const std::string &query)
     // convert query to lowercase
     std::string lowerQuery = query;
     std::transform(lowerQuery.begin(), lowerQuery.end(), lowerQuery.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
+        [](unsigned char c) { return std::tolower(c); });
 
     for (auto &p : std::filesystem::recursive_directory_iterator(m_baseDirectory))
     {
@@ -554,13 +557,16 @@ void AssetBrowserPanel::drawFileAssetBrowser(fs::directory_entry directoryEntry)
 	auto icon = getOrCreateThumbnail(path);
 	if (icon == NULL_IMAGE_ID) icon = m_icons["file"];
 
-    if (directoryEntry.is_directory()) icon = m_icons["directory"];
-    if (path.extension() == ".scene") icon = m_icons["scene"];
-    if (path.extension() == ".gltf" || path.extension() == ".fbx" || path.extension() == ".glb")
     {
-        icon = CustomThumbnail::get().getOrCreateThumbnail(relativePath);
+        auto assetType = getAssetTypeFromFileExtension(path.extension());
+
+        if (directoryEntry.is_directory()) icon = m_icons["directory"];
+        else if (assetType == AssetType::Scene) icon = m_icons["scene"];
+        else if (assetType == AssetType::Mesh)
+            icon = CustomThumbnail::get().getOrCreateThumbnail(relativePath);
+        else if (assetType == AssetType::Material) 
+            icon = CustomThumbnail::get().getOrCreateThumbnail(relativePath);
     }
-    if (path.extension() == ".mat") icon = CustomThumbnail::get().getOrCreateThumbnail(relativePath);
 
     ImGui::BeginGroup();
     ImGui::PushID(filenameString.c_str());
@@ -604,7 +610,7 @@ void AssetBrowserPanel::drawFileAssetBrowser(fs::directory_entry directoryEntry)
     if (ImGui::BeginDragDropSource())
     {
         ImGui::SetDragDropPayload("CONTENT_BROWSER_ITEM", relativePath.string().c_str(),
-                                  (strlen(relativePath.string().c_str()) + 1) * sizeof(char *));
+            (strlen(relativePath.string().c_str()) + 1) * sizeof(char *));
         ImGui::Button(relativePath.string().c_str());
         ImGui::EndDragDropSource();
     }

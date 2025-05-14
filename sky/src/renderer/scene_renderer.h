@@ -19,7 +19,7 @@ namespace sky
 class SceneRenderer
 {
   public:    
-    static constexpr VkSampleCountFlagBits MAX_SAMPLES = VK_SAMPLE_COUNT_4_BIT;
+    static constexpr VkSampleCountFlagBits MAX_SAMPLES = VK_SAMPLE_COUNT_1_BIT;
 
   public:
     SceneRenderer(gfx::Device &device);
