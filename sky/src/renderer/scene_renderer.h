@@ -1,6 +1,7 @@
 #pragma once
 
 #include <skypch.h>
+#include <vulkan/vulkan_core.h>
 
 #include "passes/post_fx.h"
 #include "renderer/passes/depth_resolve.h"
@@ -17,6 +18,9 @@ namespace sky
 {
 class SceneRenderer
 {
+  public:    
+    static constexpr VkSampleCountFlagBits MAX_SAMPLES = VK_SAMPLE_COUNT_4_BIT;
+
   public:
     SceneRenderer(gfx::Device &device);
     ~SceneRenderer();
@@ -51,8 +55,8 @@ class SceneRenderer
     ImageID getCheckerboardTexture() const { return m_device.getCheckerboardTextureID(); }
     gfx::AllocatedImage getDrawImage();
 
-    ImageID createNewDrawImage(glm::ivec2 size, VkFormat format);
-    ImageID createNewDepthImage(glm::ivec2 size);
+    ImageID createNewDrawImage(glm::ivec2 size, VkFormat format, VkSampleCountFlagBits samples);
+    ImageID createNewDepthImage(glm::ivec2 size, VkSampleCountFlagBits samples);
     
     ForwardRendererPass getForwardRendererPass() const { return m_forwardRenderer; }
     auto getSphereMesh() const { return m_builtinModels.at(ModelType::Sphere); }
@@ -117,7 +121,7 @@ class SceneRenderer
 
     VkFormat m_drawImageFormat{VK_FORMAT_R16G16B16A16_SFLOAT};
     VkFormat m_depthImageFormat{VK_FORMAT_D32_SFLOAT};
-    VkSampleCountFlagBits m_samples{VK_SAMPLE_COUNT_4_BIT};
+    VkSampleCountFlagBits m_samples{MAX_SAMPLES};
 
     std::unordered_map<ModelType, MeshID> m_builtinModels;
     std::unordered_map<fs::path, Ref<Model>> m_tempModels;

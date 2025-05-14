@@ -84,5 +84,9 @@ class AssetBrowserPanel
     fs::path m_filePathToDelete;
 
     std::unordered_map<std::string, ImageID> m_icons;
+
+    std::unordered_map<std::string, std::vector<fs::directory_entry>> m_DirectoryCache;
+    int64_t m_LastDirectoryCacheUpdate = 0;
+    bool m_DirectoryCacheDirty = true;
 };
 } // namespace sky

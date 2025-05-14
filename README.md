@@ -19,10 +19,10 @@ SkyEngine is a high-performance 3D game engine built from scratch, leveraging Vu
 - **Vulkan SDK**: Ensure the [Vulkan SDK](https://vulkan.lunarg.com/) is installed and configured.
 - **CMake**: Used for building the project. Make sure you have CMake 3.12 or higher.
 - **Dependencies**:
-    - **GLFW**: For window and input management.
-    - **GLM**: Mathematics library for vector and matrix operations.
-    - **Assimp**: For model loading.
-    - **ImGui**: Immediate mode GUI library (optional, for debugging and editor UI).
+  - **GLFW**: For window and input management.
+  - **GLM**: Mathematics library for vector and matrix operations.
+  - **Assimp**: For model loading.
+  - **ImGui**: Immediate mode GUI library (optional, for debugging and editor UI).
 
 ### Installation
 

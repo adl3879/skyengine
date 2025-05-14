@@ -117,41 +117,60 @@ std::pair<VkImage, std::uint32_t> Swapchain::acquireImage(VkDevice device, std::
     return {m_images[swapchainImageIndex], swapchainImageIndex};
 }
 
+// Add this new method to submit a command buffer without presenting
+void Swapchain::submit(VkCommandBuffer cmd, VkQueue graphicsQueue, std::size_t frameIndex, 
+    VkSemaphore waitSemaphore, VkSemaphore signalSemaphore)
+{
+    // Create submit info
+    const auto submitInfo = VkCommandBufferSubmitInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+        .commandBuffer = cmd,
+    };
+    
+    // Use the provided wait semaphore
+    const auto waitInfo =
+        vkinit::semaphoreSubmitInfo(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR, waitSemaphore);
+    
+    // Use the provided signal semaphore
+    const auto signalInfo =
+        vkinit::semaphoreSubmitInfo(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT, signalSemaphore);
+
+    const auto submit = vkinit::submitInfo(&submitInfo, &waitInfo, &signalInfo);
+    VK_CHECK(vkQueueSubmit2(graphicsQueue, 1, &submit, m_frames[frameIndex].renderFence));
+}
+
+// Add this new method to present a swapchain image
+void Swapchain::present(VkQueue graphicsQueue, std::size_t frameIndex, std::uint32_t swapchainImageIndex,
+    VkSemaphore waitSemaphore)
+{
+    // Create present info
+    const auto presentInfo = VkPresentInfoKHR{
+        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &waitSemaphore,
+        .swapchainCount = 1,
+        .pSwapchains = &m_swapchain.swapchain,
+        .pImageIndices = &swapchainImageIndex,
+    };
+
+    auto res = vkQueuePresentKHR(graphicsQueue, &presentInfo);
+    if (res != VK_SUCCESS)
+    {
+        SKY_CORE_ERROR("failed to present: {}", string_VkResult(res));
+        m_dirty = true;
+    }
+}
+
+// Modify the existing submitAndPresent method to use the new methods
 void Swapchain::submitAndPresent(VkCommandBuffer cmd, VkQueue graphicsQueue, std::size_t frameIndex,
                                  std::uint32_t swapchainImageIndex)
 {
     const auto &frame = m_frames[frameIndex];
 
-    { // submit
-        const auto submitInfo = VkCommandBufferSubmitInfo{
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-            .commandBuffer = cmd,
-        };
-        const auto waitInfo =
-            vkinit::semaphoreSubmitInfo(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR, frame.swapchainSemaphore);
-        const auto signalInfo =
-            vkinit::semaphoreSubmitInfo(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT, frame.renderSemaphore);
-
-        const auto submit = vkinit::submitInfo(&submitInfo, &waitInfo, &signalInfo);
-        VK_CHECK(vkQueueSubmit2(graphicsQueue, 1, &submit, frame.renderFence));
-    }
-
-    { // present
-        const auto presentInfo = VkPresentInfoKHR{
-            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-            .waitSemaphoreCount = 1,
-            .pWaitSemaphores = &frame.renderSemaphore,
-            .swapchainCount = 1,
-            .pSwapchains = &m_swapchain.swapchain,
-            .pImageIndices = &swapchainImageIndex,
-        };
-
-        auto res = vkQueuePresentKHR(graphicsQueue, &presentInfo);
-        if (res != VK_SUCCESS)
-        {
-            SKY_CORE_ERROR("failed to present: {}", string_VkResult(res));
-            m_dirty = true;
-        }
-    }
+    // Submit the command buffer
+    submit(cmd, graphicsQueue, frameIndex, frame.swapchainSemaphore, frame.renderSemaphore);
+    
+    // Present the swapchain image
+    present(graphicsQueue, frameIndex, swapchainImageIndex, frame.renderSemaphore);
 }
 } // namespace sky::gfx

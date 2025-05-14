@@ -5,127 +5,13 @@
 #include "asset_management/asset_manager.h"
 #include "asset_management/editor_asset_manager.h"
 #include "renderer/passes/forward_renderer.h"
-#include "scene/scene_manager.h"
-
-#include "renderer/camera/camera.h"
+#include "renderer/scene_renderer.h"
 
 #include <stb_image_write.h>
 #include <vulkan/vulkan_core.h>
 
 namespace sky
 {
-VkResult saveVkImageToPNG(gfx::Device &gfxDevice, VkDevice device, VkCommandPool commandPool, VkQueue queue, VkImage sourceImage,
-                          uint32_t width, uint32_t height, const char *filename)
-{
-    // Create a buffer to store the image data
-    VkBufferCreateInfo bufferInfo = {.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-                                     .size = width * height * 4, // Assuming RGBA8 format
-                                     .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                                     .sharingMode = VK_SHARING_MODE_EXCLUSIVE};
-
-    VkBuffer stagingBuffer;
-    VkResult result = vkCreateBuffer(device, &bufferInfo, nullptr, &stagingBuffer);
-    if (result != VK_SUCCESS) return result;
-
-    // Get memory requirements and allocate
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(device, stagingBuffer, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo = {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        .allocationSize = memRequirements.size,
-        .memoryTypeIndex =  gfxDevice.getMemoryType(memRequirements.memoryTypeBits,
-                                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, nullptr)
-    };
-
-    VkDeviceMemory stagingMemory;
-    result = vkAllocateMemory(device, &allocInfo, nullptr, &stagingMemory);
-    if (result != VK_SUCCESS)
-    {
-        vkDestroyBuffer(device, stagingBuffer, nullptr);
-        return result;
-    }
-
-    vkBindBufferMemory(device, stagingBuffer, stagingMemory, 0);
-
-    // Create command buffer for copy operation
-    VkCommandBufferAllocateInfo cmdBufInfo = {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                                              .commandPool = commandPool,
-                                              .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                                              .commandBufferCount = 1};
-
-    VkCommandBuffer cmdBuffer;
-    result = vkAllocateCommandBuffers(device, &cmdBufInfo, &cmdBuffer);
-    if (result != VK_SUCCESS)
-    {
-        vkFreeMemory(device, stagingMemory, nullptr);
-        vkDestroyBuffer(device, stagingBuffer, nullptr);
-        return result;
-    }
-
-    // Begin command buffer recording
-    VkCommandBufferBeginInfo beginInfo = {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                                          .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
-
-    vkBeginCommandBuffer(cmdBuffer, &beginInfo);
-
-    // Transition image layout for transfer
-    VkImageMemoryBarrier barrier = {.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                                    .srcAccessMask = 0,
-                                    .dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
-                                    .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // Adjust based on current layout
-                                    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                                    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                                    .image = sourceImage,
-                                    .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                                                         .baseMipLevel = 0,
-                                                         .levelCount = 1,
-                                                         .baseArrayLayer = 0,
-                                                         .layerCount = 1},
-    };
-
-    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
-                         nullptr, 1, &barrier);
-
-    // Copy image to buffer
-    VkBufferImageCopy region = {.bufferOffset = 0,
-                                .bufferRowLength = 0,
-                                .bufferImageHeight = 0,
-                                .imageSubresource = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                                                     .mipLevel = 0,
-                                                     .baseArrayLayer = 0,
-                                                     .layerCount = 1},
-                                .imageOffset = {0, 0, 0},
-                                .imageExtent = {width, height, 1}};
-
-    vkCmdCopyImageToBuffer(cmdBuffer, sourceImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, stagingBuffer, 1, &region);
-
-    // End and submit command buffer
-    vkEndCommandBuffer(cmdBuffer);
-
-    VkSubmitInfo submitInfo = {
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO, .commandBufferCount = 1, .pCommandBuffers = &cmdBuffer};
-
-    result = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(queue);
-
-    // Map memory and write to file
-    void *data;
-    vkMapMemory(device, stagingMemory, 0, VK_WHOLE_SIZE, 0, &data);
-
-    // Write to PNG using stb_image_write
-    stbi_write_png(filename, width, height, 4, data, width * 4);
-
-    // Cleanup
-    vkUnmapMemory(device, stagingMemory);
-    vkFreeCommandBuffers(device, commandPool, 1, &cmdBuffer);
-    vkFreeMemory(device, stagingMemory, nullptr);
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-
-    return VK_SUCCESS;
-}
-
 CustomThumbnail::CustomThumbnail() 
 {
 	auto &device = Application::getRenderer()->getDevice();
@@ -139,7 +25,7 @@ CustomThumbnail::CustomThumbnail()
         .intensity = 5.f}, transform);
 
     m_thumbnailGradientPass.init(device, m_drawImageFormat);
-	m_forwardRenderer.init(device, m_drawImageFormat, VK_SAMPLE_COUNT_4_BIT);
+	m_forwardRenderer.init(device, m_drawImageFormat, VK_SAMPLE_COUNT_1_BIT);
 }
 
 CustomThumbnail::~CustomThumbnail()
@@ -159,19 +45,42 @@ void CustomThumbnail::render(gfx::CommandBuffer cmd)
             case AssetType::Material:
             {
                 auto handle = AssetManager::getOrCreateAssetHandle(path, AssetType::Material);
-                auto materialId = AssetManager::getAsset<MaterialAsset>(handle)->material;
-                generateMaterialThumbnail(cmd, materialId, path);
+                
+                fs::path pathCopy = path;
+                auto request = CreateRef<ThumbnailRenderRequest>(ThumbnailRenderRequest{
+                    .path = pathCopy,
+                    .handle = handle
+                });
+                
+                m_pendingRequests.push_back(request);
+                
+                AssetManager::getAssetAsync<MaterialAsset>(handle, [this, request](const Ref<MaterialAsset> &materialAsset) {
+                    if (materialAsset) {
+                        m_readyMaterials.push_back({request->path, materialAsset->material});
+                    }
+                });
+                
                 break;
             }
             case AssetType::Mesh:
             {
                 auto handle = AssetManager::getOrCreateAssetHandle(path, AssetType::Mesh);
-                /*AssetManager::getAssetAsync<Model>(handle, [&](const Ref<Model> &model) {
-					generateModelThumbnail(cmd, model->meshes, path);
-                });*/
-                auto meshes = AssetManager::getAsset<Model>(handle)->meshes;
-                generateModelThumbnail(cmd, meshes, path);
-				break;
+                fs::path pathCopy = path;
+                
+                auto request = CreateRef<ThumbnailRenderRequest>(ThumbnailRenderRequest{
+                    .path = pathCopy,
+                    .handle = handle
+                });
+                
+                m_pendingRequests.push_back(request);
+                
+                AssetManager::getAssetAsync<Model>(handle, [this, request](const Ref<Model> &model) {
+                    if (model && !model->meshes.empty()) {
+                        m_readyModels.push_back({request->path, model->meshes});
+                    }
+                });
+                
+                break;
             }
             default: break;
         }
@@ -179,14 +88,25 @@ void CustomThumbnail::render(gfx::CommandBuffer cmd)
         m_queue.pop();
         break;
     }
+    
+    if (!m_readyMaterials.empty()) {
+        auto& readyMaterial = m_readyMaterials.front();
+        generateMaterialThumbnail(cmd, readyMaterial.materialId, readyMaterial.path);
+        m_readyMaterials.pop_front();
+    }
+    else if (!m_readyModels.empty()) {
+        auto& readyModel = m_readyModels.front();
+        generateModelThumbnail(cmd, readyModel.meshes, readyModel.path);
+        m_readyModels.pop_front();
+    }
 }
 
 ImageID CustomThumbnail::getOrCreateThumbnail(const fs::path &path) 
 {
 	if (m_thumbnails.contains(path)) return m_thumbnails.at(path).first;
 
-	auto drawImage = Application::getRenderer()->createNewDrawImage(m_size, m_drawImageFormat);
-	auto depthImage = Application::getRenderer()->createNewDepthImage(m_size);
+	auto drawImage = Application::getRenderer()->createNewDrawImage(m_size, m_drawImageFormat, VK_SAMPLE_COUNT_1_BIT);
+	auto depthImage = Application::getRenderer()->createNewDepthImage(m_size, VK_SAMPLE_COUNT_1_BIT);
 	m_thumbnails[path] = std::make_pair(drawImage, depthImage);
 	m_queue.push(path);
 
@@ -332,9 +252,9 @@ void CustomThumbnail::generateModelThumbnail(gfx::CommandBuffer cmd,
     renderer->getMaterialCache().upload(device, cmd);
 
     gfx::vkutil::transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
-		 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     gfx::vkutil::transitionImage(cmd, depthImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
-		 VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+        VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 
 	const auto renderInfo = gfx::vkutil::createRenderingInfo({
         .renderExtent = drawImage.getExtent2D(),
@@ -359,13 +279,5 @@ void CustomThumbnail::generateModelThumbnail(gfx::CommandBuffer cmd,
         true);
 
     vkCmdEndRendering(cmd);
-
-    auto width = m_size.x;
-    auto height = m_size.y;
-
-   auto outPath = ProjectManager::getConfig().getThumbnailCachePath() / (path.filename().string() + ".png");
-  /* VK_CHECK(saveVkImageToPNG(device, device.getDevice(), device.getCommandPool(), device.getQueue(), drawImage.image, width,
-                     height, outPath.string().c_str()));*/
-
 }
 } // namespace sky

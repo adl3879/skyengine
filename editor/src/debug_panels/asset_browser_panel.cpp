@@ -14,6 +14,7 @@
 #include "core/tasks/task_manager.h"
 #include "core/helpers/image.h"
 #include "core/helpers/imgui.h"
+#include "graphics/vulkan/vk_types.h"
 #include "scene/scene_manager.h"
 #include "core/events/event_bus.h"
 #include "inspector_panel.h"
@@ -69,7 +70,43 @@ void AssetBrowserPanel::render()
         }
     }
 
+    // Check if we need to update the directory cache
+    std::string currentDirStr = m_currentDirectory.string();
+    int64_t currentTime = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    
+    // Update cache if:
+    // 1. It's been more than 5 seconds since last update
+    // 2. The cache for this directory doesn't exist
+    // 3. The cache has been marked as dirty (e.g., after file operations)
+    if (m_DirectoryCacheDirty || 
+        currentTime - m_LastDirectoryCacheUpdate > 5 || 
+        m_DirectoryCache.find(currentDirStr) == m_DirectoryCache.end()) 
+    {
+        ZoneScopedN("Update directory cache");
+        
+        m_DirectoryCache[currentDirStr].clear();
+        
+        if (fs::exists(m_currentDirectory))
+        {
+            for (auto &directoryEntry : std::filesystem::directory_iterator(m_currentDirectory))
+            {
+                // Filter out unwanted files here to avoid filtering in the render loop
+                const auto &path = directoryEntry.path();
+                if (path.stem() == "AssetRegistry") continue;
+                if (path.extension() == ".import") continue;
+                if (path.extension() == ".bin") continue;
+                
+                m_DirectoryCache[currentDirStr].push_back(directoryEntry);
+            }
+        }
+        
+        m_LastDirectoryCacheUpdate = currentTime;
+        m_DirectoryCacheDirty = false;
+    }
+
     ImGui::Begin("Asset Browser   ");
+
     if (m_showConfirmDelete) ImGui::OpenPopup("Confirm Delete");
 
     float panelWidth = ImGui::GetContentRegionAvail().x;
@@ -190,14 +227,15 @@ void AssetBrowserPanel::render()
 
     if (m_CurrentDirectoryEntries.empty())
     { 
-        if (fs::exists(m_currentDirectory))
-        {
-		    for (auto &directoryEntry : std::filesystem::directory_iterator(m_currentDirectory))
-			    drawFileAssetBrowser(directoryEntry);
-        }
+        // Use the cached directory entries instead of accessing the filesystem
+        for (const auto &directoryEntry : m_DirectoryCache[currentDirStr])
+            drawFileAssetBrowser(directoryEntry);
     }
     else
-        for (const auto &directoryEntry : m_CurrentDirectoryEntries) drawFileAssetBrowser(directoryEntry);
+    {
+        for (const auto &directoryEntry : m_CurrentDirectoryEntries) 
+            drawFileAssetBrowser(directoryEntry);
+    }
 
     ImGui::Columns(1);
     ImGui::EndChild();
@@ -291,57 +329,83 @@ void AssetBrowserPanel::refreshAssetTree() {}
 
 void AssetBrowserPanel::displayFileHierarchy(const fs::path &directory) 
 {
+    ZoneScopedN("Display file hierarchy");
     if (!fs::exists(directory) || !fs::is_directory(directory)) return;
 
-    for (auto &directoryEntry : std::filesystem::directory_iterator(directory))
-    {
-        const fs::path &entryPath = directoryEntry.path();
-
-        // Get the hash of the node label
-        std::size_t labelHash = std::hash<std::string>{}(entryPath.filename().string());
-        bool isOpen = false;
-
-        // Check if the entry is a directory
-        if (fs::is_directory(entryPath))
-        {
-            auto path = entryPath.filename().string();
-            int flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
-
-            // check if entryPath is a child of m_CurrentDirectory
-            if (m_currentDirectory == entryPath)
-            {
-                flags |= ImGuiTreeNodeFlags_Selected;
-            }
-
-            // check if entryPath is a leaf folder
-            bool isLeaf = true;
-            for (const auto &p : fs::recursive_directory_iterator(entryPath))
-            {
-                if (p.is_directory())
-                {
-                    isLeaf = false;
-                    break;
+    // Cache directory structure to avoid repeated filesystem operations
+    static std::unordered_map<std::string, bool> leafDirectoryCache;
+    static std::unordered_map<std::string, std::vector<fs::directory_entry>> directoryContentsCache;
+    static int64_t lastCacheUpdateTime = 0;
+    
+    // Update cache every few seconds or when explicitly requested
+    int64_t currentTime = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    
+    bool updateCache = false;
+    std::string dirStr = directory.string();
+    
+    // Check if we need to update the cache
+    if (currentTime - lastCacheUpdateTime > 5 || // Update every 5 seconds
+        directoryContentsCache.find(dirStr) == directoryContentsCache.end()) {
+        updateCache = true;
+        lastCacheUpdateTime = currentTime;
+    }
+    
+    // Update the cache if needed
+    if (updateCache) {
+        directoryContentsCache[dirStr].clear();
+        for (auto &entry : std::filesystem::directory_iterator(directory)) {
+            if (fs::is_directory(entry.path())) {
+                directoryContentsCache[dirStr].push_back(entry);
+                
+                // Check if it's a leaf directory (only if not already in cache)
+                std::string entryStr = entry.path().string();
+                if (leafDirectoryCache.find(entryStr) == leafDirectoryCache.end()) {
+                    bool isLeaf = true;
+                    for (auto it = fs::directory_iterator(entry.path()); it != fs::directory_iterator(); ++it) {
+                        if (fs::is_directory(it->path())) {
+                            isLeaf = false;
+                            break;
+                        }
+                    }
+                    leafDirectoryCache[entryStr] = isLeaf;
                 }
             }
-            if (isLeaf) flags |= ImGuiTreeNodeFlags_Leaf;
-
-            auto label = std::string(ICON_FA_FOLDER "  ") + path;
-            
-            ImGui::Spacing();
-            const bool treeNodeOpen = ImGui::TreeNodeEx(path.c_str(), flags, label.c_str());
-
-            // if treenode is selected
-            bool clickedOnArrow =
-                (ImGui::GetMousePos().x - ImGui::GetItemRectMin().x) < ImGui::GetTreeNodeToLabelSpacing();
-            if (ImGui::IsItemClicked() && !clickedOnArrow) m_currentDirectory = entryPath;
-
-            if (treeNodeOpen)
-            {
-                isOpen = true;
-                displayFileHierarchy(entryPath);
-                ImGui::TreePop();
-            }
-            else isOpen = false;
+        }
+    }
+    
+    // Display directories from cache
+    for (const auto &directoryEntry : directoryContentsCache[dirStr]) {
+        const fs::path &entryPath = directoryEntry.path();
+        
+        // Skip non-directories (already filtered in cache creation)
+        auto path = entryPath.filename().string();
+        int flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+        
+        // Check if entryPath is a child of m_CurrentDirectory
+        if (m_currentDirectory == entryPath) {
+            flags |= ImGuiTreeNodeFlags_Selected;
+        }
+        
+        // Use cached leaf status
+        std::string entryStr = entryPath.string();
+        if (leafDirectoryCache[entryStr]) {
+            flags |= ImGuiTreeNodeFlags_Leaf;
+        }
+        
+        auto label = std::string(ICON_FA_FOLDER "  ") + path;
+        
+        ImGui::Spacing();
+        const bool treeNodeOpen = ImGui::TreeNodeEx(path.c_str(), flags, label.c_str());
+        
+        // Handle click
+        bool clickedOnArrow = 
+            (ImGui::GetMousePos().x - ImGui::GetItemRectMin().x) < ImGui::GetTreeNodeToLabelSpacing();
+        if (ImGui::IsItemClicked() && !clickedOnArrow) m_currentDirectory = entryPath;
+        
+        if (treeNodeOpen) {
+            displayFileHierarchy(entryPath);
+            ImGui::TreePop();
         }
     }
 }
@@ -471,6 +535,8 @@ void AssetBrowserPanel::search(const std::string &query)
 
 void AssetBrowserPanel::drawFileAssetBrowser(fs::directory_entry directoryEntry) 
 {
+    ZoneScopedN("Draw file asset browser");
+
     const auto &path = directoryEntry.path();
     const std::string filenameString = path.filename().string();
 
@@ -485,7 +551,7 @@ void AssetBrowserPanel::drawFileAssetBrowser(fs::directory_entry directoryEntry)
 
     ImGui::PushID(filenameString.c_str());
 
-	auto icon = getOrCreateThumbnail(directoryEntry);
+	auto icon = getOrCreateThumbnail(path);
 	if (icon == NULL_IMAGE_ID) icon = m_icons["file"];
 
     if (directoryEntry.is_directory()) icon = m_icons["directory"];
@@ -571,7 +637,6 @@ void AssetBrowserPanel::drawFileAssetBrowser(fs::directory_entry directoryEntry)
         }
     }
 
-
     std::string fileNameWithoutExtension = filenameString.substr(0, filenameString.find_last_of("."));
     std::string truncatedName = fileNameWithoutExtension;
     if (truncatedName.size() > 10) truncatedName = truncatedName.substr(0, 10) + "...";
@@ -579,7 +644,7 @@ void AssetBrowserPanel::drawFileAssetBrowser(fs::directory_entry directoryEntry)
     // center
     auto cps = ImGui::GetCursorPosX();
     auto ps = ImGui::GetCursorPosX() +
-              (thumbnailSize.x + (thumbnailPadding * 2) - ImGui::CalcTextSize(truncatedName.c_str()).x) / 2;
+        (thumbnailSize.x + (thumbnailPadding * 2) - ImGui::CalcTextSize(truncatedName.c_str()).x) / 2;
     ImGui::SetCursorPosX(ps);
 
     if (m_renameRequested && m_renamePath == path)

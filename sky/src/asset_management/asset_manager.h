@@ -37,11 +37,11 @@ class AssetManager
 
         // Create a new task since none exists
         task = CreateRef<Task<Ref<T>>>(taskName,
-                                       [handle]() -> Ref<T>
-                                       {
-                                           auto asset = ProjectManager::getEditorAssetManager()->getAsset(handle);
-                                           return std::static_pointer_cast<T>(asset);
-                                       });
+            [handle]() -> Ref<T>
+            {
+                auto asset = ProjectManager::getEditorAssetManager()->getAsset(handle);
+                return std::static_pointer_cast<T>(asset);
+            });
 
         if (callback) task->setCallback(callback);
 

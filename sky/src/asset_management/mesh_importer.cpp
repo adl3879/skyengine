@@ -2,8 +2,6 @@
 
 #include "renderer/model_loader.h"
 #include "core/project_management/project_manager.h"
-#include "asset_manager.h"
-#include "renderer/texture.h"
 #include "core/application.h"
 #include "core/resource/import_data.h"
 #include "core/resource/mesh_serializer.h"

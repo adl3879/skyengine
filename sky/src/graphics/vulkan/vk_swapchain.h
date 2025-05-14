@@ -4,6 +4,7 @@
 
 #include <vulkan/vulkan.h>
 #include <VkBootstrap.h>
+#include <vulkan/vulkan_core.h>
 
 namespace sky::gfx
 {
@@ -26,6 +27,10 @@ class Swapchain
 
     // returns the image and its index
     std::pair<VkImage, std::uint32_t> acquireImage(VkDevice device, std::size_t frameIndex);
+    void submit(VkCommandBuffer cmd, VkQueue graphicsQueue, std::size_t frameIndex, 
+        VkSemaphore waitSemaphore = VK_NULL_HANDLE, VkSemaphore signalSemaphore = VK_NULL_HANDLE);
+    void present(VkQueue graphicsQueue, std::size_t frameIndex, std::uint32_t swapchainImageIndex,
+        VkSemaphore waitSemaphore = VK_NULL_HANDLE);
     void submitAndPresent(VkCommandBuffer cmd, VkQueue graphicsQueue, std::size_t frameIndex, std::uint32_t swapchainImageIndex);
     VkImageView getImageView(std::size_t swapchainImageIndex) { return m_imageViews[swapchainImageIndex]; }
 

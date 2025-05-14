@@ -37,7 +37,7 @@ SceneRenderer::~SceneRenderer()
 
 bool SceneRenderer::isMultisamplingEnabled() const
 {
-    return m_samples == VK_SAMPLE_COUNT_4_BIT;
+    return gfx::vkutil::sampleCountToInt(m_samples) > 1;
 }
 
 void SceneRenderer::init(glm::ivec2 size) 
@@ -50,7 +50,6 @@ void SceneRenderer::init(glm::ivec2 size)
     m_spriteRenderer.init(m_device, m_drawImageFormat);
     m_forwardRenderer.init(m_device, m_drawImageFormat, m_samples);
     m_infiniteGridPass.init(m_device, m_drawImageFormat, m_samples);
-    // m_skyAtmospherePass.init(m_device);
     m_depthResolvePass.init(m_device, m_depthImageFormat);
     m_postFXPass.init(m_device, m_drawImageFormat);
 
@@ -133,7 +132,7 @@ void SceneRenderer::destroy()
     m_forwardRenderer.cleanup(m_device);
 }
 
-ImageID SceneRenderer::createNewDrawImage(glm::ivec2 size, VkFormat format) 
+ImageID SceneRenderer::createNewDrawImage(glm::ivec2 size, VkFormat format, VkSampleCountFlagBits samples) 
 {
     const auto drawImageExtent = VkExtent3D{
         .width = (std::uint32_t)size.x,
@@ -151,13 +150,13 @@ ImageID SceneRenderer::createNewDrawImage(glm::ivec2 size, VkFormat format)
 		.format = format,
 		.usage = usages,
 		.extent = drawImageExtent,
-		.samples = m_samples,
+		.samples = samples,
 	};
 	// reuse the same id if creating again
 	return m_device.createImage(createImageInfo);
 }
 
-ImageID SceneRenderer::createNewDepthImage(glm::ivec2 size)
+ImageID SceneRenderer::createNewDepthImage(glm::ivec2 size, VkSampleCountFlagBits samples)
 {
     const auto drawImageExtent = VkExtent3D{
         .width = (std::uint32_t)size.x,
@@ -168,7 +167,7 @@ ImageID SceneRenderer::createNewDepthImage(glm::ivec2 size)
         .format = m_depthImageFormat,
         .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         .extent = drawImageExtent,
-        .samples = m_samples,
+        .samples = samples,
     };
     // reuse the same id if creating again
     return m_device.createImage(createInfo);
@@ -283,7 +282,6 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
             .ambientIntensity = 0.1f,
             .lightsBuffer = lightCache.getBuffer().address,
             .numLights = (uint32_t)lightCache.getSize(),
-            //.sunlightIndex = lightCache.getSunlightIndex(), 
             .materialsBuffer = m_materialCache.getMaterialDataBufferAddress(),
         };
         uint32_t bufferIndex = (drawImageID == m_gameDrawImageID) ? 
@@ -332,8 +330,6 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
 
     vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
     {
-        // m_skyAtmospherePass.drawSky(m_device, cmd, drawImage.getExtent2D());
-
         if (SceneManager::get().sceneIsType(SceneType::Scene3D)) {
             m_infiniteGridPass.draw(m_device, 
                 cmd, 

@@ -70,8 +70,6 @@ void Application::run()
         m_renderer->update(scene);
         m_renderer->render(cmd, scene, *scene->getEditorCamera(), m_renderer->getSceneImage());
 
-        // m_renderer->update(scene);
-        // m_renderer->render(cmd, scene, *scene->getGameCamera(), m_renderer->getGameDrawImageId());
         m_gfxDevice->endFrame(cmd);
         
         if (m_gfxDevice->needsSwapchainRecreate())
