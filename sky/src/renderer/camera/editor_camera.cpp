@@ -3,7 +3,6 @@
 #include "core/events/input.h"
 #include "core/events/key_codes.h"
 #include "core/events/key_event.h"
-#include "core/log/log.h"
 #include "scene/scene_manager.h"
 #include "skypch.h"
 
@@ -54,7 +53,7 @@ std::pair<float, float> EditorCamera::panSpeed() const
     return {xFactor, yFactor};
 }
 
-float EditorCamera::rotationSpeed() const { return 0.8f; }
+float EditorCamera::rotationSpeed() const { return 5.f; }
 
 float EditorCamera::zoomSpeed() const
 {
@@ -92,22 +91,26 @@ bool EditorCamera::onMouseScrolled(MouseScrolledEvent &e)
 
 bool EditorCamera::onKeyPressed(KeyPressedEvent &e)
 {
-    if (Input::isKeyPressed(Key::LeftShift))
-    {
-        if (e.getKeyCode() == Key::F)
-        {
-            m_isFreeLook = !m_isFreeLook;
-            Input::showMouseCursor(!m_isFreeLook);
-        }
-    }
     return true;
+}
+
+void EditorCamera::toggleFreeLook()
+{
+    m_isFreeLook = !m_isFreeLook;
+    
+    m_targetYaw = m_yaw;
+    m_targetPitch = m_pitch;
+    m_targetPosition = m_position;
+    m_targetFocalPoint = m_focalPoint;
+    
+    Input::showMouseCursor(!m_isFreeLook);
 }
 
 void EditorCamera::mousePan(const glm::vec2 &delta)
 {
     auto [xSpeed, ySpeed] = panSpeed();
-    m_focalPoint += getRightDirection() * delta.x * xSpeed * m_distance;
-    m_focalPoint += getUpDirection() * delta.y * ySpeed * m_distance;
+    m_focalPoint += getRightDirection() * delta.x * xSpeed * 3.f * m_distance;
+    m_focalPoint += getUpDirection() * delta.y * ySpeed * 3.f * m_distance;
 }
 
 void EditorCamera::mouseRotate(const glm::vec2 &delta)
@@ -158,30 +161,66 @@ void EditorCamera::updateFreeLook(float dt)
     if (Input::isKeyPressed(Key::E)) direction += getUpDirection();
 
     if (glm::length(direction) > 0.0f)
-        m_position += glm::normalize(direction) * 5.f * dt;
+        m_targetPosition += glm::normalize(direction) * 10.f * dt;
+    
+    // Smooth position movement with lerp
+    m_position = glm::mix(m_position, m_targetPosition, m_movementSmoothness);
 
-    // Mouse look
     glm::vec2 mousePos = Input::getMousePosition();
-    glm::vec2 delta = (mousePos - m_initialMousePosition) * 0.002f;
+    glm::vec2 delta = (mousePos - m_initialMousePosition) * 0.0008f;
     m_initialMousePosition = mousePos;
 
-    m_yaw   -= delta.x;
-    m_pitch -= delta.y;
-    m_pitch = std::clamp(m_pitch, -1.5f, 1.5f);
+    m_targetYaw -= delta.x;
+    m_targetPitch -= delta.y;
+    m_targetPitch = std::clamp(m_targetPitch, -1.5f, 1.5f);
+    
+    // Smooth rotation with lerp
+    m_yaw = glm::mix(m_yaw, m_targetYaw, m_rotationSmoothness);
+    m_pitch = glm::mix(m_pitch, m_targetPitch, m_rotationSmoothness);
 }
 
 void EditorCamera::updateOrbit(float dt)
 {
     auto mousePos = Input::getMousePosition();
     const glm::vec2 &mouse{mousePos.x, mousePos.y};
+    
+    // Store previous values for smoothing
+    glm::vec3 previousFocalPoint = m_focalPoint;
+    float previousYaw = m_yaw;
+    float previousPitch = m_pitch;
+    
     if (Input::isKeyPressed(Key::LeftAlt))
     {
-        glm::vec2 delta = (mouse - m_initialMousePosition) * 0.003f;
+        glm::vec2 delta = (mouse - m_initialMousePosition) * 0.002f;
         m_initialMousePosition = mouse;
 
-        if (Input::isKeyPressed(Key::LeftControl)) mousePan(delta);
-        else if (Input::isMouseButtonPressed(Mouse::ButtonLeft)) mouseRotate(delta);
+        if (Input::isKeyPressed(Key::LeftControl)) 
+        {
+            glm::vec3 originalFocalPoint = m_focalPoint;
+            mousePan(delta);
+            m_targetFocalPoint = m_focalPoint;
+            m_focalPoint = originalFocalPoint;
+        }
+        else if (Input::isMouseButtonPressed(Mouse::ButtonLeft)) 
+        {
+            float originalYaw = m_yaw;
+            float originalPitch = m_pitch;
+            mouseRotate(delta);
+            
+            m_targetYaw = m_yaw;
+            m_targetPitch = m_pitch;
+            
+            m_yaw = originalYaw;
+            m_pitch = originalPitch;
+        }
     }
     m_initialMousePosition = mouse;
+    
+    m_focalPoint = glm::mix(m_focalPoint, m_targetFocalPoint, m_movementSmoothness);
+    
+    m_yaw = glm::mix(m_yaw, m_targetYaw, m_rotationSmoothness);
+    m_pitch = glm::mix(m_pitch, m_targetPitch, m_rotationSmoothness);
+    
+    m_pitch = std::clamp(m_pitch, -1.5f, 1.5f);
 }
 }

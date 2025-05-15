@@ -49,6 +49,7 @@ class EditorCamera : public Camera
 
     float getPitch() const { return m_pitch; }
     float getYaw() const { return m_yaw; }
+    void toggleFreeLook();
     bool isFreeLook() const { return m_isFreeLook; }
 
     void reset();
@@ -88,5 +89,12 @@ class EditorCamera : public Camera
     float m_viewportWidth = 1280, m_viewportHeight = 720;
 
     bool m_isFreeLook = false;
+
+    glm::vec3 m_targetPosition = {0.0f, 0.0f, 0.0f};
+    glm::vec3 m_targetFocalPoint = {0.0f, 0.0f, 0.0f};
+    float m_targetYaw = 0.0f;
+    float m_targetPitch = 0.2613f;
+    float m_movementSmoothness = 0.1f; // Lower = smoother but slower (0.05-0.3 is a good range)
+    float m_rotationSmoothness = 0.05f; // Lower = smoother but slower
 };
 } // namespace sky
