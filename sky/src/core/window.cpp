@@ -215,4 +215,10 @@ void Input::showMouseCursor(const bool &show)
     auto *window = static_cast<GLFWwindow *>(Application::getWindow()->getGLFWwindow());
     glfwSetInputMode(window, GLFW_CURSOR, show ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 }
+
+void Input::setCursorMode(CursorMode mode)
+{
+    auto *window = static_cast<GLFWwindow *>(Application::getWindow()->getGLFWwindow());
+    glfwSetInputMode(window, GLFW_CURSOR, static_cast<int>(mode));
+}
 } // namespace sky

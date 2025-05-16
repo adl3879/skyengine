@@ -96,5 +96,6 @@ class EditorCamera : public Camera
     float m_targetPitch = 0.2613f;
     float m_movementSmoothness = 0.1f; // Lower = smoother but slower (0.05-0.3 is a good range)
     float m_rotationSmoothness = 0.05f; // Lower = smoother but slower
+    float m_movementSpeed = 5.0f;
 };
 } // namespace sky

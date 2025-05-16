@@ -36,6 +36,8 @@ class EditorLayer : public Layer
     void registerEditorEvents();
     void reset();
 
+    bool onKeyPressed(KeyPressedEvent &e);
+
   private:
     Ref<SceneRenderer> m_renderer;
 

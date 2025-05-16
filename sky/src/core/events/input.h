@@ -19,5 +19,6 @@ class Input
     static glm::vec2 getMouseDelta();
     static void setMousePosition(const std::uint32_t &x, const std::uint32_t &y);
     static void showMouseCursor(const bool &show);
+    static void setCursorMode(CursorMode mode);
 };
 } // namespace sky

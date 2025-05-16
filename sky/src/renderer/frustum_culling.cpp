@@ -23,6 +23,36 @@ glm::vec3 findNormal(const std::array<glm::vec3, 8> &points, const std::array<in
 
 namespace edge
 {
+std::array<glm::vec3, 8> calculateFrustumCornersWorldSpace(Camera &camera)
+{
+    const auto nearDepth =  0.f;
+    const auto farDepth = 1.f;
+    const auto bottomY = 1.f;
+    const auto topY = -1.f;
+
+    const std::array<glm::vec3, 8> cornersNDC = {
+        // near plane
+        glm::vec3{-1.f, bottomY, nearDepth},
+        glm::vec3{-1.f, topY, nearDepth},
+        glm::vec3{1.f, topY, nearDepth},
+        glm::vec3{1.f, bottomY, nearDepth},
+        // far plane
+        glm::vec3{-1.f, bottomY, farDepth},
+        glm::vec3{-1.f, topY, farDepth},
+        glm::vec3{1.f, topY, farDepth},
+        glm::vec3{1.f, bottomY, farDepth},
+    };
+
+    const auto inv = glm::inverse(camera.getViewProjection());
+    std::array<glm::vec3, 8> corners{};
+    for (int i = 0; i < 8; ++i) {
+        auto corner = inv * glm::vec4(cornersNDC[i], 1.f);
+        corner /= corner.w;
+        corners[i] = glm::vec3{corner};
+    }
+    return corners;
+}
+ 
 Frustum createFrustumFromCamera(const Camera &camera)
 {
     Frustum frustum;
@@ -71,8 +101,8 @@ glm::vec3 getTransformScale(const glm::mat4 &transform)
 bool isInFrustum(const Frustum &frustum, const math::Sphere &s)
 {
     return (isOnOrForwardPlane(frustum.farFace, s) && isOnOrForwardPlane(frustum.nearFace, s) &&
-            isOnOrForwardPlane(frustum.leftFace, s) && isOnOrForwardPlane(frustum.rightFace, s) &&
-            isOnOrForwardPlane(frustum.topFace, s) && isOnOrForwardPlane(frustum.bottomFace, s));
+        isOnOrForwardPlane(frustum.leftFace, s) && isOnOrForwardPlane(frustum.rightFace, s) &&
+        isOnOrForwardPlane(frustum.topFace, s) && isOnOrForwardPlane(frustum.bottomFace, s));
 }
 
 bool isInFrustum(const Frustum &frustum, const math::AABB &aabb)

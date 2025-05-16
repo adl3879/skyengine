@@ -3,6 +3,8 @@
 #include "core/events/input.h"
 #include "core/events/key_codes.h"
 #include "core/events/key_event.h"
+#include "core/log/log.h"
+#include "glm/ext/vector_float3.hpp"
 #include "scene/scene_manager.h"
 #include "skypch.h"
 
@@ -91,6 +93,38 @@ bool EditorCamera::onMouseScrolled(MouseScrolledEvent &e)
 
 bool EditorCamera::onKeyPressed(KeyPressedEvent &e)
 {
+    if (m_isFreeLook)
+    {
+        // Handle movement keys with acceleration
+        float speedMultiplier = e.isRepeat() ? 2.0f : 1.0f; // Increase speed on key repeat
+        
+        switch (e.getKeyCode())
+        {
+            case Key::W:
+                m_movementSpeed += 1.0f * speedMultiplier;
+                break;
+            case Key::S:
+                m_movementSpeed += 1.0f * speedMultiplier;
+                break;
+            case Key::A:
+                m_movementSpeed += 1.0f * speedMultiplier;
+                break;
+            case Key::D:
+                m_movementSpeed += 1.0f * speedMultiplier;
+                break;
+            case Key::Q:
+                m_movementSpeed += 1.0f * speedMultiplier;
+                break;
+            case Key::E:
+                m_movementSpeed += 1.0f * speedMultiplier;
+                break;
+            default:
+                break;
+        }
+        
+        // Cap the maximum speed
+        m_movementSpeed = std::min(m_movementSpeed, 20.0f);
+    }
     return true;
 }
 
@@ -104,6 +138,7 @@ void EditorCamera::toggleFreeLook()
     m_targetFocalPoint = m_focalPoint;
     
     Input::showMouseCursor(!m_isFreeLook);
+    Input::setCursorMode(m_isFreeLook ? CursorMode::Disabled : CursorMode::Normal);
 }
 
 void EditorCamera::mousePan(const glm::vec2 &delta)
@@ -161,7 +196,7 @@ void EditorCamera::updateFreeLook(float dt)
     if (Input::isKeyPressed(Key::E)) direction += getUpDirection();
 
     if (glm::length(direction) > 0.0f)
-        m_targetPosition += glm::normalize(direction) * 10.f * dt;
+        m_targetPosition += glm::normalize(direction) * m_movementSpeed * dt;
     
     // Smooth position movement with lerp
     m_position = glm::mix(m_position, m_targetPosition, m_movementSmoothness);

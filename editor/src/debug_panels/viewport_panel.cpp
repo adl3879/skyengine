@@ -10,6 +10,7 @@
 #include "asset_management/asset_manager.h"
 #include "asset_management/texture_importer.h"
 #include "core/events/key_codes.h"
+#include "core/log/log.h"
 #include "graphics/vulkan/vk_types.h"
 #include "scene/components.h"
 #include "scene/entity.h"
@@ -23,9 +24,6 @@ void ViewportPanel::render()
     auto renderer = Application::getRenderer();
     drawViewport("Scene", renderer->getSceneImage());
     drawViewport("Game", renderer->getGameDrawImageId());
-
-    if (Input::isKeyPressed(Key::LeftShift)) m_isShiftPressed = true;
-    else m_isShiftPressed = false;
 }
 
 void ViewportPanel::drawViewport(const char* title, ImageID image) 
@@ -163,10 +161,6 @@ bool ViewportPanel::onKeyPressed(KeyPressedEvent &e)
         case Key::W: m_gizmoType = ImGuizmo::OPERATION::TRANSLATE; break;
         case Key::E: m_gizmoType = ImGuizmo::OPERATION::ROTATE; break;
         case Key::R: m_gizmoType = ImGuizmo::OPERATION::SCALE; break;
-        case Key::F: 
-        {
-            if (m_isShiftPressed) m_context->getEditorCamera()->toggleFreeLook();
-        }
         default: break;
     }
     return true;

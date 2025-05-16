@@ -27,7 +27,7 @@ class ViewportPanel
     Ref<Scene> m_context;
     glm::vec2 m_viewportBounds[2];
 
-    bool m_isControlPressed, m_isShiftPressed, m_itemIsDraggedOver;
+    bool m_isControlPressed, m_itemIsDraggedOver;
     int m_gizmoType = -1;
 };
 } // namespace sky

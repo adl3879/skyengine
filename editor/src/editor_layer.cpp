@@ -1,6 +1,8 @@
 #include "editor_layer.h"
 
 #include "core/application.h"
+#include "core/events/input.h"
+#include "core/events/key_codes.h"
 #include "scene/scene_manager.h"
 #include "scene/entity.h"
 #include "scene/components.h"
@@ -64,6 +66,24 @@ void EditorLayer::onEvent(Event &e)
 {
     m_activeScene->onEvent(e);
     m_viewportPanel.onEvent(e);
+
+    EventDispatcher dispatcher(e);
+    dispatcher.dispatch<KeyPressedEvent>(SKY_BIND_EVENT_FN(EditorLayer::onKeyPressed));
+}
+
+
+bool EditorLayer::onKeyPressed(KeyPressedEvent &e)
+{
+    switch (e.getKeyCode())
+    {
+        case Key::F:
+        {
+            if (Input::isKeyPressed(Key::LeftShift)) 
+                m_activeScene->getEditorCamera()->toggleFreeLook();
+            break;
+        }
+    }
+    return true;
 }
 
 void EditorLayer::onFixedUpdate(float dt) {}
