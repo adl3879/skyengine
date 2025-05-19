@@ -35,6 +35,7 @@ set(SHADERS
     "sprite.frag"
     "fullscreen_triangle.vert"
     "depth_resolve.frag"
+    "skybox.frag"
     "post_fx.frag"
     "imgui.frag"
     "imgui.vert")

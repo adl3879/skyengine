@@ -9,7 +9,7 @@ namespace sky
 {
 namespace helper
 {
-ImageID loadImageFromFile(const fs::path& path);
+ImageID loadImageFromFile(const fs::path& path, float scaleFactor = 1.f);
 ImageID loadImageFromData(const void *buffer, uint64_t length);
 ImageID loadImageFromTexture(Ref<Texture2D> tex, VkFormat format, 
 	VkImageUsageFlags usage = VK_IMAGE_USAGE_SAMPLED_BIT, bool mipMap = true);

@@ -3,6 +3,7 @@
 #include "core/application.h"
 #include "core/events/input.h"
 #include "core/events/key_codes.h"
+#include "core/resource/custom_thumbnail.h"
 #include "scene/scene_manager.h"
 #include "scene/entity.h"
 #include "scene/components.h"

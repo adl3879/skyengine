@@ -7,18 +7,22 @@ namespace sky
 {
 namespace helper
 {
-ImageID loadImageFromFile(const fs::path& path)
+ImageID loadImageFromFile(const fs::path& path, float scaleFactor)
 {
     auto renderer = Application::getRenderer();
     auto tex = TextureImporter::loadTexture(path);
+    
+    uint32_t width = static_cast<uint32_t>(tex->width * scaleFactor);
+    uint32_t height = static_cast<uint32_t>(tex->height * scaleFactor);
+
     auto texture = renderer->createImage(
         {
             .format = VK_FORMAT_R8G8B8A8_SRGB,
             .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
             .extent =
                 VkExtent3D{
-                    .width = static_cast<uint32_t>(tex->width),
-                    .height = static_cast<uint32_t>(tex->height),
+                    .width = width,
+                    .height = height,
                     .depth = 1,
                 },
             .mipMap = true,

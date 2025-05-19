@@ -4,6 +4,7 @@
 #include "graphics/vulkan/vk_types.h"
 #include "vk_images.h"
 #include "vk_pipelines.h"
+#include <vulkan/vulkan_core.h>
 
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
@@ -59,7 +60,7 @@ void Device::init()
     { // create checkerboard texture
         uint32_t black = glm::packUnorm4x8(glm::vec4(0, 0, 0, 0));
         uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
-        const int size = 8;
+        const int size = 256;
         std::array<uint32_t, size * size> pixels; // for 16x16 checkerboard texture
         for (int x = 0; x < size; x++)
         {
@@ -255,6 +256,49 @@ uint32_t Device::getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properti
     {
         throw std::runtime_error("Could not find a matching memory type");
     }
+}
+
+CommandBuffer Device::beginSingleTimeCommands()
+{
+    // Create and begin a command buffer for the transfer
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool = m_immCommandPool;
+    allocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer cmdBuffer;
+    vkAllocateCommandBuffers(m_device, &allocInfo, &cmdBuffer);
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(cmdBuffer, &beginInfo);
+
+    return {cmdBuffer};
+}
+
+void Device::endSingleTimeCommands(gfx::CommandBuffer cmd)
+{
+    vkEndCommandBuffer(cmd);
+
+    // Submit the command buffer
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &cmd.handle;
+
+    VkFence fence;
+    VkFenceCreateInfo fenceInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+    vkCreateFence(m_device, &fenceInfo, nullptr, &fence);
+    
+    vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkWaitForFences(m_device, 1, &fence, VK_TRUE, UINT64_MAX);
+    
+    // Free the command buffer
+    vkDestroyFence(m_device, fence, nullptr);
+    vkFreeCommandBuffers(m_device, m_immCommandPool, 1, &cmd.handle);
 }
 
 AllocatedBuffer Device::createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage)

@@ -1,9 +1,12 @@
 #include "custom_thumbnail.h"
 
 #include "core/application.h"
+#include "core/project_management/project_manager.h"
+#include "core/helpers/image.h"
 #include "graphics/vulkan/vk_images.h"
 #include "asset_management/asset_manager.h"
 #include "asset_management/editor_asset_manager.h"
+#include "graphics/vulkan/vk_types.h"
 #include "renderer/passes/forward_renderer.h"
 #include "renderer/scene_renderer.h"
 
@@ -105,6 +108,15 @@ ImageID CustomThumbnail::getOrCreateThumbnail(const fs::path &path)
 {
 	if (m_thumbnails.contains(path)) return m_thumbnails.at(path).first;
 
+	// Check if we have a cached thumbnail file
+	std::string assetPathHash = std::to_string(std::hash<std::string>{}(path.string()));
+	fs::path cacheFilePath = ProjectManager::getConfig().getThumbnailCachePath() / (assetPathHash + ".png");
+	if (fs::exists(cacheFilePath))
+    {
+        m_thumbnails[path].first = helper::loadImageFromFile(cacheFilePath);
+        return m_thumbnails[path].first;
+	}
+
 	auto drawImage = Application::getRenderer()->createNewDrawImage(m_size, m_drawImageFormat, VK_SAMPLE_COUNT_1_BIT);
 	auto depthImage = Application::getRenderer()->createNewDepthImage(m_size, VK_SAMPLE_COUNT_1_BIT);
 	m_thumbnails[path] = std::make_pair(drawImage, depthImage);
@@ -116,6 +128,14 @@ ImageID CustomThumbnail::getOrCreateThumbnail(const fs::path &path)
 void CustomThumbnail::refreshThumbnail(const fs::path &path)
 {
     if (m_thumbnails.contains(path)) m_thumbnails.erase(path);
+}
+
+void CustomThumbnail::saveSceneThumbnail(const fs::path &path, ImageID imageId)
+{
+    auto &device = Application::getRenderer()->getDevice();
+    auto cmd = device.beginSingleTimeCommands();
+    saveThumbnailToFile(cmd, imageId, path);
+    device.endSingleTimeCommands(cmd);
 }
 
 void CustomThumbnail::generateMaterialThumbnail(gfx::CommandBuffer cmd, MaterialID mat, const fs::path &path) 
@@ -135,8 +155,8 @@ void CustomThumbnail::generateMaterialThumbnail(gfx::CommandBuffer cmd, Material
         "scene data");
 
     auto view = glm::lookAt(glm::vec3(0.0f, 0.0f, 2.8f),   // Camera position slightly back
-                            glm::vec3(0.0f, 0.0f, 0.0f),   // Looking at center
-                            glm::vec3(0.0f, 1.0f, 0.0f));  // Up vector
+        glm::vec3(0.0f, 0.0f, 0.0f),   // Looking at center
+        glm::vec3(0.0f, 1.0f, 0.0f));  // Up vector
 
     auto proj = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 100.0f);
 
@@ -188,6 +208,8 @@ void CustomThumbnail::generateMaterialThumbnail(gfx::CommandBuffer cmd, Material
         mat);
 
     vkCmdEndRendering(cmd);
+
+    saveThumbnailToFile(cmd, m_thumbnails[path].first, path);
 }
 
 void CustomThumbnail::generateModelThumbnail(gfx::CommandBuffer cmd, 
@@ -227,8 +249,8 @@ void CustomThumbnail::generateModelThumbnail(gfx::CommandBuffer cmd,
 
     auto view = glm::lookAt(cameraPos, center, glm::vec3(0.f, 1.f, 0.f));
     auto proj = glm::perspective(glm::radians(45.0f), 1.0f,
-                                 distanceFromCenter * 0.1f,  // Near plane
-                                 distanceFromCenter * 2.0f); // Far plane
+        distanceFromCenter * 0.1f,  // Near plane
+        distanceFromCenter * 2.0f); // Far plane
 
 	m_lightCache.upload(device, cmd);
 
@@ -279,5 +301,108 @@ void CustomThumbnail::generateModelThumbnail(gfx::CommandBuffer cmd,
         true);
 
     vkCmdEndRendering(cmd);
+
+    saveThumbnailToFile(cmd, m_thumbnails[path].first, path);
+}
+
+void CustomThumbnail::saveThumbnailToFile(gfx::CommandBuffer cmd, ImageID imageId, const fs::path &path)
+{
+    auto &device = Application::getRenderer()->getDevice();
+    auto image = device.getImage(imageId);
+    
+    // Create a staging buffer to download the image data
+    VkDeviceSize imageSize = m_size.x * m_size.y * 4; // RGBA8 format (4 bytes per pixel)
+    
+    gfx::AllocatedBuffer stagingBuffer;
+    stagingBuffer = device.createBuffer(imageSize, 
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT, 
+        VMA_MEMORY_USAGE_GPU_TO_CPU);
+    
+    // Transition image layout for transfer
+    gfx::vkutil::transitionImage(cmd, image.image, 
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
+        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    
+    // Copy image to buffer
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = 0;
+    region.bufferImageHeight = 0;
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+    region.imageOffset = {0, 0, 0};
+    region.imageExtent = {static_cast<uint32_t>(m_size.x), static_cast<uint32_t>(m_size.y), 1};
+    
+    vkCmdCopyImageToBuffer(cmd, image.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
+        stagingBuffer.buffer, 1, &region);
+    
+    // Add a buffer memory barrier to ensure the copy is complete before reading
+    VkBufferMemoryBarrier bufferBarrier{};
+    bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    bufferBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    bufferBarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
+    bufferBarrier.buffer = stagingBuffer.buffer;
+    bufferBarrier.offset = 0;
+    bufferBarrier.size = imageSize;
+    
+    vkCmdPipelineBarrier(
+        cmd,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_HOST_BIT,
+        0,
+        0, nullptr,
+        1, &bufferBarrier,
+        0, nullptr
+    );
+    
+    // Transition back to original layout
+    gfx::vkutil::transitionImage(cmd, image.image, 
+        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+    // --- Submit and wait for GPU to finish ---
+    auto rawCmd = cmd.handle;
+
+    // End the command buffer if not already done
+    vkEndCommandBuffer(rawCmd);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &rawCmd;
+
+    // Create fence
+    VkFence fence;
+    VkFenceCreateInfo fenceInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+    vkCreateFence(device.getDevice(), &fenceInfo, nullptr, &fence);
+
+    // Submit and wait
+    vkQueueSubmit(device.getGraphicsQueue(), 1, &submitInfo, fence);
+    vkWaitForFences(device.getDevice(), 1, &fence, VK_TRUE, UINT64_MAX);
+    vkDestroyFence(device.getDevice(), fence, nullptr);
+    
+    // Map memory and save to file
+    void* data;
+    vmaMapMemory(device.getAllocator(), stagingBuffer.allocation, &data);
+    
+    // Create parent directories if they don't exist
+    fs::path cacheDir = ProjectManager::getConfig().getThumbnailCachePath();
+    if (!fs::exists(cacheDir)) 
+        fs::create_directories(cacheDir);
+    
+    // Generate a cache filename based on the asset path
+    std::string assetPathHash = std::to_string(std::hash<std::string>{}(path.string()));
+    fs::path cacheFilePath = ProjectManager::getConfig().getThumbnailCachePath() / (assetPathHash + ".png");
+    
+    // Save image data to PNG file using stb_image_write
+    stbi_flip_vertically_on_write(true);
+    stbi_write_png(cacheFilePath.string().c_str(), m_size.x, m_size.y, 4, data, m_size.x * 4);
+    
+    vmaUnmapMemory(device.getAllocator(), stagingBuffer.allocation);
+    
+    // Clean up the staging buffer
+    vmaDestroyBuffer(device.getAllocator(), stagingBuffer.buffer, stagingBuffer.allocation);
 }
 } // namespace sky

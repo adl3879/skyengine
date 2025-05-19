@@ -1,5 +1,7 @@
 #include "scene_manager.h"
 
+#include "core/application.h"
+#include "core/resource/custom_thumbnail.h"
 #include "scene_serializer.h"
 #include "asset_management/asset_manager.h"
 
@@ -50,17 +52,13 @@ void SceneManager::saveActiveScene()
 
     AssetManager::serializeAssetDirectory();
     SKY_CORE_INFO("{} saved", path.string());
+
+    // auto renderer = Application::getRenderer();
+    // CustomThumbnail::get().saveSceneThumbnail(m_activeScene->getPath(), renderer->getSceneImage());
 }
 
 void SceneManager::saveAll() 
 {
-    // for (const auto &scene : m_openedScenes)
-    // {
-	// 	auto handle = AssetManager::getOrCreateAssetHandle(scene, AssetType::Scene);
-	// 	SceneSerializer serializer(AssetManager::getAsset<Scene>(handle));
-	// 	auto path = ProjectManager::getConfig().getAssetDirectory() / scene;
-	// 	serializer.serialize(path);
-    // }
 }
 
 bool SceneManager::sceneIsType(SceneType type) const 

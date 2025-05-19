@@ -92,6 +92,7 @@ class Device
 
     auto getQueue() const { return m_graphicsQueue; }
 	auto getCommandPool() const { return m_frames[m_frameNumber % gfx::FRAME_OVERLAP].commandPool; }
+    auto getGraphicsQueue() const { return m_graphicsQueue; }
 
 	CommandBuffer beginFrame();
     void endFrame(CommandBuffer cmd);
@@ -120,6 +121,9 @@ class Device
 	ImageID createDrawImage(VkFormat format, glm::ivec2 size);
 	AllocatedImage getImage(ImageID id);
 	void destroyImage(const AllocatedImage &image) const;
+
+    CommandBuffer beginSingleTimeCommands();
+    void endSingleTimeCommands(CommandBuffer cmd);
 
   private:
     void init();

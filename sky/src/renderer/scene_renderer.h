@@ -4,6 +4,7 @@
 #include <vulkan/vulkan_core.h>
 
 #include "passes/post_fx.h"
+#include "passes/skybox.h"
 #include "renderer/passes/depth_resolve.h"
 #include "renderer/camera/camera.h"
 #include "renderer/passes/forward_renderer.h"
@@ -111,6 +112,7 @@ class SceneRenderer
     SpriteBatchRenderer m_spriteRenderer;
     DepthResolvePass m_depthResolvePass;
     PostFXPass m_postFXPass;
+    // SkyboxPass m_skyboxPass;
 
     ImageID m_drawImageID{NULL_IMAGE_ID};
     ImageID m_gameDrawImageID{NULL_IMAGE_ID};

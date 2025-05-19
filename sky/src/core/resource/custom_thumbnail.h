@@ -2,7 +2,9 @@
 
 #include <skypch.h>
 
+#include "core/filesystem.h"
 #include "graphics/vulkan/vk_device.h"
+#include "graphics/vulkan/vk_types.h"
 #include "renderer/scene_renderer.h"
 #include "renderer/passes/thumbnail_gradient.h"
 #include "renderer/passes/forward_renderer.h"
@@ -21,18 +23,19 @@ class CustomThumbnail
 		return instance;
 	}
 
-	void render(gfx::CommandBuffer cmd);
 	ImageID getOrCreateThumbnail(const fs::path &path);
+	void render(gfx::CommandBuffer cmd);
 	void refreshThumbnail(const fs::path &path);
+    void saveSceneThumbnail(const fs::path &path, ImageID image);
 
   private:
 	void generateMaterialThumbnail(gfx::CommandBuffer cmd, MaterialID mat, const fs::path &path);
 	void generateModelThumbnail(gfx::CommandBuffer cmd, std::vector<MeshID> mesh, const fs::path &path);
+    void saveThumbnailToFile(gfx::CommandBuffer cmd, ImageID imageId, const fs::path &path);
 
   private:
 	std::map<fs::path, std::pair<ImageID, ImageID>> m_thumbnails;
     std::queue<std::filesystem::path> m_queue;
-    gfx::CommandBuffer cmdBuffer;
 
 	const glm::ivec2 m_size = {256, 256};
     LightCache m_lightCache;
@@ -58,5 +61,6 @@ class CustomThumbnail
         AssetHandle handle;
     };
     std::vector<std::shared_ptr<ThumbnailRenderRequest>> m_pendingRequests;
+    std::unordered_map<fs::path, fs::path> m_thumbnailCachePaths;
 };
 } // namespace sky
