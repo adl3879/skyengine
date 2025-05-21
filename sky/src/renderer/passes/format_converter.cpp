@@ -1,13 +1,13 @@
-#include "depth_resolve.h"
+#include "format_converter.h"
 
 #include "graphics/vulkan/vk_pipelines.h"
 
-namespace sky
+namespace sky 
 {
-void DepthResolvePass::init(const gfx::Device &device, VkFormat format)
+void FormatConverterPass::init(const gfx::Device &device, VkFormat format)
 {
     const auto vertexShader = gfx::vkutil::loadShaderModule("shaders/fullscreen_triangle.vert.spv", device.getDevice());
-    const auto fragShader = gfx::vkutil::loadShaderModule("shaders/depth_resolve.frag.spv", device.getDevice());
+    const auto fragShader = gfx::vkutil::loadShaderModule("shaders/format_converter.frag.spv", device.getDevice());
 
     const auto bufferRange = VkPushConstantRange{
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -26,15 +26,17 @@ void DepthResolvePass::init(const gfx::Device &device, VkFormat format)
         .setPolygonMode(VK_POLYGON_MODE_FILL)
         .disableCulling()
         .setMultisamplingNone()
-        .setDepthFormat(format)
-        .enableDepthTest(true, VK_COMPARE_OP_ALWAYS)
+        .disableDepthTest()
+        .disableBlending()
+        .setColorAttachmentFormat(format)
         .build(device.getDevice());
 }
 
-void DepthResolvePass::draw(gfx::Device &device, 
-    gfx::CommandBuffer cmd,
-    ImageID depthImageId,
-    int numOfSamples)
+void FormatConverterPass::draw(
+    gfx::Device &device, 
+    gfx::CommandBuffer cmd, 
+    ImageID hdrImage, 
+    VkExtent2D extent)
 {
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInfo.pipeline);
     
@@ -43,16 +45,26 @@ void DepthResolvePass::draw(gfx::Device &device,
     };
     device.bindDescriptorSets(cmd, m_pInfo.pipelineLayout, descriptorSets);
 
-    const auto &depthImage = device.getImage(depthImageId);
+    // set dynamic viewport and scissor
+    const auto viewport = VkViewport{
+        .x = 0.f,
+		.y = 0.f,
+		.width = (float)extent.width,
+		.height = (float)extent.height,
+		.minDepth = 0.f,
+		.maxDepth = 1.f,
+    };
+    vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+    const auto scissor = VkRect2D{
+        .offset = {0, 0},
+        .extent = extent,
+    };
+    vkCmdSetScissor(cmd, 0, 1, &scissor);
 
     // Set push constants
     const auto pushConstants = PushConstants{
-        .depthImageSize = {
-            static_cast<float>(depthImage.getExtent2D().width), 
-            static_cast<float>(depthImage.getExtent2D().height), 
-        },
-        .depthImageId = depthImageId,
-        .numSamples = numOfSamples,
+       .hdrImage = hdrImage, 
     };
 
     vkCmdPushConstants(cmd, 
@@ -62,13 +74,12 @@ void DepthResolvePass::draw(gfx::Device &device,
         sizeof(PushConstants), 
         &pushConstants);
 
-    // Draw fullscreen triangle (3 vertices)
     vkCmdDraw(cmd, 3, 1, 0, 0);
 }
 
-void DepthResolvePass::cleanup(const gfx::Device &device)
+void FormatConverterPass::cleanup(const gfx::Device &device)
 {
     vkDestroyPipeline(device.getDevice(), m_pInfo.pipeline, nullptr);
     vkDestroyPipelineLayout(device.getDevice(), m_pInfo.pipelineLayout, nullptr);
 }
-} // namespace sky
+}

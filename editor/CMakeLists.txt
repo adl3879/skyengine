@@ -37,6 +37,7 @@ set(SHADERS
     "depth_resolve.frag"
     "skybox.frag"
     "post_fx.frag"
+    "format_converter.frag"
     "imgui.frag"
     "imgui.vert")
 

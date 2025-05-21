@@ -51,10 +51,8 @@ void ProjectManager::loadProject(const fs::path &path)
         .lastOpened = helper::getCurrentDate(),
     }; 
     if (std::find_if(m_projectsList.begin(), m_projectsList.end(), [&](const ProjectInfo &info)
-                     { return info.projectName == currentProject.projectName; }) == m_projectsList.end())
-    {
+        { return info.projectName == currentProject.projectName; }) == m_projectsList.end())
         m_projectsList.push_back(currentProject);
-    }
 
     // update last opened
     for (auto &project : m_projectsList)
@@ -195,9 +193,9 @@ void ProjectManager::deserializeProjectsList()
 void ProjectManager::removeProjectFromList(ProjectInfo info)
 {
     m_projectsList.erase(std::remove_if(m_projectsList.begin(), m_projectsList.end(),
-                                        [=](const ProjectInfo &project)
-                                        { return project.projectConfigPath == info.projectConfigPath; }),
-                            m_projectsList.end());
+        [=](const ProjectInfo &project)
+            { return project.projectConfigPath == info.projectConfigPath; }),
+        m_projectsList.end());
 
     serializeProjectsList();
 }

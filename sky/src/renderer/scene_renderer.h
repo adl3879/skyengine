@@ -56,8 +56,8 @@ class SceneRenderer
     ImageID getCheckerboardTexture() const { return m_device.getCheckerboardTextureID(); }
     gfx::AllocatedImage getDrawImage();
 
-    ImageID createNewDrawImage(glm::ivec2 size, VkFormat format, VkSampleCountFlagBits samples);
-    ImageID createNewDepthImage(glm::ivec2 size, VkSampleCountFlagBits samples);
+    ImageID createNewDrawImage(glm::ivec2 size, VkFormat format, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
+    ImageID createNewDepthImage(glm::ivec2 size, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
     
     ForwardRendererPass getForwardRendererPass() const { return m_forwardRenderer; }
     auto getSphereMesh() const { return m_builtinModels.at(ModelType::Sphere); }

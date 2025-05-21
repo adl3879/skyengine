@@ -1,5 +1,6 @@
 #include "custom_thumbnail.h"
 
+#include "asset_management/asset.h"
 #include "core/application.h"
 #include "core/project_management/project_manager.h"
 #include "core/helpers/image.h"
@@ -11,6 +12,7 @@
 #include "renderer/scene_renderer.h"
 
 #include <stb_image_write.h>
+#include <utility>
 #include <vulkan/vulkan_core.h>
 
 namespace sky
@@ -29,12 +31,15 @@ CustomThumbnail::CustomThumbnail()
 
     m_thumbnailGradientPass.init(device, m_drawImageFormat);
 	m_forwardRenderer.init(device, m_drawImageFormat, VK_SAMPLE_COUNT_1_BIT);
+    m_formatConverterPass.init(device, m_drawImageFormat);
 }
 
 CustomThumbnail::~CustomThumbnail()
 {
     auto &device = Application::getRenderer()->getDevice();
     m_thumbnailGradientPass.cleanup(device);
+    m_forwardRenderer.cleanup(device);
+    m_formatConverterPass.cleanup(device);
 }
 
 void CustomThumbnail::render(gfx::CommandBuffer cmd) 
@@ -49,17 +54,9 @@ void CustomThumbnail::render(gfx::CommandBuffer cmd)
             {
                 auto handle = AssetManager::getOrCreateAssetHandle(path, AssetType::Material);
                 
-                fs::path pathCopy = path;
-                auto request = CreateRef<ThumbnailRenderRequest>(ThumbnailRenderRequest{
-                    .path = pathCopy,
-                    .handle = handle
-                });
-                
-                m_pendingRequests.push_back(request);
-                
-                AssetManager::getAssetAsync<MaterialAsset>(handle, [this, request](const Ref<MaterialAsset> &materialAsset) {
+                AssetManager::getAssetAsync<MaterialAsset>(handle, [=, this](const Ref<MaterialAsset> &materialAsset) {
                     if (materialAsset) {
-                        m_readyMaterials.push_back({request->path, materialAsset->material});
+                        m_readyMaterials.push_back({path, materialAsset->material});
                     }
                 });
                 
@@ -92,15 +89,23 @@ void CustomThumbnail::render(gfx::CommandBuffer cmd)
         break;
     }
     
-    if (!m_readyMaterials.empty()) {
+    if (!m_readyMaterials.empty()) 
+    {
         auto& readyMaterial = m_readyMaterials.front();
         generateMaterialThumbnail(cmd, readyMaterial.materialId, readyMaterial.path);
         m_readyMaterials.pop_front();
     }
-    else if (!m_readyModels.empty()) {
+    else if (!m_readyModels.empty()) 
+    {
         auto& readyModel = m_readyModels.front();
         generateModelThumbnail(cmd, readyModel.meshes, readyModel.path);
         m_readyModels.pop_front();
+    } 
+    else if (!m_readyScene.empty()) 
+    {
+        auto &readyScene = m_readyScene.front();
+        generateSceneThumbnail(cmd, readyScene.path, readyScene.materialId);
+        m_readyScene.pop_front();
     }
 }
 
@@ -117,12 +122,18 @@ ImageID CustomThumbnail::getOrCreateThumbnail(const fs::path &path)
         return m_thumbnails[path].first;
 	}
 
-	auto drawImage = Application::getRenderer()->createNewDrawImage(m_size, m_drawImageFormat, VK_SAMPLE_COUNT_1_BIT);
-	auto depthImage = Application::getRenderer()->createNewDepthImage(m_size, VK_SAMPLE_COUNT_1_BIT);
-	m_thumbnails[path] = std::make_pair(drawImage, depthImage);
-	m_queue.push(path);
+    auto assetType = getAssetTypeFromFileExtension(path.extension());
+    if (assetType != AssetType::Scene)
+    {
+        auto renderer = Application::getRenderer();
+        auto drawImage = renderer->createNewDrawImage(m_size, m_drawImageFormat);
+        auto depthImage = renderer->createNewDepthImage(m_size);
+        m_thumbnails[path] = std::make_pair(drawImage, depthImage);
+        m_queue.push(path);
+        return drawImage;
+    }
 
-	return drawImage;
+    return NULL_IMAGE_ID;
 }
 
 void CustomThumbnail::refreshThumbnail(const fs::path &path)
@@ -130,12 +141,42 @@ void CustomThumbnail::refreshThumbnail(const fs::path &path)
     if (m_thumbnails.contains(path)) m_thumbnails.erase(path);
 }
 
-void CustomThumbnail::saveSceneThumbnail(const fs::path &path, ImageID imageId)
+void CustomThumbnail::refreshSceneThumbnail(const fs::path &path)
 {
+    auto renderer = Application::getRenderer();
+    m_readyScene.push_back({path, renderer->getSceneImage()});
+}
+
+void CustomThumbnail::generateSceneThumbnail(gfx::CommandBuffer cmd, const fs::path &path, ImageID imageId)
+{
+    auto renderer = Application::getRenderer();
     auto &device = Application::getRenderer()->getDevice();
-    auto cmd = device.beginSingleTimeCommands();
-    saveThumbnailToFile(cmd, imageId, path);
-    device.endSingleTimeCommands(cmd);
+
+    if (m_thumbnails[path].first != NULL_IMAGE_ID)
+        m_thumbnails[path].first = renderer->createNewDrawImage(m_size, m_drawImageFormat);
+
+    auto targetImage = device.getImage(m_thumbnails[path].first);
+
+    gfx::vkutil::transitionImage(cmd, targetImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+	const auto renderInfo = gfx::vkutil::createRenderingInfo({
+        .renderExtent = targetImage.getExtent2D(),
+        .colorImageView = targetImage.imageView,
+        .colorImageClearValue = glm::vec4{0.f, 0.f, 0.f, 0.f},
+    });
+
+    vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
+
+    m_formatConverterPass.draw(
+        device,
+        cmd,
+        imageId,
+		targetImage.getExtent2D());
+
+    vkCmdEndRendering(cmd);
+
+    saveThumbnailToFile(cmd, m_thumbnails[path].first, path);
 }
 
 void CustomThumbnail::generateMaterialThumbnail(gfx::CommandBuffer cmd, MaterialID mat, const fs::path &path) 

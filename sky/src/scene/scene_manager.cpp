@@ -53,8 +53,7 @@ void SceneManager::saveActiveScene()
     AssetManager::serializeAssetDirectory();
     SKY_CORE_INFO("{} saved", path.string());
 
-    // auto renderer = Application::getRenderer();
-    // CustomThumbnail::get().saveSceneThumbnail(m_activeScene->getPath(), renderer->getSceneImage());
+    CustomThumbnail::get().refreshSceneThumbnail(m_activeScene->getPath());
 }
 
 void SceneManager::saveAll() 

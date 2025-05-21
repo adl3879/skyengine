@@ -22,15 +22,15 @@ void PostFXPass::init(const gfx::Device &device, VkFormat format)
     m_pInfo.pipelineLayout = gfx::vkutil::createPipelineLayout(device.getDevice(), layouts, pushConstantRanges);
 
     m_pInfo.pipeline = gfx::PipelineBuilder{m_pInfo.pipelineLayout}
-                         .setShaders(vertexShader, fragShader)
-                         .setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-                         .setPolygonMode(VK_POLYGON_MODE_FILL)
-                         .disableCulling()
-                         .setMultisamplingNone()
-                         .disableDepthTest()
-                         .disableBlending()
-                         .setColorAttachmentFormat(format)
-                         .build(device.getDevice());
+        .setShaders(vertexShader, fragShader)
+        .setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+        .setPolygonMode(VK_POLYGON_MODE_FILL)
+        .disableCulling()
+        .setMultisamplingNone()
+        .disableDepthTest()
+        .disableBlending()
+        .setColorAttachmentFormat(format)
+        .build(device.getDevice());
 }
 
 void PostFXPass::draw(
@@ -58,11 +58,11 @@ void PostFXPass::draw(
     };
 
     vkCmdPushConstants(cmd, 
-                      m_pInfo.pipelineLayout, 
-                      VK_SHADER_STAGE_FRAGMENT_BIT, 
-                      0, 
-                      sizeof(PushConstants), 
-                      &pushConstants);
+        m_pInfo.pipelineLayout, 
+        VK_SHADER_STAGE_FRAGMENT_BIT, 
+        0, 
+        sizeof(PushConstants), 
+        &pushConstants);
 
     vkCmdDraw(cmd, 3, 1, 0, 0);
 }

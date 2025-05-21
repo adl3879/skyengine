@@ -28,16 +28,16 @@ void ForwardRendererPass::init(
     m_pInfo.pipelineLayout = gfx::vkutil::createPipelineLayout(device.getDevice(), layouts, pushConstantRanges);
 
     m_pInfo.pipeline = gfx::PipelineBuilder{m_pInfo.pipelineLayout}
-                         .setShaders(vertexShader, fragShader)
-                         .setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-                         .setPolygonMode(VK_POLYGON_MODE_FILL)
-                         .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
-                         .setMultisampling(samples)
-                         .disableBlending()
-                         .enableDepthTest(true, VK_COMPARE_OP_LESS)
-                         .setColorAttachmentFormat(format)
-                         .setDepthFormat(VK_FORMAT_D32_SFLOAT)
-                         .build(device.getDevice());
+        .setShaders(vertexShader, fragShader)
+        .setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+        .setPolygonMode(VK_POLYGON_MODE_FILL)
+        .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
+        .setMultisampling(samples)
+        .disableBlending()
+        .enableDepthTest(true, VK_COMPARE_OP_LESS)
+        .setColorAttachmentFormat(format)
+        .setDepthFormat(VK_FORMAT_D32_SFLOAT)
+        .build(device.getDevice());
 }
 
 void ForwardRendererPass::draw(

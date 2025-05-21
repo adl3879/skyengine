@@ -21,15 +21,15 @@ void InfiniteGridPass::init(const gfx::Device &device, VkFormat format, VkSample
     m_pInfo.pipelineLayout = gfx::vkutil::createPipelineLayout(device.getDevice(), layouts, pushConstantRanges);
 
     m_pInfo.pipeline = gfx::PipelineBuilder{m_pInfo.pipelineLayout}
-                           .setShaders(vertexShader, fragShader)
-                           .setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP)
-                           .setPolygonMode(VK_POLYGON_MODE_FILL)
-                           .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
-                           .setMultisampling(samples)
-                           .enableBlending()
-                           .disableDepthTest()
-                           .setColorAttachmentFormat(VK_FORMAT_R16G16B16A16_SFLOAT)
-                           .build(device.getDevice());
+        .setShaders(vertexShader, fragShader)
+        .setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP)
+        .setPolygonMode(VK_POLYGON_MODE_FILL)
+        .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
+        .setMultisampling(samples)
+        .enableBlending()
+        .disableDepthTest()
+        .setColorAttachmentFormat(VK_FORMAT_R16G16B16A16_SFLOAT)
+        .build(device.getDevice());
 }
 
 void InfiniteGridPass::draw(gfx::Device &device, 

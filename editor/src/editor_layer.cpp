@@ -165,21 +165,21 @@ void EditorLayer::registerEditorEvents()
     eventBus.registerHandler(EditorEventType::SaveCurrentScene, [=](const EditorEvent &event){
         SceneManager::get().saveActiveScene();
     });
-    eventBus.registerHandler(EditorEventType::SaveSceneAs, [=](const EditorEvent &event){
+    eventBus.registerHandler(EditorEventType::SaveSceneAs, [=, this](const EditorEvent &event){
         m_assetBrowserPopup.showFileBrowserPopup();
 		m_assetBrowserPopup.setContext({
             .action = "Save",
             .assetType = AssetType::Scene,
         });
     });
-	eventBus.registerHandler(EditorEventType::Reset, [=](const EditorEvent &event){
+	eventBus.registerHandler(EditorEventType::Reset, [this](const EditorEvent &event){
         reset();
     });
 	eventBus.registerHandler(EditorEventType::OpenMaterialEditor, [=](const EditorEvent &event){
-		 m_inspectorPanel.openView(InspectorPanelView::MaterialEditor);
-         if (event.data.has_value())
-			 m_inspectorPanel.setMaterialContext(
-                 std::any_cast<InspectorPanel::MaterialContext>(event.data));
+        m_inspectorPanel.openView(InspectorPanelView::MaterialEditor);
+        if (event.data.has_value())
+            m_inspectorPanel.setMaterialContext(
+                std::any_cast<InspectorPanel::MaterialContext>(event.data));
     });
 	eventBus.registerHandler(EditorEventType::CreateNewMaterialFrom, [=](const EditorEvent &event){
         m_assetBrowserPopup.showFileBrowserPopup();

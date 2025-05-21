@@ -1,5 +1,6 @@
 #include "asset_importer.h"
 
+#include "asset_management/asset.h"
 #include "mesh_importer.h"
 #include "texture_importer.h"
 #include "scene_importer.h"
@@ -20,7 +21,8 @@ Ref<Asset> AssetImporter::importAsset(AssetHandle handle, AssetMetadata &metadat
 {
     if (s_assetImportFns.find(metadata.type) == s_assetImportFns.end())
     {
-        SKY_CORE_ERROR("No importer available for asset type: {}", static_cast<uint16_t>(metadata.type));
+        SKY_CORE_ERROR("No importer available for asset type: {}, file: {}", 
+            assetTypeToString(metadata.type), metadata.filepath.string());
         return nullptr;
     }
 

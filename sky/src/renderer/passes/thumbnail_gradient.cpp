@@ -14,15 +14,15 @@ void ThumbnailGradientPass::init(const gfx::Device &device, VkFormat format)
     m_pInfo.pipelineLayout = gfx::vkutil::createPipelineLayout(device.getDevice(), layouts, pushConstantRanges);
 
     m_pInfo.pipeline = gfx::PipelineBuilder{m_pInfo.pipelineLayout}
-                           .setShaders(vertexShader, fragShader)
-                           .setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP)
-                           .setPolygonMode(VK_POLYGON_MODE_FILL)
-                           .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
-                           .setMultisamplingNone()
-                           .enableBlending()
-                           .disableDepthTest()
-                           .setColorAttachmentFormat(format)
-                           .build(device.getDevice());
+        .setShaders(vertexShader, fragShader)
+        .setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP)
+        .setPolygonMode(VK_POLYGON_MODE_FILL)
+        .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
+        .setMultisamplingNone()
+        .enableBlending()
+        .disableDepthTest()
+        .setColorAttachmentFormat(format)
+        .build(device.getDevice());
 }
 
 void ThumbnailGradientPass::draw(gfx::Device &device, gfx::CommandBuffer cmd, VkExtent2D extent) 

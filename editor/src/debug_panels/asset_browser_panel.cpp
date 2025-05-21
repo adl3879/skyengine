@@ -558,14 +558,12 @@ void AssetBrowserPanel::drawFileAssetBrowser(fs::directory_entry directoryEntry)
 	if (icon == NULL_IMAGE_ID) icon = m_icons["file"];
 
     {
-        auto assetType = getAssetTypeFromFileExtension(path.extension());
+        icon = CustomThumbnail::get().getOrCreateThumbnail(relativePath);
 
+        auto assetType = getAssetTypeFromFileExtension(path.extension());
         if (directoryEntry.is_directory()) icon = m_icons["directory"];
-        else if (assetType == AssetType::Scene) icon = m_icons["scene"];
-        else if (assetType == AssetType::Mesh)
-            icon = CustomThumbnail::get().getOrCreateThumbnail(relativePath);
-        else if (assetType == AssetType::Material) 
-            icon = CustomThumbnail::get().getOrCreateThumbnail(relativePath);
+        else if (assetType == AssetType::Scene)
+            icon = icon == NULL_IMAGE_ID ? m_icons["scene"] : icon;
     }
 
     ImGui::BeginGroup();
