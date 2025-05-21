@@ -3,8 +3,10 @@
 #include <skypch.h>
 
 #include "renderer/camera/camera.h"
+#include "renderer/material_cache.h"
 #include "renderer/passes/pass.h"
 #include "renderer/mesh_cache.h"
+#include "scene/scene.h"
 
 namespace sky
 {
@@ -32,6 +34,16 @@ class ForwardRendererPass : public Pass
         std::vector<MeshID> meshId,
         MaterialID materialId,
         bool useDefaultMaterial = false);
+	void draw3(
+        gfx::Device &device, 
+        gfx::CommandBuffer cmd, 
+        VkExtent2D extent,
+        Camera &camera,
+        const gfx::AllocatedBuffer &sceneDataBuffer,
+        std::unordered_map<ModelType, MeshID> builtinModels,
+        const MeshCache &meshCache,
+        const MaterialCache &materialCache,
+        Ref<Scene> scene);
 
     void cleanup(const gfx::Device &device);
 

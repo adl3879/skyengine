@@ -2,6 +2,10 @@
 
 #include "graphics/vulkan/vk_pipelines.h"
 #include "renderer/frustum_culling.h"
+#include "renderer/mesh.h"
+#include "scene/components.h"
+#include "asset_management/asset_manager.h"
+#include <vector>
 
 namespace sky
 {
@@ -157,6 +161,62 @@ void ForwardRendererPass::draw2(gfx::Device &device,
 
 		vkCmdDrawIndexed(cmd, mesh.numIndices, 1, 0, 0, 0);
     }
+}
+
+void ForwardRendererPass::draw3(
+    gfx::Device &device, 
+    gfx::CommandBuffer cmd, 
+    VkExtent2D extent,
+    Camera &camera,
+    const gfx::AllocatedBuffer &sceneDataBuffer,
+    std::unordered_map<ModelType, MeshID> builtinModels,
+    const MeshCache &meshCache,
+    const MaterialCache &materialCache,
+    Ref<Scene> scene)
+{
+    std::vector<MeshDrawCommand> drawCommands;
+    auto view = scene->getRegistry().view<TransformComponent, ModelComponent, VisibilityComponent>();
+    for (auto &e : view)
+    {
+        auto [transform, modelComponent, visibility] = 
+            view.get<TransformComponent, ModelComponent, VisibilityComponent>(e);
+
+        if (modelComponent.type == ModelType::Custom)
+        {
+            AssetManager::getAssetAsync<Model>(modelComponent.handle, [=, &drawCommands](const Ref<Model> &model){
+                for (size_t i = 0; i < model->meshes.size(); i++) 
+                {
+                    const auto &mesh = model->meshes[i];
+                    const auto material = modelComponent.customMaterialOverrides.contains(i) 
+                        ? AssetManager::getAsset<MaterialAsset>(modelComponent.customMaterialOverrides.at(i))->material 
+                        : meshCache.getCPUMesh(mesh).material;
+                    
+                    drawCommands.push_back(MeshDrawCommand{
+                        .meshId = mesh,
+                        .modelMatrix = transform.getModelMatrix(),
+                        .isVisible = visibility,
+                        .material = material
+                    });
+                }
+            });
+        }
+        else
+        {
+            // draw builtin models
+            const auto material = modelComponent.builtinMaterial != NULL_UUID ?
+                AssetManager::getAsset<MaterialAsset>(modelComponent.builtinMaterial)->material :
+                materialCache.getDefaultMaterial();
+
+            drawCommands.push_back(MeshDrawCommand{
+                .meshId = builtinModels[modelComponent.type],
+                .modelMatrix = transform.getModelMatrix(),
+                .isVisible = visibility,
+                .material = material
+            });
+        }
+    }
+
+    draw(device, cmd, extent, camera, sceneDataBuffer, meshCache, drawCommands);
 }
 
 void ForwardRendererPass::cleanup(const gfx::Device &device) 

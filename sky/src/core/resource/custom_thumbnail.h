@@ -5,10 +5,12 @@
 #include "core/filesystem.h"
 #include "graphics/vulkan/vk_device.h"
 #include "graphics/vulkan/vk_types.h"
+#include "renderer/passes/infinite_grid.h"
 #include "renderer/scene_renderer.h"
 #include "renderer/passes/thumbnail_gradient.h"
 #include "renderer/passes/forward_renderer.h"
 #include "renderer/passes/format_converter.h"
+#include "renderer/sprite_renderer.h"
 
 namespace sky
 {
@@ -33,6 +35,7 @@ class CustomThumbnail
 	void generateMaterialThumbnail(gfx::CommandBuffer cmd, MaterialID mat, const fs::path &path);
 	void generateModelThumbnail(gfx::CommandBuffer cmd, std::vector<MeshID> mesh, const fs::path &path);
     void generateSceneThumbnail(gfx::CommandBuffer cmd, const fs::path &path, ImageID image);
+    void generateTextureThumbnail(gfx::CommandBuffer cmd, ImageID image, const fs::path &path);
 
     void saveThumbnailToFile(gfx::CommandBuffer cmd, ImageID imageId, const fs::path &path);
 
@@ -47,6 +50,8 @@ class CustomThumbnail
 	ThumbnailGradientPass m_thumbnailGradientPass;
     ForwardRendererPass m_forwardRenderer;
     FormatConverterPass m_formatConverterPass;
+    InfiniteGridPass m_infiniteGridPass;
+    SpriteBatchRenderer m_spriteRenderer;
 
     struct ReadyModel {
         fs::path path;
@@ -62,15 +67,24 @@ class CustomThumbnail
         fs::path path;
         ImageID sceneId;
     };
+
+    struct ReadyTexture {
+        fs::path path;
+        ImageID textureId;
+    };
     
     std::deque<ReadyModel> m_readyModels;
     std::deque<ReadyMaterial> m_readyMaterials;
     std::deque<ReadyMaterial> m_readyScene;
-    
-    struct ThumbnailRenderRequest {
-        fs::path path;
-        AssetHandle handle;
+    std::deque<ReadyTexture> m_readyTextures;
+
+    enum class ThumbnailProcessingState {
+        None,
+        Material,
+        Model,
+        Scene,
+        Texture
     };
-    std::vector<std::shared_ptr<ThumbnailRenderRequest>> m_pendingRequests;
+    ThumbnailProcessingState m_currentProcessingState = ThumbnailProcessingState::None;
 };
 } // namespace sky

@@ -54,23 +54,6 @@ class AssetBrowserPanel
     void drawFileAssetBrowser(std::filesystem::directory_entry directoryEntry);
 
   private:
-    ImageID getOrCreateThumbnail(const fs::path &path);
-    void updateThumbnails();
-
-    struct ThumbnailImage
-    {
-        ImageID image;
-        uint64_t timestamp;
-    };
-    struct ThumbnailInfo
-    {
-        fs::path assetPath;
-        uint64_t timestamp;
-    };
-    std::map<std::filesystem::path, ThumbnailImage> m_cachedImages;
-    std::queue<ThumbnailInfo> m_queue;
-
-  private:
     fs::path m_currentDirectory, m_baseDirectory;
     std::vector<fs::path> m_DirectoryStack;
     std::vector<fs::directory_entry> m_CurrentDirectoryEntries;

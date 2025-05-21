@@ -52,6 +52,7 @@ class SceneRenderer
     const Material &getMaterial(MaterialID id) const { return m_materialCache.getMaterial(id); }
     auto getMeshCache() const { return m_meshCache; }
     auto getMaterialCache() const { return m_materialCache; }
+    auto getBuiltInModels() const { return m_builtinModels; }
     
     ImageID getCheckerboardTexture() const { return m_device.getCheckerboardTextureID(); }
     gfx::AllocatedImage getDrawImage();

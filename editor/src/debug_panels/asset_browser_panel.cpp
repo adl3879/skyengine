@@ -249,8 +249,6 @@ void AssetBrowserPanel::render()
     confirmDeletePopup();
  
     ImGui::End();
-
-    updateThumbnails();
 }
 
 void AssetBrowserPanel::handleDroppedFile(const fs::path &path) 
@@ -545,7 +543,7 @@ void AssetBrowserPanel::drawFileAssetBrowser(fs::directory_entry directoryEntry)
 
     auto relativePath = std::filesystem::relative(path, m_baseDirectory);
 
-    if (path.stem() == "AssetRegistry") return;
+    if (path.stem() == "assetRegistry") return;
     if (path.extension() == ".import")  return;
     if (path.extension() == ".bin")     return;
 
@@ -554,17 +552,15 @@ void AssetBrowserPanel::drawFileAssetBrowser(fs::directory_entry directoryEntry)
 
     ImGui::PushID(filenameString.c_str());
 
-	auto icon = getOrCreateThumbnail(path);
-	if (icon == NULL_IMAGE_ID) icon = m_icons["file"];
-
+    ImageID icon;
     {
-        icon = CustomThumbnail::get().getOrCreateThumbnail(relativePath);
-
         auto assetType = getAssetTypeFromFileExtension(path.extension());
+        icon = CustomThumbnail::get().getOrCreateThumbnail(relativePath);
+        
         if (directoryEntry.is_directory()) icon = m_icons["directory"];
-        else if (assetType == AssetType::Scene)
-            icon = icon == NULL_IMAGE_ID ? m_icons["scene"] : icon;
+        else if (assetType == AssetType::Scene) icon = icon == NULL_IMAGE_ID ? m_icons["scene"] : icon;
     }
+    if (icon == NULL_IMAGE_ID) icon = m_icons["file"];
 
     ImGui::BeginGroup();
     ImGui::PushID(filenameString.c_str());
@@ -707,77 +703,5 @@ void AssetBrowserPanel::drawFileAssetBrowser(fs::directory_entry directoryEntry)
     ImGui::NextColumn();
 
     ImGui::PopID();
-}
-
-ImageID AssetBrowserPanel::getOrCreateThumbnail(const fs::path &path) 
-{
-    // 1. Read file timestamp
-    // 2. Compare hashed timestamp with existing cached image (in memory first, then from cache file)
-    // 3. If equal, return associated thumbnail, otherwise load asset from disk and generate thumbnail
-    // 4. If generated new thumbnail, store in cache obviously
-
-    std::filesystem::file_time_type lastWriteTime = std::filesystem::last_write_time(path);
-    uint64_t timestamp = std::chrono::duration_cast<std::chrono::seconds>(lastWriteTime.time_since_epoch()).count();
-
-    if (m_cachedImages.find(path) != m_cachedImages.end())
-    {
-        auto &cachedImage = m_cachedImages.at(path);
-        if (cachedImage.timestamp == timestamp) return cachedImage.image;
-    }
-    m_queue.push({path, timestamp});
-
-    return NULL_IMAGE_ID;
-}
-
-void AssetBrowserPanel::updateThumbnails() 
-{
-    while (!m_queue.empty())
-    {
-        const auto &thumbnailInfo = m_queue.front();
-        const auto &path = thumbnailInfo.assetPath;
-
-        if (m_cachedImages.find(path) != m_cachedImages.end())
-        {
-            auto &cachedImage = m_cachedImages.at(path);
-            if (cachedImage.timestamp == thumbnailInfo.timestamp)
-            {
-                m_queue.pop();
-                continue;
-            }
-        }
-
-       // Check if a task for this asset already exists
-        auto existingTask =
-            Application::getTaskManager()->getTask<ImageID>("LoadThumbnail_" + path.string());
-        if (!existingTask)
-        {
-            // Create a new task to load the image asynchronously
-            auto task = CreateRef<Task<ImageID>>("LoadThumbnail_" + path.string(), [&]() -> ImageID { 
-                const auto assetType = getAssetTypeFromFileExtension(path.extension());
-                if (assetType == AssetType::Texture2D) return helper::loadImageFromFile(path);
-				return NULL_IMAGE_ID;
-            });
-            Application::getTaskManager()->submitTask(task);
-        }
-
-        // Get the task's status and result
-        auto task = Application::getTaskManager()->getTask<ImageID>("LoadThumbnail_" + path.string());
-        if (task->getStatus() == Task<ImageID>::Status::Completed)
-        {
-            auto result = task->getResult();
-            if (result != NULL_IMAGE_ID)
-            {
-                auto &cachedImage = m_cachedImages[path];
-                cachedImage.timestamp = thumbnailInfo.timestamp;
-                cachedImage.image = result.value();
-            }
-            m_queue.pop(); // Task completed; remove it from the queue
-        }
-        else
-        {
-            // Task not completed; defer processing this item
-            break;
-        }
-    }
 }
 } // namespace sky

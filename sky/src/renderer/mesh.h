@@ -83,8 +83,8 @@ struct MeshDrawCommand
 	glm::mat4	 modelMatrix;
 	bool		 isVisible;
 	uint32_t	 uniqueId = 0;
-    math::Sphere worldBoundingSphere;
-	math::AABB   worldAABB;
+    math::Sphere worldBoundingSphere{};
+	math::AABB   worldAABB{};
     MaterialID   material = NULL_MATERIAL_ID;
 };
 } // namespace sky

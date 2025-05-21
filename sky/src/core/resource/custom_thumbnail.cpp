@@ -2,15 +2,20 @@
 
 #include "asset_management/asset.h"
 #include "core/application.h"
+#include "core/log/log.h"
 #include "core/project_management/project_manager.h"
 #include "core/helpers/image.h"
 #include "graphics/vulkan/vk_images.h"
 #include "asset_management/asset_manager.h"
 #include "asset_management/editor_asset_manager.h"
 #include "graphics/vulkan/vk_types.h"
+#include "renderer/camera/editor_camera.h"
 #include "renderer/passes/forward_renderer.h"
 #include "renderer/scene_renderer.h"
+#include "scene/scene_manager.h"
+#include "scene/components.h"
 
+#include <memory>
 #include <stb_image_write.h>
 #include <utility>
 #include <vulkan/vulkan_core.h>
@@ -32,6 +37,8 @@ CustomThumbnail::CustomThumbnail()
     m_thumbnailGradientPass.init(device, m_drawImageFormat);
 	m_forwardRenderer.init(device, m_drawImageFormat, VK_SAMPLE_COUNT_1_BIT);
     m_formatConverterPass.init(device, m_drawImageFormat);
+    m_infiniteGridPass.init(device, m_drawImageFormat, VK_SAMPLE_COUNT_1_BIT);
+    m_spriteRenderer.init(device, m_drawImageFormat);
 }
 
 CustomThumbnail::~CustomThumbnail()
@@ -40,6 +47,8 @@ CustomThumbnail::~CustomThumbnail()
     m_thumbnailGradientPass.cleanup(device);
     m_forwardRenderer.cleanup(device);
     m_formatConverterPass.cleanup(device);
+    m_infiniteGridPass.cleanup(device);
+    m_spriteRenderer.cleanup(device);
 }
 
 void CustomThumbnail::render(gfx::CommandBuffer cmd) 
@@ -50,62 +59,90 @@ void CustomThumbnail::render(gfx::CommandBuffer cmd)
         auto assetType = getAssetTypeFromFileExtension(path.extension());
         switch (assetType)
         {
-            case AssetType::Material:
-            {
-                auto handle = AssetManager::getOrCreateAssetHandle(path, AssetType::Material);
-                
-                AssetManager::getAssetAsync<MaterialAsset>(handle, [=, this](const Ref<MaterialAsset> &materialAsset) {
-                    if (materialAsset) {
-                        m_readyMaterials.push_back({path, materialAsset->material});
-                    }
-                });
-                
-                break;
-            }
-            case AssetType::Mesh:
-            {
-                auto handle = AssetManager::getOrCreateAssetHandle(path, AssetType::Mesh);
-                fs::path pathCopy = path;
-                
-                auto request = CreateRef<ThumbnailRenderRequest>(ThumbnailRenderRequest{
-                    .path = pathCopy,
-                    .handle = handle
-                });
-                
-                m_pendingRequests.push_back(request);
-                
-                AssetManager::getAssetAsync<Model>(handle, [this, request](const Ref<Model> &model) {
-                    if (model && !model->meshes.empty()) {
-                        m_readyModels.push_back({request->path, model->meshes});
-                    }
-                });
-                
-                break;
-            }
-            default: break;
+        case AssetType::Material:
+        {
+            auto handle = AssetManager::getOrCreateAssetHandle(path, AssetType::Material);
+            AssetManager::getAssetAsync<MaterialAsset>(handle, [=, this](const Ref<MaterialAsset> &materialAsset) {
+                if (materialAsset) {
+                    m_readyMaterials.push_back({path, materialAsset->material});
+                }
+            });
+            break;
+        }
+        case AssetType::Mesh:
+        {
+            auto handle = AssetManager::getOrCreateAssetHandle(path, AssetType::Mesh);
+            AssetManager::getAssetAsync<Model>(handle, [=, this](const Ref<Model> &model) {
+                if (model && !model->meshes.empty()) {
+                    m_readyModels.push_back({path, model->meshes});
+                }
+            });
+            break;
+        }
+        case AssetType::Texture2D:
+        {
+            auto handle = AssetManager::getOrCreateAssetHandle(path, AssetType::Texture2D);
+            AssetManager::getAssetAsync<Texture2D>(handle, [=, this](const Ref<Texture2D> &texture) {
+                if (texture) {
+                    auto img = helper::loadImageFromTexture(texture, VK_FORMAT_R8G8B8A8_UNORM);
+                    m_readyTextures.push_back({path, img});
+                }
+            });
+            break;
+        }
+        default: break;
         }
 
         m_queue.pop();
         break;
     }
     
-    if (!m_readyMaterials.empty()) 
+    // Process thumbnails based on current state
+    switch (m_currentProcessingState)
     {
-        auto& readyMaterial = m_readyMaterials.front();
-        generateMaterialThumbnail(cmd, readyMaterial.materialId, readyMaterial.path);
-        m_readyMaterials.pop_front();
-    }
-    else if (!m_readyModels.empty()) 
-    {
-        auto& readyModel = m_readyModels.front();
-        generateModelThumbnail(cmd, readyModel.meshes, readyModel.path);
-        m_readyModels.pop_front();
-    } 
-    else if (!m_readyScene.empty()) 
-    {
-        auto &readyScene = m_readyScene.front();
-        generateSceneThumbnail(cmd, readyScene.path, readyScene.materialId);
-        m_readyScene.pop_front();
+    case ThumbnailProcessingState::None:
+        // Determine next state based on what's available
+        if (!m_readyMaterials.empty()) m_currentProcessingState = ThumbnailProcessingState::Material;
+        else if (!m_readyModels.empty()) m_currentProcessingState = ThumbnailProcessingState::Model;
+        else if (!m_readyScene.empty()) m_currentProcessingState = ThumbnailProcessingState::Scene;
+        else if (!m_readyTextures.empty()) m_currentProcessingState = ThumbnailProcessingState::Texture;
+        break;
+        
+    case ThumbnailProcessingState::Material:
+        if (!m_readyMaterials.empty()) {
+            auto& readyMaterial = m_readyMaterials.front();
+            generateMaterialThumbnail(cmd, readyMaterial.materialId, readyMaterial.path);
+            m_readyMaterials.pop_front();
+        }
+        m_currentProcessingState = ThumbnailProcessingState::None;
+        break;
+        
+    case ThumbnailProcessingState::Model:
+        if (!m_readyModels.empty()) {
+            auto& readyModel = m_readyModels.front();
+            generateModelThumbnail(cmd, readyModel.meshes, readyModel.path);
+            m_readyModels.pop_front();
+        }
+        m_currentProcessingState = ThumbnailProcessingState::None;
+        break;
+        
+    case ThumbnailProcessingState::Scene:
+        if (!m_readyScene.empty()) {
+            auto &readyScene = m_readyScene.front();
+            generateSceneThumbnail(cmd, readyScene.path, readyScene.materialId);
+            m_readyScene.pop_front();
+        }
+        m_currentProcessingState = ThumbnailProcessingState::None;
+        break;
+        
+    case ThumbnailProcessingState::Texture:
+        if (!m_readyTextures.empty()) {
+            auto &readyTexture = m_readyTextures.front();
+            generateTextureThumbnail(cmd, readyTexture.textureId, readyTexture.path);
+            m_readyTextures.pop_front();
+        }
+        m_currentProcessingState = ThumbnailProcessingState::None;
+        break;
     }
 }
 
@@ -149,30 +186,103 @@ void CustomThumbnail::refreshSceneThumbnail(const fs::path &path)
 
 void CustomThumbnail::generateSceneThumbnail(gfx::CommandBuffer cmd, const fs::path &path, ImageID imageId)
 {
+    auto scene = SceneManager::get().getActiveScene();
     auto renderer = Application::getRenderer();
     auto &device = Application::getRenderer()->getDevice();
 
     if (m_thumbnails[path].first != NULL_IMAGE_ID)
-        m_thumbnails[path].first = renderer->createNewDrawImage(m_size, m_drawImageFormat);
+    {
+        auto drawImage = renderer->createNewDrawImage(m_size, m_drawImageFormat);
+        auto depthImage = renderer->createNewDepthImage(m_size);
+        m_thumbnails[path] = std::make_pair(drawImage, depthImage);
+    }
 
-    auto targetImage = device.getImage(m_thumbnails[path].first);
+    auto drawImage = device.getImage(m_thumbnails[path].first);
+    auto depthImage = device.getImage(m_thumbnails[path].second);
 
-    gfx::vkutil::transitionImage(cmd, targetImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
+    gfx::NBuffer sceneDataBuffer;
+	sceneDataBuffer.init(
+        device,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+        sizeof(SceneRenderer::GPUSceneData),
+        gfx::FRAME_OVERLAP,
+        "scene data");
+
+    auto cam = std::make_unique<EditorCamera>(45.f, 16 / 9, 0.1f, 1000.f);
+    cam->setViewportSize(m_size);
+    cam->update(0.01f);
+
+    auto lightCache = scene->getLightCache();
+
+    const auto gpuSceneData = SceneRenderer::GPUSceneData{
+		.view = cam->getView(),
+		.proj = cam->getProjection(),
+		.viewProj = cam->getViewProjection(),
+		.cameraPos = glm::vec4(0.f),
+        .mousePos = {0.f, 0.f},
+		.ambientColor = LinearColorNoAlpha::white(),
+		.ambientIntensity = 0.2f,
+		.lightsBuffer = lightCache.getBuffer().address,
+        .numLights = (uint32_t)lightCache.getSize(),
+		.materialsBuffer = renderer->getMaterialCache().getMaterialDataBufferAddress(),
+    };
+	sceneDataBuffer.uploadNewData(
+		cmd, 
+		device.getCurrentFrameIndex(), 
+		(void *)&gpuSceneData,
+		sizeof(SceneRenderer::GPUSceneData));
+    renderer->getMaterialCache().upload(device, cmd);
+
+    gfx::vkutil::transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
 		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    gfx::vkutil::transitionImage(cmd, depthImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 
 	const auto renderInfo = gfx::vkutil::createRenderingInfo({
-        .renderExtent = targetImage.getExtent2D(),
-        .colorImageView = targetImage.imageView,
-        .colorImageClearValue = glm::vec4{0.f, 0.f, 0.f, 0.f},
+        .renderExtent = drawImage.getExtent2D(),
+        .colorImageView = drawImage.imageView,
+        .colorImageClearValue = glm::vec4{0.01f, 0.01f, 0.01f, 1.f},
+        .depthImageView = depthImage.imageView,
+        .depthImageClearValue = 1.f,
     });
+
+    {
+        auto view = scene->getRegistry().view<TransformComponent, SpriteRendererComponent, VisibilityComponent>();
+        for (auto &e : view)
+        {
+            auto [transform, spriteRenderer, visibility] =
+                view.get<TransformComponent, SpriteRendererComponent, VisibilityComponent>(e);
+
+            auto texture = AssetManager::getAsset<Texture2D>(spriteRenderer.textureHandle);
+			m_spriteRenderer.drawSprite(device, {
+				.position = {transform.getPosition().x - 0.5, transform.getPosition().y - 0.5},
+				.size = {transform.getScale().x, transform.getScale().y},
+				.color = spriteRenderer.tint,
+				.rotation = transform.getRotation().z,
+				.textureId = helper::loadImageFromTexture(texture, VK_FORMAT_R8G8B8A8_SRGB),
+                .uniqueId = static_cast<uint32_t>(e) + 1,
+			});
+		}
+    }
 
     vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
 
-    m_formatConverterPass.draw(
-        device,
+    m_infiniteGridPass.draw(device, 
         cmd,
-        imageId,
-		targetImage.getExtent2D());
+        drawImage.getExtent2D(), 
+        sceneDataBuffer.getBuffer());
+
+    m_forwardRenderer.draw3(device, 
+        cmd, 
+        drawImage.getExtent2D(), 
+        *scene->getEditorCamera(), 
+        sceneDataBuffer.getBuffer(),
+        renderer->getBuiltInModels(),
+        renderer->getMeshCache(),
+        renderer->getMaterialCache(),
+        scene); 
+
+    m_spriteRenderer.flush(device, cmd, drawImage.getExtent2D(), sceneDataBuffer.getBuffer());
 
     vkCmdEndRendering(cmd);
 
@@ -340,6 +450,35 @@ void CustomThumbnail::generateModelThumbnail(gfx::CommandBuffer cmd,
         mesh,
         0,
         true);
+
+    vkCmdEndRendering(cmd);
+
+    saveThumbnailToFile(cmd, m_thumbnails[path].first, path);
+}
+
+void CustomThumbnail::generateTextureThumbnail(gfx::CommandBuffer cmd, ImageID imageId, const fs::path &path)
+{
+    auto renderer = Application::getRenderer();
+    auto &device = Application::getRenderer()->getDevice();
+
+    auto targetImage = device.getImage(m_thumbnails[path].first);
+
+    gfx::vkutil::transitionImage(cmd, targetImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+	const auto renderInfo = gfx::vkutil::createRenderingInfo({
+        .renderExtent = targetImage.getExtent2D(),
+        .colorImageView = targetImage.imageView,
+        .colorImageClearValue = glm::vec4{0.f, 0.f, 0.f, 1.f},
+    });
+
+    vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
+
+    m_formatConverterPass.draw(
+        device,
+        cmd,
+        imageId,
+		targetImage.getExtent2D());
 
     vkCmdEndRendering(cmd);
 

@@ -1,5 +1,6 @@
 #include "texture_importer.h"
 
+#include "core/log/log.h"
 #include "core/project_management/project_manager.h"
 #include "core/resource/import_data.h"
 #include "core/resource/texture_serializer.h"
