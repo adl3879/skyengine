@@ -16,6 +16,7 @@ static std::map<fs::path, AssetType> s_assetExtensionMap = {
     { ".jpg",   AssetType::Texture2D },
     { ".scene", AssetType::Scene },
     { ".mat",   AssetType::Material },
+    { ".hdr",   AssetType::TextureCube},
 };
 
 AssetType getAssetTypeFromFileExtension(const fs::path &extension)

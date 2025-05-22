@@ -37,8 +37,8 @@ struct MaterialData
 struct Material
 {
     LinearColor baseColor{1.f, 1.f, 1.f, 1.f};
-    float       metallicFactor{0.5f};
-    float       roughnessFactor{0.5f};
+    float       metallicFactor{0.f};
+    float       roughnessFactor{1.f};
     float       emissiveFactor{0.f};
     float       ambientOcclusionFactor{0.f};
 

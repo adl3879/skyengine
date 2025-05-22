@@ -16,13 +16,10 @@ ImageID ImageCache::addImage(AllocatedImage image)
 ImageID ImageCache::addImage(ImageID id, AllocatedImage image) 
 {
     if (id != m_images.size())
-    {
         m_images[id] = image; // replacing existing image
-    }
     else
-    {
         m_images.push_back(image);
-    }
+
     bindlessSetManager.addImage(m_device.getDevice(), id, image.imageView);
 
     return id;

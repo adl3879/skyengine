@@ -3,6 +3,7 @@
 #include <skypch.h>
 #include <vulkan/vulkan_core.h>
 
+#include "image_based_lighting.h"
 #include "passes/post_fx.h"
 #include "passes/skybox.h"
 #include "renderer/passes/depth_resolve.h"
@@ -110,10 +111,11 @@ class SceneRenderer
     ForwardRendererPass m_forwardRenderer;
     InfiniteGridPass m_infiniteGridPass;
     SkyAtmospherePass m_skyAtmospherePass;
-    SpriteBatchRenderer m_spriteRenderer;
     DepthResolvePass m_depthResolvePass;
     PostFXPass m_postFXPass;
     // SkyboxPass m_skyboxPass;
+    SpriteBatchRenderer m_spriteRenderer;
+    ImageBasedLighting m_ibl;
 
     ImageID m_drawImageID{NULL_IMAGE_ID};
     ImageID m_gameDrawImageID{NULL_IMAGE_ID};

@@ -10,6 +10,7 @@ namespace helper
 ImageID loadImageFromFile(const fs::path& path, float scaleFactor)
 {
     auto renderer = Application::getRenderer();
+
     auto tex = TextureImporter::loadTexture(path);
     
     uint32_t width = static_cast<uint32_t>(tex->width * scaleFactor);
@@ -71,6 +72,33 @@ ImageID loadImageFromTexture(Ref<Texture2D> tex, VkFormat format, VkImageUsageFl
 						.depth = 1,
 					},
 				.mipMap = mipMap,
+			},
+			tex->pixels);
+    }
+	return tex->vkImageID;
+}
+
+ImageID loadImageFromTexture(Ref<TextureCube> tex, VkFormat format, VkImageUsageFlags usage, bool mipMap)
+{
+    if (tex == nullptr) return NULL_IMAGE_ID;
+
+    if (tex->vkImageID == NULL_IMAGE_ID)
+    {
+		auto renderer = Application::getRenderer();
+		tex->vkImageID = renderer->createImage(
+			{
+				.format = format,
+				.usage = usage |      
+                    VK_IMAGE_USAGE_SAMPLED_BIT |                     
+                    VK_IMAGE_USAGE_TRANSFER_DST_BIT,  // for uploading pixel data to image
+				.extent =
+					VkExtent3D{
+						.width = (std::uint32_t)tex->width,
+						.height = (std::uint32_t)tex->height,
+						.depth = 1,
+					},
+                .numLayers = 6,
+				.mipMap = false,
 			},
 			tex->pixels);
     }

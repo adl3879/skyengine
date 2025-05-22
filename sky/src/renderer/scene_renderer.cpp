@@ -33,6 +33,7 @@ SceneRenderer::~SceneRenderer()
     m_spriteRenderer.cleanup(m_device);
     m_depthResolvePass.cleanup(m_device);
     m_postFXPass.cleanup(m_device);
+    m_ibl.cleanup(m_device);
 }
 
 bool SceneRenderer::isMultisamplingEnabled() const
@@ -52,6 +53,7 @@ void SceneRenderer::init(glm::ivec2 size)
     m_infiniteGridPass.init(m_device, m_drawImageFormat, m_samples);
     m_depthResolvePass.init(m_device, m_depthImageFormat);
     m_postFXPass.init(m_device, m_drawImageFormat);
+    m_ibl.init(m_device);
 
     initBuiltins();
 }
@@ -319,6 +321,8 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     }
 
+    m_ibl.draw(m_device, cmd, m_sceneDataBuffer.getBuffer());
+
     const auto renderInfo = gfx::vkutil::createRenderingInfo({
         .renderExtent = drawImage.getExtent2D(),
         .colorImageView = drawImage.imageView,
@@ -330,6 +334,8 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
 
     vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
     {
+        m_ibl.drawSky(m_device, cmd, drawImage.getExtent2D(), m_sceneDataBuffer.getBuffer());
+
         if (SceneManager::get().sceneIsType(SceneType::Scene3D)) {
             m_infiniteGridPass.draw(m_device, 
                 cmd, 

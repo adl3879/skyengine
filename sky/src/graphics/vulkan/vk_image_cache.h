@@ -1,6 +1,7 @@
 #pragma once
 
 #include <skypch.h>
+#include <vulkan/vulkan_core.h>
 
 #include "vk_types.h"
 #include "vk_bindless_set.h"

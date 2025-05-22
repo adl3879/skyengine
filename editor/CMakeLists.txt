@@ -36,10 +36,13 @@ set(SHADERS
     "fullscreen_triangle.vert"
     "depth_resolve.frag"
     "skybox.frag"
+    "skybox.vert"
     "post_fx.frag"
     "format_converter.frag"
     "imgui.frag"
-    "imgui.vert")
+    "imgui.vert"
+    "equirect_to_cubemap.vert"
+    "equirect_to_cubemap.frag")
 
 set(SKY_SHADERS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/res/shaders/")
 list(TRANSFORM SHADERS PREPEND "${SKY_SHADERS_DIR}")

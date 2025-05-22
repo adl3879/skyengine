@@ -210,6 +210,7 @@ void CustomThumbnail::generateSceneThumbnail(gfx::CommandBuffer cmd, const fs::p
 
     auto cam = std::make_unique<EditorCamera>(45.f, 16 / 9, 0.1f, 1000.f);
     cam->setViewportSize(m_size);
+    // 0.01f is just a random number (not significant for any reason)
     cam->update(0.01f);
 
     auto lightCache = scene->getLightCache();
@@ -221,7 +222,7 @@ void CustomThumbnail::generateSceneThumbnail(gfx::CommandBuffer cmd, const fs::p
 		.cameraPos = glm::vec4(0.f),
         .mousePos = {0.f, 0.f},
 		.ambientColor = LinearColorNoAlpha::white(),
-		.ambientIntensity = 0.2f,
+		.ambientIntensity = 0.4f,
 		.lightsBuffer = lightCache.getBuffer().address,
         .numLights = (uint32_t)lightCache.getSize(),
 		.materialsBuffer = renderer->getMaterialCache().getMaterialDataBufferAddress(),

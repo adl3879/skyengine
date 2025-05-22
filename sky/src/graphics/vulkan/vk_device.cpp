@@ -546,12 +546,15 @@ ImageID Device::createDrawImage(VkFormat format, glm::ivec2 size)
 void Device::uploadImageData(const AllocatedImage &image, void *pixelData, std::uint32_t layer)
 {
     int numChannels = 4;
+    size_t channelSize = 1;
     if (image.imageFormat == VK_FORMAT_R8_UNORM)
-    {
-        // FIXME: support more types
         numChannels = 1;
-    }
-    const auto dataSize = image.imageExtent.depth * image.imageExtent.width * image.imageExtent.height * numChannels;
+    // else if (image.imageFormat == VK_FORMAT_R16G16B16A16_SFLOAT)
+    //     channelSize = sizeof(uint16_t);
+    else if (image.imageFormat == VK_FORMAT_R32G32B32A32_SFLOAT)
+        channelSize = sizeof(float);
+
+    const auto dataSize = image.imageExtent.depth * image.imageExtent.width * image.imageExtent.height * numChannels * channelSize;
 
     const auto uploadBuffer = createBuffer(dataSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_AUTO);
     memcpy(uploadBuffer.info.pMappedData, pixelData, dataSize);
@@ -560,7 +563,7 @@ void Device::uploadImageData(const AllocatedImage &image, void *pixelData, std::
         [&](VkCommandBuffer cmd)
         {
             /*assert((image.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT) != 0 &&
-                   "Image needs to have VK_IMAGE_USAGE_TRANSFER_DST_BIT to upload data to it");*/
+                "Image needs to have VK_IMAGE_USAGE_TRANSFER_DST_BIT to upload data to it");*/
             vkutil::transitionImage(cmd, image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
             const auto copyRegion = VkBufferImageCopy{

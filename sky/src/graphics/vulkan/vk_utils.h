@@ -38,7 +38,7 @@ struct CreateImageInfo
 RenderInfo createRenderingInfo(const RenderingInfoParams &params);
 
 void clearColorImage(VkCommandBuffer cmd, VkExtent2D colorImageExtent, VkImageView colorImageView,
-                     const glm::vec4 &clearColor);
+    const glm::vec4 &clearColor);
 
 int sampleCountToInt(VkSampleCountFlagBits count);
 
