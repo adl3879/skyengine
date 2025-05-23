@@ -54,7 +54,7 @@ void main() {
     );
     
     // The texture coordinates are the same as the vertex positions
-    outTexCoord = position;
+    outTexCoord = vec3(position.x, -position.y, position.z);
     
     // Transform the position
     vec4 pos = pcs.sceneData.proj * viewWithoutTranslation * vec4(position, 1.0);

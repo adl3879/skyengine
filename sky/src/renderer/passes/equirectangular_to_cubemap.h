@@ -28,6 +28,7 @@ class EquirectangularToCubemapPass : public Pass
         glm::mat4 view;
         glm::mat4 proj;
         ImageID hdrImage;
+        VkDeviceAddress vertexBuffer;
     };
 };
 }

@@ -112,10 +112,15 @@ void BindlessSetManager::initDefaultSamplers(VkDevice device, float maxAnisotrop
             .magFilter = VK_FILTER_LINEAR,
             .minFilter = VK_FILTER_LINEAR,
             .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+            // TODO: remove these and create separate sampler for clamp-to-edge
+            .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
             // TODO: make possible to disable anisotropy or set other values?
             .anisotropyEnable = VK_TRUE,
             .maxAnisotropy = maxAnisotropy,
         };
+
         VK_CHECK(vkCreateSampler(device, &samplerCreateInfo, nullptr, &linearSampler));
         //vkutil::addDebugLabel(device, linearSampler, "linear");
         addSampler(device, linearSamplerId, linearSampler);

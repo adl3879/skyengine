@@ -1,8 +1,11 @@
 #include "equirectangular_to_cubemap.h"
+#include "core/application.h"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "graphics/vulkan/vk_pipelines.h"
 #include "graphics/vulkan/vk_utils.h"
+#include "renderer/mesh.h"
+#include <vulkan/vulkan_core.h>
 
 namespace sky 
 {
@@ -81,6 +84,11 @@ void EquirectangularToCubemapPass::draw(gfx::Device &device,
     
     glm::mat4 proj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
     proj[1][1] *= -1.0f; // flip Y for Vulkan
+
+    // FOR CUBE
+    auto renderer = Application::getRenderer();
+    auto meshCache = renderer->getMeshCache();
+    auto mesh = meshCache.getMesh(renderer->getBuiltInModels()[ModelType::Cube]);
     
     for (uint32_t face = 0; face < 6; ++face) 
     {
@@ -96,6 +104,7 @@ void EquirectangularToCubemapPass::draw(gfx::Device &device,
         pc.view = captureViews[face];
         pc.proj = proj;
         pc.hdrImage = hdrImage;
+        pc.vertexBuffer = mesh.vertexBuffer.address;
     
         vkCmdPushConstants(cmd, 
             m_pInfo.pipelineLayout, 
@@ -127,7 +136,8 @@ void EquirectangularToCubemapPass::draw(gfx::Device &device,
         vkCmdSetScissor(cmd, 0, 1, &scissor);
     
         // 4. Draw
-        vkCmdDraw(cmd, 3, 1, 0, 0);
+		vkCmdBindIndexBuffer(cmd, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(cmd, mesh.numIndices, 1, 0, 0, 0);
     
         // 5. End rendering
         vkCmdEndRendering(cmd);

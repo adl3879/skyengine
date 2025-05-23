@@ -18,5 +18,4 @@ layout(location = 0) out vec4 outColor;
 void main() {
     // Sample the cubemap texture using the helper function from bindless.glsl
     outColor = sampleTextureCubeLinear(pcs.cubemapImage, inTexCoord);
-    // outColor = vec4(1.0, 0.0, 0.0, 1.0);
 }

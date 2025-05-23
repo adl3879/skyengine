@@ -21,7 +21,6 @@ vec2 sampleSphericalMap(vec3 dir) {
 }
 
 void main() {
-    vec3 dir = normalize(vWorldDir);
-    vec2 uv = sampleSphericalMap(dir);
+    vec2 uv = sampleSphericalMap(normalize(vWorldDir));
     outColor = sampleTexture2DLinear(pc.hdrImageId, uv);
 }

@@ -48,14 +48,14 @@ void SceneRenderer::init(glm::ivec2 size)
     m_materialCache.init(m_device);
     initSceneData(); 
 
+    initBuiltins();
+
     m_spriteRenderer.init(m_device, m_drawImageFormat);
     m_forwardRenderer.init(m_device, m_drawImageFormat, m_samples);
     m_infiniteGridPass.init(m_device, m_drawImageFormat, m_samples);
     m_depthResolvePass.init(m_device, m_depthImageFormat);
     m_postFXPass.init(m_device, m_drawImageFormat);
     m_ibl.init(m_device);
-
-    initBuiltins();
 }
 
 void SceneRenderer::initBuiltins() 
@@ -95,12 +95,6 @@ void SceneRenderer::initBuiltins()
 		auto mesh = loader.getMeshes()[0].mesh;
 		mesh.material = m_materialCache.getDefaultMaterial();
 		m_builtinModels[ModelType::Cone] = addMeshToCache(mesh);
-	}
-	{
-		/*AssimpModelLoader loader("res/models/capsule.glb");
-		auto mesh = loader.getMeshes()[0].mesh;
-		mesh.material = addMaterialToCache(Material{});
-		m_builtinModels[ModelType::Capsule] = addMeshToCache(mesh);*/
 	}
 }
 
