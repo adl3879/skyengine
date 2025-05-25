@@ -41,6 +41,10 @@ set(SHADERS
     "format_converter.frag"
     "imgui.frag"
     "imgui.vert"
+    "cubemap.vert"
+    "irradiance.frag"
+    "brdf_lut.frag"
+    "prefilter_envmap.frag"
     "equirect_to_cubemap.vert"
     "equirect_to_cubemap.frag")
 

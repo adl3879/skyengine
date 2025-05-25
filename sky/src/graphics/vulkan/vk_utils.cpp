@@ -62,12 +62,32 @@ RenderInfo createRenderingInfo(const RenderingInfoParams &params)
 }
 
 void clearColorImage(VkCommandBuffer cmd, VkExtent2D colorImageExtent, VkImageView colorImageView,
-                     const glm::vec4 &clearColor)
+    const glm::vec4 &clearColor)
 {
     auto ri = createRenderingInfo(
         {.renderExtent = colorImageExtent, .colorImageView = colorImageView, .colorImageClearValue = clearColor});
     vkCmdBeginRendering(cmd, &ri.renderingInfo);
     vkCmdEndRendering(cmd);
+}
+
+void setViewportAndScissor(VkCommandBuffer cmd, VkExtent2D extent)
+{
+    // set dynamic viewport and scissor
+    const auto viewport = VkViewport{
+        .x = 0.f,
+        .y = 0.f,
+        .width = (float)extent.width,
+        .height = (float)extent.height,
+        .minDepth = 0.f,
+        .maxDepth = 1.f,
+    };
+    vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+    const auto scissor = VkRect2D{
+        .offset = {0, 0},
+        .extent = extent,
+    };
+    vkCmdSetScissor(cmd, 0, 1, &scissor);
 }
 
 int sampleCountToInt(VkSampleCountFlagBits count)

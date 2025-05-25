@@ -12,15 +12,21 @@ void ImageBasedLighting::init(gfx::Device &device)
     m_hdrImageId = helper::loadImageFromTexture(hdrTex, VK_FORMAT_R32G32B32A32_SFLOAT);
     
     m_equirectangularToCubemapPass.init(device, VK_FORMAT_R16G16B16A16_SFLOAT, {512, 512});
-
+    m_irradiancePass.init(device, VK_FORMAT_R16G16B16A16_SFLOAT, 32);
+    m_prefilterEnvmapPass.init(device, VK_FORMAT_R16G16B16A16_SFLOAT, 1024, 5);
+    m_brdfLutPass.init(device, VK_FORMAT_R16G16B16A16_SFLOAT, 512);
     m_skyboxPass.init(device, VK_FORMAT_R16G16B16A16_SFLOAT);
 }
 
 void ImageBasedLighting::draw(gfx::Device &device, gfx::CommandBuffer cmd, const gfx::AllocatedBuffer &sceneDataBuffer)
 {
-    if (m_dirty) {
+    if (m_dirty) 
+    {
         m_dirty = false;
         m_equirectangularToCubemapPass.draw(device, cmd, m_hdrImageId, {512, 512});
+        m_irradiancePass.draw(device, cmd, m_equirectangularToCubemapPass.getCubemapId());
+        m_prefilterEnvmapPass.draw(device, cmd, m_equirectangularToCubemapPass.getCubemapId());
+        m_brdfLutPass.draw(device, cmd);
     }
 }
 
@@ -32,13 +38,15 @@ void ImageBasedLighting::drawSky(gfx::Device &device,
     m_skyboxPass.draw(device, 
         cmd, 
         extent,
-        m_equirectangularToCubemapPass.getCubemapImageId(), 
+        m_equirectangularToCubemapPass.getCubemapId(), 
         sceneDataBuffer);
 }
 
 void ImageBasedLighting::cleanup(gfx::Device &device)
 {
     m_equirectangularToCubemapPass.cleanup(device);
+    m_irradiancePass.cleanup(device);
+    m_prefilterEnvmapPass.cleanup(device);
     m_skyboxPass.cleanup(device);
 }
 }

@@ -24,6 +24,11 @@ layout (buffer_reference, scalar) readonly buffer SceneDataBuffer {
     vec3 ambientColor;
     float ambientIntensity;
 
+    //ibl
+    uint irradianceMapId;
+    uint prefilterMapId;
+    uint brdfLutId;
+
     LightsDataBuffer lights;
     int numLights;
     int sunlightIndex; // if -1, there's no sun

@@ -222,7 +222,10 @@ void CustomThumbnail::generateSceneThumbnail(gfx::CommandBuffer cmd, const fs::p
 		.cameraPos = glm::vec4(0.f),
         .mousePos = {0.f, 0.f},
 		.ambientColor = LinearColorNoAlpha::white(),
-		.ambientIntensity = 0.4f,
+		.ambientIntensity = 0.8f,
+        .irradianceMapId  = renderer->getIBL().getIrradianceMapId(),
+       .prefilterMapId  = renderer->getIBL().getPrefilterMapId(),
+       .brdfLutId  = renderer->getIBL().getBrdfLutId(),
 		.lightsBuffer = lightCache.getBuffer().address,
         .numLights = (uint32_t)lightCache.getSize(),
 		.materialsBuffer = renderer->getMaterialCache().getMaterialDataBufferAddress(),
@@ -268,10 +271,13 @@ void CustomThumbnail::generateSceneThumbnail(gfx::CommandBuffer cmd, const fs::p
 
     vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
 
-    m_infiniteGridPass.draw(device, 
-        cmd,
-        drawImage.getExtent2D(), 
-        sceneDataBuffer.getBuffer());
+    if (SceneManager::get().sceneIsType(SceneType::Scene3D)) {
+        renderer->getIBL().drawSky(device, cmd, drawImage.getExtent2D(), sceneDataBuffer.getBuffer());
+        m_infiniteGridPass.draw(device, 
+            cmd, 
+            drawImage.getExtent2D(),
+            sceneDataBuffer.getBuffer());
+    }
 
     m_forwardRenderer.draw3(device, 
         cmd, 

@@ -48,7 +48,7 @@ void main()
     float roughness = mix(roughnessF, sampleTexture2DLinear(material.roughnessTex, inUV).r, 0.5);
 
     // Optional: Convert roughness to linear space (if perceptual space)
-    // roughness = roughness * roughness;
+    roughness = roughness * roughness;
 
     roughness = max(roughness, 1e-2); // Prevent issues with zero roughness
 
@@ -62,7 +62,7 @@ void main()
     vec3 n = normal;
     vec3 v = normalize(cameraPos - fragPos);
 
-    vec3 fragColor = vec3(0.0);
+    vec3 Lo = vec3(0.0);
     for (int i = 0; i < pcs.sceneData.numLights; i++) {
         Light light = pcs.sceneData.lights.data[i];
 
@@ -73,23 +73,36 @@ void main()
         float NoL = clamp(dot(n, l), 0.0, 1.0);
 
         float occlusion = 1.0;
-        // if (light.type == TYPE_DIRECTIONAL_LIGHT) {
-        //     occlusion = calculateCSMOcclusion(
-        //             fragPos, cameraPos, NoL,
-        //             pcs.sceneData.csmShadowMapId, pcs.sceneData.cascadeFarPlaneZs, pcs.sceneData.csmLightSpaceTMs);
-        // }
 
-        fragColor += calculateLight(light, fragPos, n, v, l,
-                diffuseColor, roughness, metallic, f0, occlusion);
+        Lo += calculateLight(light, fragPos, n, v, l,
+            diffuseColor, roughness, metallic, f0, occlusion);
     }
+
+    vec3 R = reflect(-v, n);
+    vec3 irradiance = sampleTextureCubeLinear(pcs.sceneData.irradianceMapId, n).rgb;
+
+    const float MAX_LOD = 4.0;
+    vec3 prefilteredColor = sampleCubeLod(pcs.sceneData.prefilterMapId, R, roughness * MAX_LOD).rgb;
+
+    float NoV = max(dot(n, v), 0.0);
+    vec2 brdf = sampleTexture2DLinear(pcs.sceneData.brdfLutId, vec2(NoV, roughness)).rg;
+
+    vec3 F = f0 + (1.0 - f0) * pow(1.0 - NoV, 5.0);
+    vec3 kS = F;
+    vec3 kD = (1.0 - kS) * (1.0 - metallic);
+
+    vec3 diffuseIBL = irradiance * diffuseColor;
+    vec3 specularIBL = prefilteredColor * (F * brdf.x + brdf.y);
+
+    vec3 iblColor = (kD * diffuseIBL + specularIBL) * pcs.sceneData.ambientIntensity;
 
     // emissive
     float emissiveF = material.metallicRoughnessEmissive.b;
     vec3 emissiveColor = emissiveF * sampleTexture2DLinear(material.emissiveTex, inUV).rgb;
-    fragColor += emissiveColor;
+    // fragColor += emissiveColor;
 
-    // ambient
-    fragColor += baseColor * pcs.sceneData.ambientColor * pcs.sceneData.ambientIntensity;
+    // === Final Color ===
+    vec3 fragColor = Lo + iblColor + emissiveColor;
 
     // get the depth and scale it up by
     // the total number of buckets in depth array

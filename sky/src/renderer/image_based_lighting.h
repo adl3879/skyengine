@@ -2,8 +2,11 @@
 
 #include "graphics/vulkan/vk_device.h"
 #include "graphics/vulkan/vk_types.h"
-#include "passes/equirectangular_to_cubemap.h"
-#include "passes/skybox.h"
+#include "passes/skybox/brdf_lut.h"
+#include "passes/skybox/equirectangular_to_cubemap.h"
+#include "passes/skybox/irradiance.h"
+#include "passes/skybox/skybox.h"
+#include "renderer/passes/skybox/prefilering.h"
 #include <skypch.h>
 
 namespace sky 
@@ -19,9 +22,16 @@ class ImageBasedLighting
         const gfx::AllocatedBuffer &sceneDataBuffer);
     void cleanup(gfx::Device &device);
 
+    auto getIrradianceMapId() { return m_irradiancePass.getCubemapId(); }
+    auto getPrefilterMapId() { return m_prefilterEnvmapPass.getCubemapId(); }
+    auto getBrdfLutId() { return m_brdfLutPass.getLutId(); }
+
   private:
     EquirectangularToCubemapPass m_equirectangularToCubemapPass;
     SkyboxPass m_skyboxPass;
+    PrefilterEnvmapPass m_prefilterEnvmapPass;
+    IrradiancePass m_irradiancePass;
+    BrdfLutPass m_brdfLutPass;
 
     bool m_dirty{true};
     ImageID m_hdrImageId;

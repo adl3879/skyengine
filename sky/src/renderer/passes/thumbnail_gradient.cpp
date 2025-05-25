@@ -28,21 +28,8 @@ void ThumbnailGradientPass::init(const gfx::Device &device, VkFormat format)
 void ThumbnailGradientPass::draw(gfx::Device &device, gfx::CommandBuffer cmd, VkExtent2D extent) 
 {
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInfo.pipeline);
-    // set dynamic viewport and scissor
-    const auto viewport = VkViewport{
-        .x = 0.f,
-        .y = 0.f,
-        .width = (float)extent.width,
-        .height = (float)extent.height,
-        .minDepth = 0.f,
-        .maxDepth = 1.f,
-    };
-    vkCmdSetViewport(cmd, 0, 1, &viewport);
-    const auto scissor = VkRect2D{
-        .offset = {0, 0},
-        .extent = extent,
-    };
-    vkCmdSetScissor(cmd, 0, 1, &scissor);
+   
+    gfx::vkutil::setViewportAndScissor(cmd, extent);
 
     vkCmdDraw(cmd, 4, 1, 0, 0);
 }

@@ -26,6 +26,13 @@ vec4 sampleTextureCubeLinear(uint texID, vec3 p) {
     return texture(nonuniformEXT(samplerCube(textureCubes[texID], samplers[LINEAR_SAMPLER_ID])), p);
 }
 
+vec4 sampleCubeLod(uint texID, vec3 dir, float lod) {
+    return textureLod(
+        nonuniformEXT(samplerCube(textureCubes[texID], samplers[LINEAR_SAMPLER_ID])),
+        dir, lod
+    );
+}
+
 float sampleTextureArrayShadow(uint texID, vec4 p) {
     return texture(nonuniformEXT(sampler2DArrayShadow(textureArrays[texID], samplers[SHADOW_SAMPLER_ID])), p);
 }

@@ -444,13 +444,15 @@ AllocatedImage Device::createImageRaw(const vkutil::CreateImageInfo &createInfo)
     if (createInfo.mipMap)
     {
         const auto maxExtent = std::max(createInfo.extent.width, createInfo.extent.height);
-        mipLevels = (std::uint32_t)std::floor(std::log2(maxExtent)) + 1;
+        // ! This could cause an error later
+        // mipLevels = (std::uint32_t)std::floor(std::log2(maxExtent)) + 1;
+        mipLevels = createInfo.numMipLevels;
     }
 
     if (createInfo.isCubemap)
     {
         assert(createInfo.numLayers == 6);
-        assert(!createInfo.mipMap);
+        // assert(!createInfo.mipMap);
         assert((createInfo.flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) != 0);
     }
 

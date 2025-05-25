@@ -5,7 +5,6 @@
 
 #include "image_based_lighting.h"
 #include "passes/post_fx.h"
-#include "passes/skybox.h"
 #include "renderer/passes/depth_resolve.h"
 #include "renderer/camera/camera.h"
 #include "renderer/passes/forward_renderer.h"
@@ -62,7 +61,9 @@ class SceneRenderer
     ImageID createNewDepthImage(glm::ivec2 size, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
     
     ForwardRendererPass getForwardRendererPass() const { return m_forwardRenderer; }
+    auto getIBL() const { return m_ibl; }
     auto getSphereMesh() const { return m_builtinModels.at(ModelType::Sphere); }
+    auto getCubeMesh() const { return m_builtinModels.at(ModelType::Cube); }
 
     // Final draw image from the scene renderer
     ImageID getSceneImage() const { return m_postFXImageID; }
@@ -97,6 +98,11 @@ class SceneRenderer
         // ambient
         LinearColorNoAlpha ambientColor;
         float ambientIntensity;
+
+        // ibl
+        ImageID irradianceMapId;
+        ImageID prefilterMapId;
+        ImageID brdfLutId;
 
         VkDeviceAddress lightsBuffer;
         std::uint32_t numLights;

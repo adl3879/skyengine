@@ -30,6 +30,7 @@ struct CreateImageInfo
     VkImageCreateFlags flags;
     VkExtent3D extent{};
     std::uint32_t numLayers{1};
+    std::uint32_t numMipLevels{1};
     VkSampleCountFlagBits samples{VK_SAMPLE_COUNT_1_BIT};
     bool mipMap{false};
     bool isCubemap{false};
@@ -41,6 +42,7 @@ void clearColorImage(VkCommandBuffer cmd, VkExtent2D colorImageExtent, VkImageVi
     const glm::vec4 &clearColor);
 
 int sampleCountToInt(VkSampleCountFlagBits count);
+void setViewportAndScissor(VkCommandBuffer cmd, VkExtent2D extent);
 
 const char *sampleCountToString(VkSampleCountFlagBits count);
 

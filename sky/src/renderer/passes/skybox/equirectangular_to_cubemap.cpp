@@ -4,7 +4,6 @@
 #include "glm/ext/matrix_transform.hpp"
 #include "graphics/vulkan/vk_pipelines.h"
 #include "graphics/vulkan/vk_utils.h"
-#include "renderer/mesh.h"
 #include <vulkan/vulkan_core.h>
 
 namespace sky 
@@ -88,7 +87,7 @@ void EquirectangularToCubemapPass::draw(gfx::Device &device,
     // FOR CUBE
     auto renderer = Application::getRenderer();
     auto meshCache = renderer->getMeshCache();
-    auto mesh = meshCache.getMesh(renderer->getBuiltInModels()[ModelType::Cube]);
+    auto mesh = meshCache.getMesh(renderer->getCubeMesh());
     
     for (uint32_t face = 0; face < 6; ++face) 
     {
@@ -99,7 +98,6 @@ void EquirectangularToCubemapPass::draw(gfx::Device &device,
     
         vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
     
-        // 2. Push constants
         PushConstants pc{};
         pc.view = captureViews[face];
         pc.proj = proj;
@@ -118,28 +116,11 @@ void EquirectangularToCubemapPass::draw(gfx::Device &device,
         VkDescriptorSet descriptorSets[] = { device.getBindlessDescSet() };
         device.bindDescriptorSets(cmd, m_pInfo.pipelineLayout, descriptorSets);
 
-        // set dynamic viewport and scissor
-        const auto viewport = VkViewport{
-            .x = 0.f,
-            .y = 0.f,
-            .width = (float)extent.width,
-            .height = (float)extent.height,
-            .minDepth = 0.f,
-            .maxDepth = 1.f,
-        };
-        vkCmdSetViewport(cmd, 0, 1, &viewport);
-
-        const auto scissor = VkRect2D{
-            .offset = {0, 0},
-            .extent = extent,
-        };
-        vkCmdSetScissor(cmd, 0, 1, &scissor);
+        gfx::vkutil::setViewportAndScissor(cmd, extent);
     
-        // 4. Draw
 		vkCmdBindIndexBuffer(cmd, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdDrawIndexed(cmd, mesh.numIndices, 1, 0, 0, 0);
     
-        // 5. End rendering
         vkCmdEndRendering(cmd);
     }
 }

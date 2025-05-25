@@ -275,7 +275,10 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
             .cameraPos = {camera.getPosition(), 1.f},
             .mousePos = scene->getViewportInfo().mousePos,
             .ambientColor = LinearColorNoAlpha::white(),
-            .ambientIntensity = 0.1f,
+            .ambientIntensity = 0.3f,
+            .irradianceMapId = m_ibl.getIrradianceMapId(),
+            .prefilterMapId = m_ibl.getPrefilterMapId(),
+            .brdfLutId = m_ibl.getBrdfLutId(),
             .lightsBuffer = lightCache.getBuffer().address,
             .numLights = (uint32_t)lightCache.getSize(),
             .materialsBuffer = m_materialCache.getMaterialDataBufferAddress(),
@@ -328,9 +331,8 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
 
     vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
     {
-        m_ibl.drawSky(m_device, cmd, drawImage.getExtent2D(), m_sceneDataBuffer.getBuffer());
-
         if (SceneManager::get().sceneIsType(SceneType::Scene3D)) {
+            m_ibl.drawSky(m_device, cmd, drawImage.getExtent2D(), m_sceneDataBuffer.getBuffer());
             m_infiniteGridPass.draw(m_device, 
                 cmd, 
                 drawImage.getExtent2D(),

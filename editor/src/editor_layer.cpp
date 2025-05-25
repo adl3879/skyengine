@@ -3,13 +3,8 @@
 #include "core/application.h"
 #include "core/events/input.h"
 #include "core/events/key_codes.h"
-#include "core/resource/custom_thumbnail.h"
 #include "scene/scene_manager.h"
-#include "scene/entity.h"
-#include "scene/components.h"
 #include "core/project_management/project_manager.h"
-#include "core/helpers/imgui.h"
-#include "asset_management/asset_manager.h"
 #include "core/events/event_bus.h"
 
 #include <imgui.h>

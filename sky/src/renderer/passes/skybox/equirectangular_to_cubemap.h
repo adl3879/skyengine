@@ -14,7 +14,7 @@ class EquirectangularToCubemapPass : public Pass
     void draw(gfx::Device &device, gfx::CommandBuffer cmd, ImageID hdrImage, VkExtent2D extent);
     void cleanup(gfx::Device &device);
 
-    auto getCubemapImageId() const { return m_cubemapImageId; }
+    auto getCubemapId() const { return m_cubemapImageId; }
 
   private:
     VkImageView getCubemapFaceView(uint32_t face) const { return m_cubemapFaceViews[face]; }
