@@ -3,6 +3,7 @@
 #include "core/application.h"
 #include "core/events/input.h"
 #include "core/events/key_codes.h"
+#include "core/resource/custom_thumbnail.h"
 #include "scene/scene_manager.h"
 #include "core/project_management/project_manager.h"
 #include "core/events/event_bus.h"
@@ -173,8 +174,11 @@ void EditorLayer::registerEditorEvents()
 	eventBus.registerHandler(EditorEventType::OpenMaterialEditor, [=](const EditorEvent &event){
         m_inspectorPanel.openView(InspectorPanelView::MaterialEditor);
         if (event.data.has_value())
-            m_inspectorPanel.setMaterialContext(
-                std::any_cast<InspectorPanel::MaterialContext>(event.data));
+        {
+            auto ctx = std::any_cast<InspectorPanel::MaterialContext>(event.data);
+            m_inspectorPanel.setMaterialContext(ctx);
+            CustomThumbnail::get().setMaterialPreviewAssetHandle(ctx.assetHandle);
+        }
     });
 	eventBus.registerHandler(EditorEventType::CreateNewMaterialFrom, [=](const EditorEvent &event){
         m_assetBrowserPopup.showFileBrowserPopup();

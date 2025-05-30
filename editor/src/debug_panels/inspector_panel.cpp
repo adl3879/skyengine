@@ -61,7 +61,10 @@ void InspectorPanel::render()
 	if (m_view != InspectorPanelView::Default)
     {
 		if (ImGui::Button("Back", {80, 40}))
+        {
 			m_view = InspectorPanelView::Default;
+            CustomThumbnail::get().setMaterialPreviewAssetHandle(NULL_UUID);
+        }
     }
 
 	switch (m_view)
@@ -85,7 +88,7 @@ void InspectorPanel::drawDefaultView()
 		float containerHeight = 70.0f;
 
 		if (ImGui::BeginChild("CenteredContainer", ImVec2(0, containerHeight), false,
-							  ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
 		{
 			ImGui::SetCursorPosY((containerHeight - ImGui::GetTextLineHeight()) * 0.5f); // Vertically center content
 
@@ -214,7 +217,7 @@ void InspectorPanel::drawMaterialEditor()
 	{
 		float imgSize = 255;
 		ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2 - imgSize / 2);
-		ImGui::Image(CustomThumbnail::get().getOrCreateThumbnail(material.name), {imgSize, imgSize}, 
+		ImGui::Image(CustomThumbnail::get().getMaterialPreview(), {imgSize, imgSize}, 
 			/*vertical flip*/ {0, 1}, {1, 0});
 		ImGui::Dummy({0, 10});
 	}

@@ -60,7 +60,7 @@ void Device::init()
     { // create checkerboard texture
         uint32_t black = glm::packUnorm4x8(glm::vec4(0, 0, 0, 0));
         uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
-        const int size = 256;
+        const int size = 12;
         std::array<uint32_t, size * size> pixels; // for 16x16 checkerboard texture
         for (int x = 0; x < size; x++)
         {

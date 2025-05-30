@@ -1,8 +1,11 @@
 #pragma once
 
 #include <skypch.h>
+#include <utility>
 
+#include "asset_management/asset.h"
 #include "core/filesystem.h"
+#include "core/uuid.h"
 #include "graphics/vulkan/vk_device.h"
 #include "graphics/vulkan/vk_types.h"
 #include "renderer/passes/infinite_grid.h"
@@ -30,14 +33,18 @@ class CustomThumbnail
 	void render(gfx::CommandBuffer cmd);
 	void refreshThumbnail(const fs::path &path);
     void refreshSceneThumbnail(const fs::path &path);
-    
-    private:
-	void generateMaterialThumbnail(gfx::CommandBuffer cmd, MaterialID mat, const fs::path &path);
+
+    void setMaterialPreviewAssetHandle(AssetHandle handle) { m_matPreviewAssetHandle = handle; }
+    auto getMaterialPreview() { return m_matPreviewImage.first; }
+
+  private:
+	void generateMaterialThumbnail(gfx::CommandBuffer cmd, MaterialID mat, std::pair<ImageID, ImageID> thumbnail);
 	void generateModelThumbnail(gfx::CommandBuffer cmd, std::vector<MeshID> mesh, const fs::path &path);
     void generateSceneThumbnail(gfx::CommandBuffer cmd, const fs::path &path, ImageID image);
     void generateTextureThumbnail(gfx::CommandBuffer cmd, ImageID image, const fs::path &path);
 
     void saveThumbnailToFile(gfx::CommandBuffer cmd, ImageID imageId, const fs::path &path);
+    void renderMaterialPreview(gfx::CommandBuffer cmd);
 
   private:
 	std::map<fs::path, std::pair<ImageID, ImageID>> m_thumbnails;
@@ -52,6 +59,10 @@ class CustomThumbnail
     FormatConverterPass m_formatConverterPass;
     InfiniteGridPass m_infiniteGridPass;
     SpriteBatchRenderer m_spriteRenderer;
+
+    // Mat preview
+    std::pair<ImageID, ImageID> m_matPreviewImage;
+    AssetHandle m_matPreviewAssetHandle = NULL_UUID;
 
     struct ReadyModel {
         fs::path path;
