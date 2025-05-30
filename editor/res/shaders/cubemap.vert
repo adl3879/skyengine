@@ -15,6 +15,6 @@ layout(push_constant) uniform PushConstants {
 void main() {
     Vertex v = pcs.vertexBuffer.vertices[gl_VertexIndex];
 
-    localPos = v.position;
-    gl_Position = vec4(v.position, 1.0);
+    localPos = (pcs.view * vec4(v.position, 0.0)).xyz;
+    gl_Position = pcs.proj * vec4(v.position, 1.0);
 }

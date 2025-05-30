@@ -65,11 +65,10 @@ void main() {
         vec2 Xi = hammersley(i, SAMPLE_COUNT);
         vec3 H = importanceSampleGGX(Xi, N, pc.roughness);
         vec3 L = normalize(2.0 * dot(V, H) * H - V);
-        L *= 0.99; // Prevent cross-face seam artifacts
 
         float NdotL = max(dot(N, L), 0.0);
         if (NdotL > 0.0) {
-            vec3 s = sampleCubeLod(pc.envMapId, L, pc.roughness * MAX_LOD).rgb;
+            vec3 s = sampleTextureCubeLinear(pc.envMapId, L).rgb;
             prefilteredColor += s * NdotL;
             totalWeight += NdotL;
         }

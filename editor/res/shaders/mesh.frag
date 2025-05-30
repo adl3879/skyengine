@@ -96,14 +96,7 @@ void main()
 
     vec3 diffuseIBL = irradiance * diffuseColor;
 
-    // Option 1: Linear scaling with metallic (current implementation)
     float reflectionScale = metallicF;
-    
-    // Option 2: Sharper cutoff for dielectrics
-    // float reflectionScale = pow(metallic, 2.0); // Quadratic scaling
-    
-    // Option 3: Complete cutoff for pure dielectrics
-    // float reflectionScale = metallic < 0.01 ? 0.0 : metallic;
 
     vec3 specularIBL = prefilteredColor * (F * brdf.x + brdf.y) * reflectionScale;
 
