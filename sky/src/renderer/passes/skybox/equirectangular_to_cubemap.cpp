@@ -30,9 +30,9 @@ void EquirectangularToCubemapPass::init(gfx::Device &device, VkFormat format, Vk
         .setPolygonMode(VK_POLYGON_MODE_FILL)
         .disableBlending()
         .disableCulling()
+        .disableDepthTest()
         .setMultisamplingNone()
         .setColorAttachmentFormat(format)
-        .disableDepthTest()
         .build(device.getDevice());
 
     // Create a cubemap texture
@@ -62,9 +62,7 @@ void EquirectangularToCubemapPass::init(gfx::Device &device, VkFormat format, Vk
         viewInfo.subresourceRange.baseArrayLayer = i;
         viewInfo.subresourceRange.layerCount = 1;
         
-        if (vkCreateImageView(device.getDevice(), &viewInfo, nullptr, &m_cubemapFaceViews[i]) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create cubemap face image view");
-        }
+        VK_CHECK(vkCreateImageView(device.getDevice(), &viewInfo, nullptr, &m_cubemapFaceViews[i]));
     }
 }
 

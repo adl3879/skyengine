@@ -16,5 +16,5 @@ void main() {
     Vertex v = pcs.vertexBuffer.vertices[gl_VertexIndex];
 
     localPos = v.position;
-    gl_Position = pcs.proj * vec4(v.position, 1.0);
+    gl_Position = vec4(v.position, 1.0);
 }

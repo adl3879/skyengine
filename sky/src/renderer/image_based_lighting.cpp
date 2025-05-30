@@ -19,7 +19,7 @@ void ImageBasedLighting::init(gfx::Device &device)
 }
 
 void ImageBasedLighting::draw(gfx::Device &device, gfx::CommandBuffer cmd, const gfx::AllocatedBuffer &sceneDataBuffer)
-{
+    {
     if (m_dirty) 
     {
         m_dirty = false;

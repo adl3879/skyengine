@@ -564,8 +564,6 @@ void Device::uploadImageData(const AllocatedImage &image, void *pixelData, std::
     immediateSubmit(
         [&](VkCommandBuffer cmd)
         {
-            /*assert((image.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT) != 0 &&
-                "Image needs to have VK_IMAGE_USAGE_TRANSFER_DST_BIT to upload data to it");*/
             vkutil::transitionImage(cmd, image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
             const auto copyRegion = VkBufferImageCopy{
@@ -583,27 +581,16 @@ void Device::uploadImageData(const AllocatedImage &image, void *pixelData, std::
             };
 
             vkCmdCopyBufferToImage(cmd, uploadBuffer.buffer, image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
-                                   &copyRegion);
-
-            /*if (image.mipLevels > 1)
-            {
-                assert((image.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT) != 0 &&
-                       (image.usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) != 0 &&
-                       "Image needs to have VK_IMAGE_USAGE_TRANSFER_{DST,SRC}_BIT to generate mip maps");
-                graphics::generateMipmaps(cmd, image.image, VkExtent2D{image.extent.width, image.extent.height},
-                                          image.mipLevels);
-            }
-            else*/
-            {
-                vkutil::transitionImage(cmd, image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-            }
+                &copyRegion);
+            
+            vkutil::transitionImage(cmd, image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         });
 
     destroyBuffer(uploadBuffer);
 }
 
-AllocatedImage Device::getImage(ImageID id) 
+AllocatedImage Device::getImage(ImageID id)  
 {
     if (id == NULL_IMAGE_ID) return AllocatedImage{}; 
     return m_imageCache.getImage(id);

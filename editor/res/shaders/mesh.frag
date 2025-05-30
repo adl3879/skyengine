@@ -44,11 +44,14 @@ void main()
     float metallicF = material.metallicRoughnessEmissive.r;
     float roughnessF = material.metallicRoughnessEmissive.g;
 
-    float metallic = mix(metallicF, sampleTexture2DLinear(material.metallicTex, inUV).r, 0.5);
-    float roughness = mix(roughnessF, sampleTexture2DLinear(material.roughnessTex, inUV).r, 0.5);
-
-    // Optional: Convert roughness to linear space (if perceptual space)
-    roughness = roughness * roughness;
+    // Use texture if it exists, otherwise use the base value
+    float metallic = (material.metallicTex > 0) ? 
+        mix(metallicF, sampleTexture2DLinear(material.metallicTex, inUV).r, 0.5) : 
+        metallicF;
+        
+    float roughness = (material.roughnessTex > 0) ? 
+        mix(roughnessF, sampleTexture2DLinear(material.roughnessTex, inUV).r, 0.5) : 
+        roughnessF;
 
     roughness = max(roughness, 1e-2); // Prevent issues with zero roughness
 
@@ -92,16 +95,24 @@ void main()
     vec3 kD = (1.0 - kS) * (1.0 - metallic);
 
     vec3 diffuseIBL = irradiance * diffuseColor;
-    vec3 specularIBL = prefilteredColor * (F * brdf.x + brdf.y);
+
+    // Option 1: Linear scaling with metallic (current implementation)
+    float reflectionScale = metallicF;
+    
+    // Option 2: Sharper cutoff for dielectrics
+    // float reflectionScale = pow(metallic, 2.0); // Quadratic scaling
+    
+    // Option 3: Complete cutoff for pure dielectrics
+    // float reflectionScale = metallic < 0.01 ? 0.0 : metallic;
+
+    vec3 specularIBL = prefilteredColor * (F * brdf.x + brdf.y) * reflectionScale;
 
     vec3 iblColor = (kD * diffuseIBL + specularIBL) * pcs.sceneData.ambientIntensity;
 
     // emissive
     float emissiveF = material.metallicRoughnessEmissive.b;
     vec3 emissiveColor = emissiveF * sampleTexture2DLinear(material.emissiveTex, inUV).rgb;
-    // fragColor += emissiveColor;
 
-    // === Final Color ===
     vec3 fragColor = Lo + iblColor + emissiveColor;
 
     // get the depth and scale it up by
@@ -113,5 +124,4 @@ void main()
     }
 
 	outFragColor = vec4(fragColor, 1.0f);
-    // outFragColor = vec4(pcs.uniqueId / 10.f, 0.f, 0.1f, 1.f);
 }
