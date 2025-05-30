@@ -4,6 +4,7 @@
 #include <IconsFontAwesome5.h>
 #include <tracy/Tracy.hpp>
 
+#include "renderer/material.h"
 #include "scene/components.h"
 #include "core/helpers/imgui.h"
 #include "asset_management/asset_manager.h"
@@ -472,6 +473,7 @@ void InspectorPanel::drawTransformComponent()
 
 void InspectorPanel::drawMeshComponent() 
 {
+    auto renderer = Application::getRenderer();
 	auto entity = m_context->getSelectedEntity();
 	auto &model = entity.getComponent<ModelComponent>();
 
@@ -503,7 +505,6 @@ void InspectorPanel::drawMeshComponent()
     {
 		if (ImGui::TreeNode("Surfaces"))
 		{
-			auto renderer = Application::getRenderer();
 			AssetManager::getAssetAsync<Model>(model.handle, [&](const Ref<Model> &m){
 				for (size_t i = 0; i < m->meshes.size(); i++)
 				{
@@ -615,6 +616,38 @@ void InspectorPanel::drawMeshComponent()
 			ImGui::TreePop();
 		}
 	}
+    else 
+    {
+        if (ImGui::BeginTable("BuiltinMeshTable", 2, ImGuiTableFlags_Resizable))
+		{
+            const auto material = model.builtinMaterial
+                ?  AssetManager::getAsset<MaterialAsset>(model.builtinMaterial)->material 
+                : renderer->getMaterialCache().getDefaultMaterial();
+
+            ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+            ImGui::Text("Material");
+			ImGui::TableNextColumn();
+			const auto materialName = renderer->getMaterial(material).name; 
+
+            ImGui::Button(materialName.c_str(), ImVec2(-1, 40));
+            if (ImGui::BeginDragDropTarget())
+            {
+                if (const auto *payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+                {
+                    fs::path path = (const char *)payload->Data;
+                    auto assetType = getAssetTypeFromFileExtension(path.extension());
+                    if (assetType == AssetType::Material)
+                    {
+                        const auto handle = AssetManager::getOrCreateAssetHandle(path, AssetType::Material);
+                        model.builtinMaterial = handle;
+                    }
+                }
+                ImGui::EndDragDropTarget();
+            }
+        }
+        ImGui::EndTable();
+    }
 }
 
 void InspectorPanel::drawPointLightComponent() 

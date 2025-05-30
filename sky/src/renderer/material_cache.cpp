@@ -25,7 +25,7 @@ void MaterialCache::init(gfx::Device &gfxDevice)
             }, &normal);
     }
 
-    m_defaultMaterial = addMaterial(gfxDevice, Material{});
+    m_defaultMaterial = addMaterial(gfxDevice, Material{ .name = "Default Material" });
 }
 
 void MaterialCache::upload(gfx::Device &gfxDevice, gfx::CommandBuffer cmd) 
