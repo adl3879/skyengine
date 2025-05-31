@@ -673,7 +673,11 @@ void Device::endFrame(CommandBuffer cmd)
         ZoneScopedN("Imgui draw");
         vkutil::transitionImage(cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
         swapchainLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        m_imguiBackend.draw(cmd, *this, m_swapchain.getImageView(swapchainImageIndex), m_swapchain.getExtent());
+        m_imguiBackend.draw(cmd, 
+            *this, 
+            m_swapchain.getImageView(swapchainImageIndex), 
+            m_swapchain.getExtent(),
+            ImGui::GetDrawData());
     }
 
     // prepare for present

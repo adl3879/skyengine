@@ -26,12 +26,16 @@ class ImGuiBackend
 {
   public:
     void init(Device &gfxDevice, VkFormat swapchainFormat);
-    void draw(VkCommandBuffer cmd, Device &gfxDevice, VkImageView swapchainImageView, VkExtent2D swapchainExtent);
+    void draw(VkCommandBuffer cmd, 
+        Device &gfxDevice, 
+        VkImageView swapchainImageView, 
+        VkExtent2D swapchainExtent,
+        const ImDrawData *drawData);
     void cleanup(Device &gfxDevice);
 
     inline static std::map<std::string, ImFont*> s_fonts;
   private:
-    void copyBuffers(VkCommandBuffer cmd, Device &gfxDevice) const;
+    void copyBuffers(VkCommandBuffer cmd, Device &gfxDevice, const ImDrawData *drawData) const;
 	void setDarkThemeColors();
 
     NBuffer idxBuffer;

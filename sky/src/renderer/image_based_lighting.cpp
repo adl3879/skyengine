@@ -18,8 +18,7 @@ void ImageBasedLighting::init(gfx::Device &device)
     m_skyboxPass.init(device, VK_FORMAT_R16G16B16A16_SFLOAT);
 }
 
-void ImageBasedLighting::draw(gfx::Device &device, gfx::CommandBuffer cmd, const gfx::AllocatedBuffer &sceneDataBuffer)
-    {
+void ImageBasedLighting::draw(gfx::Device &device, gfx::CommandBuffer cmd, const gfx::AllocatedBuffer &sceneDataBuffer) {
     if (m_dirty) 
     {
         m_dirty = false;

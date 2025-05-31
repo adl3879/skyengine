@@ -107,10 +107,12 @@ void ImGuiBackend::init(Device &gfxDevice, VkFormat swapchainFormat)
                    .build(device);
 }
 
-void ImGuiBackend::draw(VkCommandBuffer cmd, Device &gfxDevice, VkImageView swapchainImageView,
-                              VkExtent2D swapchainExtent)
+void ImGuiBackend::draw(VkCommandBuffer cmd, 
+    Device &gfxDevice, 
+    VkImageView swapchainImageView,
+    VkExtent2D swapchainExtent,
+    const ImDrawData *drawData)
 {
-    const auto *drawData = ImGui::GetDrawData();
     assert(drawData);
     if (drawData->TotalVtxCount == 0)
     {
@@ -126,7 +128,7 @@ void ImGuiBackend::draw(VkCommandBuffer cmd, Device &gfxDevice, VkImageView swap
         return;
     }
 
-    copyBuffers(cmd, gfxDevice);
+    copyBuffers(cmd, gfxDevice, drawData);
 
     const auto renderInfo = vkutil::createRenderingInfo({
         .renderExtent = swapchainExtent,
@@ -246,10 +248,8 @@ void ImGuiBackend::draw(VkCommandBuffer cmd, Device &gfxDevice, VkImageView swap
     vkCmdEndRendering(cmd);
 }
 
-void ImGuiBackend::copyBuffers(VkCommandBuffer cmd, Device &gfxDevice) const
+void ImGuiBackend::copyBuffers(VkCommandBuffer cmd, Device &gfxDevice, const ImDrawData *drawData) const
 {
-    const auto *drawData = ImGui::GetDrawData();
-
     {
         // sync with previous read
         const auto idxBufferBarrier = VkBufferMemoryBarrier2{

@@ -166,11 +166,9 @@ void InspectorPanel::drawDefaultView()
 		helper::imguiCollapsingHeaderStyle("TRANSFORM", [&](){
 			drawTransformComponent();	
 		});
-
 		helper::imguiCollapsingHeaderStyle("MESH RENDERER", [&](){
 			drawMeshComponent();	
 		}, entity.hasComponent<ModelComponent>());
-
 		helper::imguiCollapsingHeaderStyle("DIRECTIONAL LIGHT", [&](){
 			drawDirectionalLightComponent();
 		}, entity.hasComponent<DirectionalLightComponent>());
@@ -492,7 +490,7 @@ void InspectorPanel::drawMeshComponent()
 
 			ImGui::TableNextRow();
 			ImGui::TableNextColumn();
-			ImGui::Text("Path");
+			ImGui::Text("Model");
 			ImGui::TableNextColumn();
 			const auto path = AssetManager::getMetadata(model.handle).filepath;
 			ImGui::Button(path.string().c_str(), {-1, 40});
@@ -502,6 +500,16 @@ void InspectorPanel::drawMeshComponent()
 	}
 	else
     {
+        if (ImGui::BeginTable("MeshTable", 2, ImGuiTableFlags_Resizable))
+		{
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("Type");
+			ImGui::TableNextColumn();
+			ImGui::Button("Model type", {-1, 40});
+
+			ImGui::EndTable();
+		}
     }
 
 	if (model.type == ModelType::Custom)

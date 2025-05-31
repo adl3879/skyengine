@@ -199,5 +199,88 @@ void drawButtonImage(ImageID img, ImU32 tintNormal, ImU32 tintHovered, ImU32 tin
     else 
         drawList->AddImage(img, rectMin, rectMax, ImVec2(0, 1), ImVec2(1, 0), tintNormal);
 }
+
+int showSelectableImagePopup(const char* title, const std::vector<SelectableImageItem>& items, 
+    ImVec2 thumbnailSize, int columns)
+{
+    ImGui::OpenPopup(title);
+    
+    int selectedIndex = -1;
+    
+    // Center the popup
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    
+    // Calculate popup size based on content
+    float popupWidth = (thumbnailSize.x + 20) * std::min(columns, static_cast<int>(items.size())) + 20;
+    float popupHeight = ((thumbnailSize.y + 40) * (items.size() / columns + 1)) + 80;
+    ImGui::SetNextWindowSize(ImVec2(popupWidth, popupHeight), ImGuiCond_Appearing);
+    
+    if (ImGui::BeginPopupModal(title, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        // Display items in a grid
+        ImGui::BeginChild("ScrollingRegion", ImVec2(0, popupHeight - 60), false);
+        
+        int itemCount = 0;
+        for (size_t i = 0; i < items.size(); i++)
+        {
+            // Start new row if needed
+            if (itemCount % columns != 0)
+                ImGui::SameLine();
+            
+            // Create a group for the item (image + text)
+            ImGui::BeginGroup();
+            
+            // Create a unique ID for this item
+            ImGui::PushID(static_cast<int>(i));
+            
+            // Create a button with the image
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.2f, 0.2f, 0.5f));
+            
+            if (ImGui::Button("##ImageButton", thumbnailSize))
+            {
+                selectedIndex = static_cast<int>(i);
+                ImGui::CloseCurrentPopup();
+            }
+            
+            // Draw the image on top of the button
+            if (items[i].imageId != NULL_IMAGE_ID)
+            {
+                drawButtonImage(items[i].imageId, 
+                    IM_COL32_WHITE, 
+                    IM_COL32(220, 220, 220, 255), 
+                    IM_COL32(180, 180, 180, 255));
+            }
+            
+            ImGui::PopStyleColor(2);
+            
+            // Center and display the item name
+            float textWidth = ImGui::CalcTextSize(items[i].name.c_str()).x;
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (thumbnailSize.x - textWidth) * 0.5f);
+            ImGui::TextWrapped("%s", items[i].name.c_str());
+            
+            ImGui::PopID();
+            ImGui::EndGroup();
+            
+            itemCount++;
+        }
+        
+        ImGui::EndChild();
+        
+        ImGui::Separator();
+        
+        // Add Cancel button at the bottom
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5);
+        if (ImGui::Button("Cancel", ImVec2(120, 0)))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+        
+        ImGui::EndPopup();
+    }
+    
+    return selectedIndex;
+}
 }
 }

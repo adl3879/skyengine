@@ -18,6 +18,7 @@
 #include "core/helpers/image.h"
 #include "core/helpers/imgui.h"
 #include "graphics/vulkan/vk_types.h"
+#include "imgui_internal.h"
 #include "scene/scene_manager.h"
 #include "core/events/event_bus.h"
 #include "inspector_panel.h"
@@ -123,9 +124,7 @@ void AssetBrowserPanel::render()
     int columnCount = static_cast<int>(panelWidth / cellSize);
     if (columnCount < 1) columnCount = 1;
 
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.05f, 0.05f, 0.05f, 0.54f));
     ImGui::BeginChild("Directory Tree", {0.0f, 0.f}, ImGuiChildFlags_ResizeX);
-    ImGui::Dummy({0, 5}); // Add vertical space
     if (ImGui::TreeNodeEx(ICON_FA_HOME "  Root Directory", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow))
     {
         if (ImGui::IsItemClicked())
@@ -138,8 +137,11 @@ void AssetBrowserPanel::render()
     }
 
     ImGui::EndChild();
-    ImGui::PopStyleColor();
 
+    // Add a vertical separator
+    ImGui::SameLine();
+    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+    
     ImGui::SameLine();
 
     ImGui::BeginChild("Content Region", {0.f, 0.f}, false);

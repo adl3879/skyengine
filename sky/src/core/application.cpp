@@ -80,8 +80,8 @@ void Application::run()
 
         for (Layer *layer : m_layerStack) layer->onUpdate(m_fps.getDeltaTime());
 
-        m_fps.frameRendered();
         EditorEventBus::get().processEvents();
+        m_fps.frameRendered();
     }
     m_window->destroy();
 }
