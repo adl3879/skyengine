@@ -9,7 +9,7 @@ bool TextureSerializer::serialize(const fs::path &path, Ref<Texture2D> texture)
     std::ofstream file(path, std::ios::binary);
     if (!file.is_open())
     {
-        SKY_CORE_ERROR("Failed to open mesh file: {0}", path.string());
+        SKY_CORE_ERROR("Failed to open texture file: {0}", path.string());
         return false;
     }
 

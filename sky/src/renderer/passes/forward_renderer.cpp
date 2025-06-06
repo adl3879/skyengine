@@ -60,22 +60,7 @@ void ForwardRendererPass::draw(
     };
     device.bindDescriptorSets(cmd, m_pInfo.pipelineLayout, descriptorSets);
 
-    // set dynamic viewport and scissor
-    const auto viewport = VkViewport{
-        .x = 0.f,
-		.y = 0.f,
-		.width = (float)extent.width,
-		.height = (float)extent.height,
-		.minDepth = 0.f,
-		.maxDepth = 1.f,
-    };
-    vkCmdSetViewport(cmd, 0, 1, &viewport);
-
-    const auto scissor = VkRect2D{
-        .offset = {0, 0},
-        .extent = extent,
-    };
-    vkCmdSetScissor(cmd, 0, 1, &scissor);
+    gfx::vkutil::setViewportAndScissor(cmd, extent);
 
 	const auto frustum = edge::createFrustumFromCamera(camera);
     for (const auto &dc : drawCommands)

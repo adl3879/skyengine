@@ -75,29 +75,6 @@ void Device::init()
             }, &pixels);
     }
 
-    ImGui::CreateContext();
-
-    float fontSize = 27.f;
-    auto &io = ImGui::GetIO();
-    io.ConfigWindowsMoveFromTitleBarOnly = true;
-    io.ConfigFlags = ImGuiConfigFlags_DockingEnable;
-    io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", fontSize);
-
-    float iconFontSize = fontSize * 2.0f / 3.0f;
-    // merge in icons from Font Awesome
-    static const ImWchar icons_ranges[] = {ICON_MIN_FA, ICON_MAX_16_FA, 0};
-    ImFontConfig icons_config;
-    icons_config.MergeMode = true;
-    icons_config.PixelSnapH = true;
-    icons_config.GlyphMinAdvanceX = iconFontSize;
-    io.Fonts->AddFontFromFileTTF("res/fonts/" FONT_ICON_FILE_NAME_FAS, iconFontSize, &icons_config, icons_ranges);
-    // use FONT_ICON_FILE_NAME_FAR if you want regular instead of solid
-
-    io.Fonts->AddFontFromFileTTF("res/fonts/" FONT_ICON_FILE_NAME_FAS, iconFontSize * 2, &icons_config, icons_ranges);
-
-    m_imguiBackend.init(*this, m_swapchainFormat);
-    ImGui_ImplGlfw_InitForVulkan(m_window.getGLFWwindow(), true);
-
     m_isInitialized = true;
 }
 
@@ -182,7 +159,7 @@ void Device::initCommands()
         VK_CHECK(vkAllocateCommandBuffers(m_device, &cmdAllocInfo, &m_frames[i].mainCommandBuffer));
     }
 
-     // create a command pool for immediate commands
+    // create a command pool for immediate commands
     VK_CHECK(vkCreateCommandPool(m_device, &commandPoolInfo, nullptr, &m_immCommandPool));
 
     // allocate the command buffer for immediate submits
@@ -615,11 +592,13 @@ void Device::cleanup()
         {
             vkDestroyCommandPool(m_device, frame.commandPool, 0);
         }
-        m_imguiBackend.cleanup(*this);
+        // m_imguiBackend.cleanup(*this);
         m_swapchain.cleanup(m_device);
 
         vkDestroyFence(m_device, m_immFence, nullptr);
         vkDestroyCommandPool(m_device, m_immCommandPool, nullptr);
+        for (VkCommandPool pool : m_threadPools) 
+            vkDestroyCommandPool(m_device, pool, nullptr);
 
 		vkb::destroy_surface(m_instance, m_surface);
         //vmaDestroyAllocator(m_allocator);
@@ -640,7 +619,21 @@ CommandBuffer Device::beginFrame()
     };
     VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
 
-    return CommandBuffer{cmd};
+    return {cmd};
+}
+
+CommandBuffer Device::allocateSecondaryCommandBuffer()
+{
+    VkCommandBufferAllocateInfo allocInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = getThreadCommandPool(), // per-thread or per-frame
+        .level = VK_COMMAND_BUFFER_LEVEL_SECONDARY,
+        .commandBufferCount = 1
+    };
+
+    VkCommandBuffer cmd;
+    vkAllocateCommandBuffers(m_device, &allocInfo, &cmd);
+    return {cmd};
 }
 
 void Device::resetSwapchainFences() 
@@ -649,46 +642,34 @@ void Device::resetSwapchainFences()
     m_swapchain.resetFences(m_device, getCurrentFrameIndex());
 }
 
+VkCommandPool Device::createCommandPool()
+{
+    VkCommandPoolCreateInfo poolInfo = {};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.queueFamilyIndex = m_graphicsQueueFamily;
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+    VkCommandPool pool;
+    VK_CHECK(vkCreateCommandPool(m_device, &poolInfo, nullptr, &pool));
+
+    {
+        std::scoped_lock lock(m_poolMutex);
+        m_threadPools.push_back(pool);
+    }
+
+    return pool;
+}
+
+VkCommandPool Device::getThreadCommandPool()
+{
+    thread_local VkCommandPool threadPool = createCommandPool();
+    return threadPool;
+}
+
 void Device::endFrame(CommandBuffer cmd) 
 {
-    // get swapchain image
-    const auto [swapchainImage, swapchainImageIndex] = m_swapchain.acquireImage(m_device, getCurrentFrameIndex());
-    if (swapchainImage == VK_NULL_HANDLE)
-        return;
-
-    // Fences are reset here to prevent the deadlock in case swapchain becomes dirty
-    m_swapchain.resetFences(m_device, getCurrentFrameIndex());
-
-    auto swapchainLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    {
-        // clear swapchain image
-        VkImageSubresourceRange clearRange = vkinit::imageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
-        vkutil::transitionImage(cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_GENERAL);
-        swapchainLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-        const auto clearValue = VkClearColorValue{{1.f, 1.f, 1.f, 1.f}};
-        vkCmdClearColorImage(cmd, swapchainImage, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
-    }
-    {
-        ZoneScopedN("Imgui draw");
-        vkutil::transitionImage(cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        swapchainLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        m_imguiBackend.draw(cmd, 
-            *this, 
-            m_swapchain.getImageView(swapchainImageIndex), 
-            m_swapchain.getExtent(),
-            ImGui::GetDrawData());
-    }
-
-    // prepare for present
-    vkutil::transitionImage(cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-    swapchainLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
     VK_CHECK(vkEndCommandBuffer(cmd));
-
-    m_swapchain.submitAndPresent(cmd, m_graphicsQueue, getCurrentFrameIndex(), swapchainImageIndex);
-
-    m_frameNumber++;
+    // m_frameNumber++;
 }
 
 VkDescriptorSetLayout Device::getBindlessDescSetLayout() const

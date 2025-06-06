@@ -68,10 +68,22 @@ void Application::run()
         auto cmd = m_gfxDevice->beginFrame();
         CustomThumbnail::get().render(cmd);
         m_renderer->update(scene);
-        m_renderer->render(cmd, scene, *scene->getEditorCamera(), m_renderer->getSceneImage());
+
+        auto swapchain = m_gfxDevice->getSwapchain();
+        const auto [swapchainImage, swapchainImageIndex] = swapchain.acquireImage(m_gfxDevice->getDevice(), m_gfxDevice->getCurrentFrameIndex());
+
+        m_renderer->render(cmd, 
+            swapchainImage,
+            swapchainImageIndex,
+            scene, 
+            *scene->getEditorCamera(), 
+            m_renderer->getSceneImage());
 
         m_gfxDevice->endFrame(cmd);
-        
+
+        swapchain.submitAndPresent(cmd, m_gfxDevice->getGraphicsQueue(), m_gfxDevice->getCurrentFrameIndex(), swapchainImageIndex);
+        m_gfxDevice->incrementFrameNumber();
+    
         if (m_gfxDevice->needsSwapchainRecreate())
         {
             auto extent = m_window->getExtent();

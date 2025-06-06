@@ -4,9 +4,13 @@
 #include <tracy/Tracy.hpp>
 #include <vulkan/vulkan_core.h>
 
+#include "IconsFontAwesome5.h"
+#include "core/application.h"
+#include "graphics/vulkan/vk_device.h"
 #include "graphics/vulkan/vk_images.h"
 #include "graphics/vulkan/vk_types.h"
 #include "graphics/vulkan/vk_utils.h"
+#include "imgui_impl_glfw.h"
 #include "renderer/camera/camera.h"
 #include "scene/components.h"
 #include "asset_management/asset_manager.h"
@@ -20,6 +24,8 @@
 
 namespace sky
 {
+static VkCommandBufferBeginInfo getCmdBufferBeginInfo();
+
 SceneRenderer::SceneRenderer(gfx::Device &device)
 	: m_device(device)
 {
@@ -34,6 +40,7 @@ SceneRenderer::~SceneRenderer()
     m_depthResolvePass.cleanup(m_device);
     m_postFXPass.cleanup(m_device);
     m_ibl.cleanup(m_device);
+    m_imguiBackend.cleanup(m_device);
 }
 
 bool SceneRenderer::isMultisamplingEnabled() const
@@ -56,6 +63,27 @@ void SceneRenderer::init(glm::ivec2 size)
     m_depthResolvePass.init(m_device, m_depthImageFormat);
     m_postFXPass.init(m_device, m_drawImageFormat);
     m_ibl.init(m_device);
+
+    ImGui::CreateContext();
+
+    float fontSize = 27.f;
+    auto &io = ImGui::GetIO();
+    io.ConfigWindowsMoveFromTitleBarOnly = true;
+    io.ConfigFlags = ImGuiConfigFlags_DockingEnable;
+    io.Fonts->AddFontFromFileTTF("res/fonts/IBM_Plex_Sans/IBMPlexSans-Regular.ttf", fontSize);
+
+    float iconFontSize = fontSize * 2.0f / 3.0f;
+    // merge in icons from Font Awesome
+    static const ImWchar icons_ranges[] = {ICON_MIN_FA, ICON_MAX_16_FA, 0};
+    ImFontConfig icons_config;
+    icons_config.MergeMode = true;
+    icons_config.PixelSnapH = true;
+    icons_config.GlyphMinAdvanceX = iconFontSize;
+    io.Fonts->AddFontFromFileTTF("res/fonts/" FONT_ICON_FILE_NAME_FAS, iconFontSize, &icons_config, icons_ranges);
+    io.Fonts->AddFontFromFileTTF("res/fonts/" FONT_ICON_FILE_NAME_FAS, iconFontSize * 2, &icons_config, icons_ranges);
+
+    m_imguiBackend.init(m_device, VK_FORMAT_B8G8R8A8_SRGB);
+    ImGui_ImplGlfw_InitForVulkan(Application::getWindow()->getGLFWwindow(), true);
 }
 
 void SceneRenderer::initBuiltins() 
@@ -262,6 +290,8 @@ void SceneRenderer::drawModel(Ref<Model> model, const glm::mat4 &transform)
 }
 
 void SceneRenderer::render(gfx::CommandBuffer &cmd, 
+    VkImage swapchainImage,
+    uint32_t swapchainImageIndex,
     Ref<Scene> scene, 
     Camera &camera, 
     ImageID drawImageID) 
@@ -388,9 +418,38 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
             resolveDepthImage.image,
             VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    }
+    } 
 
-    { // post fx
+    {
+        auto swapchain = m_device.getSwapchain();
+
+        // Fences are reset here to prevent the deadlock in case swapchain becomes dirty
+        swapchain.resetFences(m_device.getDevice(), m_device.getCurrentFrameIndex());
+
+        auto swapchainLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        {
+            // clear swapchain image
+            VkImageSubresourceRange clearRange = gfx::vkinit::imageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
+            gfx::vkutil::transitionImage(cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_GENERAL);
+            swapchainLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+            const auto clearValue = VkClearColorValue{{1.f, 1.f, 1.f, 1.f}};
+            vkCmdClearColorImage(cmd, swapchainImage, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
+        }
+
+        ZoneScopedN("Imgui draw");
+        gfx::vkutil::transitionImage(cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        swapchainLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        m_imguiBackend.draw(cmd, 
+            m_device, 
+            swapchain.getImageView(swapchainImageIndex), 
+            swapchain.getExtent(),
+            ImGui::GetDrawData());
+        
+        gfx::vkutil::transitionImage(cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    }
+    {
         ImageID sourceImageID = isMultisamplingEnabled() ? m_resolveImageID : m_drawImageID;
         ImageID depthImageID = isMultisamplingEnabled() ? m_resolveDepthImageID : m_depthImageID;
 

@@ -13,6 +13,7 @@
 #include "renderer/camera/camera.h"
 
 #include <VkBootstrap.h>
+#include <vulkan/vulkan_core.h>
 
 namespace sky
 {
@@ -93,8 +94,11 @@ class Device
     auto getQueue() const { return m_graphicsQueue; }
 	auto getCommandPool() const { return m_frames[m_frameNumber % gfx::FRAME_OVERLAP].commandPool; }
     auto getGraphicsQueue() const { return m_graphicsQueue; }
+    auto getSwapchain() const { return m_swapchain; }
+    void incrementFrameNumber() { m_frameNumber++; }
 
 	CommandBuffer beginFrame();
+    CommandBuffer allocateSecondaryCommandBuffer();
     void endFrame(CommandBuffer cmd);
     void cleanup();
 
@@ -130,8 +134,9 @@ class Device
     void initVulkan();
 	void initCommands();
     void checkDeviceCapabilities();
-
 	void createStorageBufferDescriptor();
+    VkCommandPool createCommandPool();
+    VkCommandPool getThreadCommandPool();
 
   private:
 	FrameData m_frames[gfx::FRAME_OVERLAP];
@@ -139,6 +144,9 @@ class Device
 	VkQueue m_graphicsQueue;
 	uint32_t m_graphicsQueueFamily;
 	std::mutex m_queueMutex;
+
+    std::mutex m_poolMutex;
+    std::vector<VkCommandPool> m_threadPools;
 
   private:
     vkb::Instance m_instance;

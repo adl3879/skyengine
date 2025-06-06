@@ -142,17 +142,10 @@ void ImGuiBackend::draw(VkCommandBuffer cmd,
     };
     gfxDevice.bindDescriptorSets(cmd, pipelineLayout, descriptorSets);
 
-    const auto targetWidth = (float)swapchainExtent.width;
-    const auto targetHeight = (float)swapchainExtent.height;
-    const auto viewport = VkViewport{
-        .x = 0,
-        .y = 0,
-        .width = targetWidth,
-        .height = targetHeight,
-        .minDepth = 0.f,
-        .maxDepth = 1.f,
-    };
-    vkCmdSetViewport(cmd, 0, 1, &viewport);
+    const auto targetWidth = static_cast<float>(swapchainExtent.width);
+    const auto targetHeight = static_cast<float>(swapchainExtent.height);
+
+    gfx::vkutil::setViewportAndScissor(cmd, swapchainExtent);
 
     const auto clipOffset = drawData->DisplayPos;
     const auto clipScale = drawData->FramebufferScale;
@@ -161,7 +154,7 @@ void ImGuiBackend::draw(VkCommandBuffer cmd,
     std::size_t globalVtxOffset = 0;
 
     vkCmdBindIndexBuffer(cmd, idxBuffer.getBuffer().buffer, 0,
-                         sizeof(ImDrawIdx) == sizeof(std::uint16_t) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
+        sizeof(ImDrawIdx) == sizeof(std::uint16_t) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
 
     for (int cmdListID = 0; cmdListID < drawData->CmdListsCount; ++cmdListID)
     {

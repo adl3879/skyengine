@@ -133,6 +133,7 @@ void EditorLayer::onImGuiRender()
     m_assetBrowserPanel.render();
     m_assetBrowserPopup.render();
     m_logPanel.render();
+    m_environmentPanel.render();
 
     ImGui::End();
 }

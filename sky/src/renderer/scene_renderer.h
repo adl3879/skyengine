@@ -30,7 +30,12 @@ class SceneRenderer
     SceneRenderer operator=(SceneRenderer &) = delete;
 
     void init(glm::ivec2 size);
-    void render(gfx::CommandBuffer &cmd, Ref<Scene> scene, Camera &cam, ImageID drawImage);
+    void render(gfx::CommandBuffer &cmd, 
+        VkImage swapchainImage,
+        uint32_t swapchainImageIndex,
+        Ref<Scene> scene, 
+        Camera &cam, 
+        ImageID drawImage);
     void update(Ref<Scene> scene);
 
     void initBuiltins();
@@ -61,7 +66,7 @@ class SceneRenderer
     ImageID createNewDepthImage(glm::ivec2 size, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
     
     ForwardRendererPass getForwardRendererPass() const { return m_forwardRenderer; }
-    auto getIBL() const { return m_ibl; }
+    auto &getIBL()  { return m_ibl; }
     auto getSphereMesh() const { return m_builtinModels.at(ModelType::Sphere); }
     auto getCubeMesh() const { return m_builtinModels.at(ModelType::Cube); }
 
@@ -122,6 +127,7 @@ class SceneRenderer
     // SkyboxPass m_skyboxPass;
     SpriteBatchRenderer m_spriteRenderer;
     ImageBasedLighting m_ibl;
+	gfx::ImGuiBackend m_imguiBackend;
 
     ImageID m_drawImageID{NULL_IMAGE_ID};
     ImageID m_gameDrawImageID{NULL_IMAGE_ID};

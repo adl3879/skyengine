@@ -7,9 +7,9 @@ namespace sky
 {
 void ImageBasedLighting::init(gfx::Device &device)
 {
-    auto path = "C:\\Users\\Toyosi Adekanmbi\\Desktop\\TYGame\\assets\\textures\\skybox\\skybox.hdr";
-    auto hdrTex = TextureCubeImporter::loadTexture(path);
-    m_hdrImageId = helper::loadImageFromTexture(hdrTex, VK_FORMAT_R32G32B32A32_SFLOAT);
+    // auto path = "C:\\Users\\Toyosi Adekanmbi\\Desktop\\TYGame\\assets\\textures\\skybox\\skybox.hdr";
+    // auto hdrTex = TextureCubeImporter::loadTexture(path);
+    // m_hdrImageId = helper::loadImageFromTexture(hdrTex, VK_FORMAT_R32G32B32A32_SFLOAT);
     
     m_equirectangularToCubemapPass.init(device, VK_FORMAT_R16G16B16A16_SFLOAT, {512, 512});
     m_irradiancePass.init(device, VK_FORMAT_R16G16B16A16_SFLOAT, 32);
@@ -19,6 +19,7 @@ void ImageBasedLighting::init(gfx::Device &device)
 }
 
 void ImageBasedLighting::draw(gfx::Device &device, gfx::CommandBuffer cmd, const gfx::AllocatedBuffer &sceneDataBuffer) {
+    if (m_hdrImageId == NULL_IMAGE_ID)  return;
     if (m_dirty) 
     {
         m_dirty = false;
@@ -34,6 +35,7 @@ void ImageBasedLighting::drawSky(gfx::Device &device,
     VkExtent2D extent,
     const gfx::AllocatedBuffer &sceneDataBuffer)
 {
+    if (m_hdrImageId == NULL_IMAGE_ID)  return;
     m_skyboxPass.draw(device, 
         cmd, 
         extent,

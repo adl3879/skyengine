@@ -18,6 +18,7 @@ enum class EditorEventType
     OpenMaterialEditor,
     CreateNewMaterialFrom,
     CreateDefaultMaterial,
+    ToggleEnvironmentPanel,
 };
 
 struct EditorEvent

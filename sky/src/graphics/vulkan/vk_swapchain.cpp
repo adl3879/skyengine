@@ -163,7 +163,7 @@ void Swapchain::present(VkQueue graphicsQueue, std::size_t frameIndex, std::uint
 
 // Modify the existing submitAndPresent method to use the new methods
 void Swapchain::submitAndPresent(VkCommandBuffer cmd, VkQueue graphicsQueue, std::size_t frameIndex,
-                                 std::uint32_t swapchainImageIndex)
+    std::uint32_t swapchainImageIndex)
 {
     const auto &frame = m_frames[frameIndex];
 

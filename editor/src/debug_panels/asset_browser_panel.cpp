@@ -1,5 +1,6 @@
 ﻿#include "asset_browser_panel.h"
 
+#include <filesystem>
 #include <imgui.h>
 #include <IconsFontAwesome5.h>
 #include <glm/glm.hpp>
@@ -13,8 +14,6 @@
 #include "core/log/log.h"
 #include "core/project_management/project_manager.h"
 #include "core/helpers/file_dialogs.h"
-#include "core/application.h"
-#include "core/tasks/task_manager.h"
 #include "core/helpers/image.h"
 #include "core/helpers/imgui.h"
 #include "graphics/vulkan/vk_types.h"
@@ -72,41 +71,6 @@ void AssetBrowserPanel::render()
             init();
             opened = false;
         }
-    }
-
-    // Check if we need to update the directory cache
-    std::string currentDirStr = m_currentDirectory.string();
-    int64_t currentTime = std::chrono::duration_cast<std::chrono::seconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count();
-    
-    // Update cache if:
-    // 1. It's been more than 5 seconds since last update
-    // 2. The cache for this directory doesn't exist
-    // 3. The cache has been marked as dirty (e.g., after file operations)
-    if (m_DirectoryCacheDirty || 
-        currentTime - m_LastDirectoryCacheUpdate > 5 || 
-        m_DirectoryCache.find(currentDirStr) == m_DirectoryCache.end()) 
-    {
-        ZoneScopedN("Update directory cache");
-        
-        m_DirectoryCache[currentDirStr].clear();
-        
-        if (fs::exists(m_currentDirectory))
-        {
-            for (auto &directoryEntry : std::filesystem::directory_iterator(m_currentDirectory))
-            {
-                // Filter out unwanted files here to avoid filtering in the render loop
-                const auto &path = directoryEntry.path();
-                if (path.stem() == "AssetRegistry") continue;
-                if (path.extension() == ".import") continue;
-                if (path.extension() == ".bin") continue;
-                
-                m_DirectoryCache[currentDirStr].push_back(directoryEntry);
-            }
-        }
-        
-        m_LastDirectoryCacheUpdate = currentTime;
-        m_DirectoryCacheDirty = false;
     }
 
     ImGui::Begin("Asset Browser   ");
@@ -232,9 +196,11 @@ void AssetBrowserPanel::render()
 
     if (m_CurrentDirectoryEntries.empty())
     { 
-        // Use the cached directory entries instead of accessing the filesystem
-        for (const auto &directoryEntry : m_DirectoryCache[currentDirStr])
-            drawFileAssetBrowser(directoryEntry);
+        if (fs::exists(m_currentDirectory))
+        {
+            for (const auto &directoryEntry : fs::directory_iterator(m_currentDirectory))
+                drawFileAssetBrowser(directoryEntry);
+        }
     }
     else
     {
@@ -298,7 +264,7 @@ void AssetBrowserPanel::importNewAsset(const fs::path &path)
 
 void AssetBrowserPanel::deleteAsset(const fs::path &path) 
 {
-	auto remove = [=](const fs::path &path) {
+	auto remove = [this](const fs::path &path) {
 		auto extension = path.extension();
 		auto assetType = getAssetTypeFromFileExtension(extension);
 		switch (assetType)
@@ -561,6 +527,7 @@ void AssetBrowserPanel::drawFileAssetBrowser(fs::directory_entry directoryEntry)
         
         if (directoryEntry.is_directory()) icon = m_icons["directory"];
         else if (assetType == AssetType::Scene) icon = icon == NULL_IMAGE_ID ? m_icons["scene"] : icon;
+        else icon = NULL_IMAGE_ID;
     }
     if (icon == NULL_IMAGE_ID) icon = m_icons["file"];
 

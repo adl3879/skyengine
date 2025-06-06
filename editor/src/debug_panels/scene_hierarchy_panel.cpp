@@ -122,7 +122,7 @@ void SceneHierarchyPanel::render()
 
 void SceneHierarchyPanel::drawEntityNode(Entity entity, const char *query)
 {
-    // Skip entities that don’t match the search query and have no matching children
+    // Skip entities that donï¿½t match the search query and have no matching children
     if (strlen(query) > 0 && !matchesSearchRecursively(entity, query))
     {
         return;
@@ -253,12 +253,6 @@ Entity SceneHierarchyPanel::createEntityPopup()
             auto &model = entity.addComponent<ModelComponent>();
             model.type = ModelType::Cone;
         }
-       /* if (ImGui::MenuItem(ICON_FA_CIRCLE "  Capsule"))
-        {
-            entity = m_context->createEntity("Default Capsule");
-            auto &model = entity.addComponent<ModelComponent>();
-            model.type = ModelType::Capsule;
-        }*/
         ImGui::Separator();
         if (ImGui::MenuItem(ICON_FA_CUBE "  Empty Mesh"))
         {

@@ -3,6 +3,7 @@
 #include <core/layer.h>
 #include <skypch.h>
 
+#include "debug_panels/environment_panel.h"
 #include "graphics/vulkan/vk_device.h"
 #include "renderer/scene_renderer.h"
 #include "scene/scene.h"
@@ -49,6 +50,7 @@ class EditorLayer : public Layer
     LogsPanel           m_logPanel;
     TitlebarPanel       m_titlebarPanel;
     ViewportPanel       m_viewportPanel;
+    EnvironmentPanel    m_environmentPanel;
 
     Ref<Scene> m_activeScene;
 }; 

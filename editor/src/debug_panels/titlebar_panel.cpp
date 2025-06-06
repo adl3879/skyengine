@@ -7,6 +7,7 @@
 #include "core/application.h"
 #include "core/project_management/project_manager.h"
 #include "core/helpers/imgui.h"
+#include "environment_panel.h"
 #include "renderer/scene_renderer.h"
 #include "core/helpers/image.h"
 #include "embed/window_images.embed";
@@ -253,7 +254,13 @@ void TitlebarPanel::drawMenuBar()
         }
         if (ImGui::BeginMenu("View")) 
         {
-			ImGui::EndMenu();
+            auto &environmentPanelOpen = EnvironmentPanel::getIsOpen();
+            if (ImGui::Checkbox("Environment Panel", &environmentPanelOpen)) 
+            {
+                EditorEventBus::get().pushEvent({EditorEventType::ToggleEnvironmentPanel});
+            }
+            
+            ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Tools")) 
         {

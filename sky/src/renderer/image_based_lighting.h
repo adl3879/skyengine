@@ -22,6 +22,8 @@ class ImageBasedLighting
         const gfx::AllocatedBuffer &sceneDataBuffer);
     void cleanup(gfx::Device &device);
 
+    void setHdrImageId(ImageID imageId) { m_hdrImageId = imageId; m_dirty = true; }
+
     auto getIrradianceMapId() { return m_irradiancePass.getCubemapId(); }
     auto getPrefilterMapId() { return m_prefilterEnvmapPass.getCubemapId(); }
     auto getBrdfLutId() { return m_brdfLutPass.getLutId(); }
@@ -33,7 +35,7 @@ class ImageBasedLighting
     IrradiancePass m_irradiancePass;
     BrdfLutPass m_brdfLutPass;
 
-    bool m_dirty{true};
-    ImageID m_hdrImageId;
+    bool m_dirty{false};
+    ImageID m_hdrImageId{NULL_IMAGE_ID};
 };
 }

@@ -46,9 +46,11 @@ void PostFXPass::draw(
         device.getBindlessDescSet(),
     };
     device.bindDescriptorSets(cmd, m_pInfo.pipelineLayout, descriptorSets);
-
+    
     const auto &drawImage = device.getImage(drawImageId);
     const auto &depthImage = device.getImage(depthImageId);
+
+    gfx::vkutil::setViewportAndScissor(cmd, drawImage.getExtent2D());
 
     // Set push constants
     const auto pushConstants = PushConstants{
