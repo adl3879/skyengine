@@ -53,13 +53,23 @@ list(TRANSFORM SHADERS PREPEND "${SKY_SHADERS_DIR}")
 
 target_shaders(editor ${SHADERS})
 
+# Copy DLL next to the .exe
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/sky/vendor/assimp/assimp-vc143-mt.dll
-        ${CMAKE_CURRENT_BINARY_DIR}/assimp-vc143-mt.dll
-        COMMENT "copying assimp library")
+    COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_SOURCE_DIR}/sky/vendor/assimp/assimp-vc143-mt.dll
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/assimp-vc143-mt.dll
+    COMMENT "Copying Assimp DLL")
 
-# copy res folder
+# Copy 'res' folder next to the .exe
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/res
-		${CMAKE_CURRENT_BINARY_DIR}/res
-		COMMENT "copying res folder")
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_CURRENT_SOURCE_DIR}/res
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/res
+    COMMENT "Copying res folder")
+
+# Copy 'shaders' folder next to the .exe
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_CURRENT_BINARY_DIR}/shaders
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders
+    COMMENT "Copying res folder")

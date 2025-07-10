@@ -8,7 +8,7 @@ find_program(GLSLVALIDATOR glslangValidator
 
 function (target_shaders target shaders)
   cmake_policy(PUSH)
-	cmake_policy(SET CMP0116 NEW)
+  cmake_policy(SET CMP0116 NEW)
 
   set(SHADERS_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders")
 

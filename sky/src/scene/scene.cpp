@@ -23,7 +23,7 @@ void Scene::init()
     m_editorCamera = CreateRef<EditorCamera>(45.f, 16 / 9, 0.1f, 1000.f);
 
     m_orthographicCamera = CreateRef<OrthographicCamera>(-1.0f, 1.0f, -1.0f, 1.0f);
-    m_orthographicCamera->setProjection(16/9, 1.f);
+    m_orthographicCamera->setProjection(16.f/9.f, 1.f);
 }
 
 void Scene::update(float dt) 

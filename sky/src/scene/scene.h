@@ -8,6 +8,7 @@
 #include "core/uuid.h"
 #include "core/filesystem.h"
 #include "asset_management/asset.h"
+#include "renderer/environment.h"
 #include "renderer/light_cache.h"
 
 namespace sky
@@ -64,12 +65,12 @@ class Scene : public Asset
 
     Entity getSelectedEntity();
     void setSelectedEntity(Entity entity);
-
     void setPath(const fs::path &path) { m_path = path; }
     const fs::path &getPath() const { return m_path; }
-
     void setViewportInfo(ViewportInfo info) { m_viewportInfo = info; }
     ViewportInfo getViewportInfo() const { return m_viewportInfo; }
+    auto getEnvironment() const { return m_environment; }
+    void setEnvironment(Environment env) { m_environment = env; } 
 
     [[nodiscard]] AssetType getType() const override { return AssetType::Scene; }
 
@@ -93,5 +94,6 @@ class Scene : public Asset
     Ref<OrthographicCamera> m_orthographicCamera;
 
     LightCache m_lightCache;
+    Environment m_environment;
 };
 } // namespace sky

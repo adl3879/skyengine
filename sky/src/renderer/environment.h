@@ -1,5 +1,6 @@
 #pragma once
 
+#include "asset_management/asset.h"
 #include <skypch.h>
 
 #include <glm/glm.hpp>
@@ -10,6 +11,7 @@ enum class SkyType
 {
 	ClearColor = 0,
 	Atmosphere,
+    HdriCubemap,
 };
 
 struct SkyAtmosphere
@@ -24,10 +26,16 @@ struct SkyAtmosphere
 	float       rayleighAbsorptionBase{0.f}; 
 };
 
+struct SkyHdriCubemap
+{
+    AssetHandle handle;
+};
+
 struct Environment
 {
-	SkyType skyType = SkyType::Atmosphere;
+	SkyType skyType = SkyType::ClearColor;
 
 	std::optional<SkyAtmosphere> skyAtmosphere;
+	std::optional<SkyHdriCubemap> skyHdriCubemap;
 };
 }

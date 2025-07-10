@@ -109,6 +109,8 @@ class SceneRenderer
         ImageID prefilterMapId;
         ImageID brdfLutId;
 
+        // csm
+
         VkDeviceAddress lightsBuffer;
         std::uint32_t numLights;
         std::int32_t sunlightIndex;

@@ -21,12 +21,12 @@ glm::mat4 calculateCSMCamera(const std::array<glm::vec3, 8>& frustumCorners,
     glm::vec3 lightUp = glm::normalize(glm::cross(lightDirNorm, lightRight));
     
     // Find the bounding box of the frustum in light space
-    float minX = std::numeric_limits<float>::max();
-    float maxX = std::numeric_limits<float>::lowest();
-    float minY = std::numeric_limits<float>::max();
-    float maxY = std::numeric_limits<float>::lowest();
-    float minZ = std::numeric_limits<float>::max();
-    float maxZ = std::numeric_limits<float>::lowest();
+    auto minX = std::numeric_limits<float>::max();
+    auto maxX = std::numeric_limits<float>::lowest();
+    auto minY = std::numeric_limits<float>::max();
+    auto maxY = std::numeric_limits<float>::lowest();
+    auto minZ = std::numeric_limits<float>::max();
+    auto maxZ = std::numeric_limits<float>::lowest();
     
     // Project each frustum corner into light space and find the bounds
     for (const auto& corner : frustumCorners)

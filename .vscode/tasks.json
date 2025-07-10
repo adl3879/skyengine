@@ -1,0 +1,37 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build and Run",
+      "type": "process",
+      "command": "cmd.exe",
+      "args": [
+        "/c",
+        "start",
+        "cmd.exe",
+        "/k",
+        "${workspaceFolder}/build/editor/editor.exe"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/build/editor"
+      },
+      "dependsOn": "CMake: build",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "type": "cmake",
+      "label": "CMake: build",
+      "command": "build",
+      "targets": [
+        "all"
+      ],
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "CMake template build task"
+    }
+  ]
+}
