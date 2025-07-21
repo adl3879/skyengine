@@ -3,8 +3,10 @@
 #include <imgui.h>
 #include <tracy/Tracy.hpp>
 #include <IconsFontAwesome5.h>
+#include "core/log/log.h"
 #include "scene/components.h"
 #include "asset_management/asset_manager.h"
+#include "scene/scene.h"
 
 namespace sky
 {
@@ -31,15 +33,7 @@ bool SceneHierarchyPanel::matchesSearchRecursively(Entity &entity, const char *q
     if (matchesSearch(entity.getComponent<TagComponent>(), query))
         return true;
 
-    // Check children recursively
-    for (const auto &child : entity.getComponent<HierarchyComponent>().children)
-    {
-        auto c = m_context->getEntityFromUUID(child);
-        if (matchesSearchRecursively(c, query))
-        {
-            return true;
-        }
-    }
+    // TODO: Check children recursively
 
     return false;
 }
@@ -80,12 +74,8 @@ void SceneHierarchyPanel::render()
 			
 			ImGui::PopStyleVar();
 
-			for (auto entId : m_context->getRegistry().view<entt::entity>())
-			{
-				auto entity = Entity{entId, m_context.get()};
-				if (entity.getComponent<HierarchyComponent>().parent == NULL_UUID)
-					drawEntityNode(entity, searchQuery);
-			}
+            drawEntityNode(m_context->getRootEntity(), searchQuery);
+            
 			ImGui::EndTable();
 		}
 
@@ -121,18 +111,11 @@ void SceneHierarchyPanel::render()
 }
 
 void SceneHierarchyPanel::drawEntityNode(Entity entity, const char *query)
-{
-    // Skip entities that don�t match the search query and have no matching children
-    if (strlen(query) > 0 && !matchesSearchRecursively(entity, query))
-    {
-        return;
-    }
-
+{ 
     auto flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_FramePadding |
-                 ImGuiTreeNodeFlags_SpanFullWidth |
-                 ImGuiTreeNodeFlags_DefaultOpen;
+        ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen;
 
-    if (entity.getComponent<HierarchyComponent>().children.size() <= 0)
+    if (entity.getComponent<RelationshipComponent>().firstChild == NULL_UUID)
     {
         flags |= ImGuiTreeNodeFlags_Leaf;
     }
@@ -164,7 +147,11 @@ void SceneHierarchyPanel::drawEntityNode(Entity entity, const char *query)
         if (ImGui::BeginMenu("Add child"))
         {
             auto child = createEntityPopup();
-            if (child) entity.addChild(child);
+            if (child)
+            {
+                auto sceneGraph = m_context->getSceneGraph();
+                sceneGraph->parentEntity(entity, child);
+            }
             ImGui::EndPopup();
         }
         if (ImGui::MenuItem("Delete entity"))
@@ -176,7 +163,7 @@ void SceneHierarchyPanel::drawEntityNode(Entity entity, const char *query)
 
 	ImGui::TableNextColumn();
     ImGui::PushStyleColor(ImGuiCol_Text, {1, 1, 1, 0.6});
-    ImGui::Text(getEntityType(entity).c_str());
+    // ImGui::Text(getEntityType(entity).c_str());
     ImGui::PopStyleColor();
 
 	ImGui::TableNextColumn();
@@ -195,18 +182,22 @@ void SceneHierarchyPanel::drawEntityNode(Entity entity, const char *query)
 
     if (open)
     {
-        const auto parent = entity.getComponent<HierarchyComponent>();
-		for (const auto child : parent.children)
-		{
-			auto entity = m_context->getEntityFromUUID(child);
-			drawEntityNode(entity, query);
-		}
+        auto& rel = entity.getComponent<RelationshipComponent>();
+        auto childUUID = rel.firstChild;
+
+        while (childUUID != NULL_UUID)
+        {
+            Entity child = m_context->getEntityFromUUID(childUUID);
+            drawEntityNode(child); // Recursive draw
+            childUUID = child.getComponent<RelationshipComponent>().nextSibling;
+        }
+
         ImGui::TreePop();
     }
 
     if (isEntityDeleted)
     {
-        m_context->destroyEntity(entity);
+        // TODO: Handle entity deletion
     }
 }
 

@@ -17,10 +17,6 @@ class Entity
     bool isNull() { return m_entityHandle == entt::null; }
     void setHandle(entt::entity handle) { m_entityHandle = handle; }
 
-    void addChild(Entity &child);
-    void removeChild(Entity &child);
-    void reparentChild(Entity &child);
-
     template <typename T, typename... Args> T &addComponent(Args &&...args)
     {
         return m_scene->m_registry.emplace<T>(m_entityHandle, std::forward<Args>(args)...);

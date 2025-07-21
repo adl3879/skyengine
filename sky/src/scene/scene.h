@@ -10,6 +10,7 @@
 #include "asset_management/asset.h"
 #include "renderer/environment.h"
 #include "renderer/light_cache.h"
+#include "scene/scene_graph.h"
 
 namespace sky
 {
@@ -24,6 +25,7 @@ enum class SceneType
 
 std::string sceneTypeToString(SceneType type);
 SceneType sceneTypeFromString(const std::string &type);
+
 class Scene : public Asset
 {
   public:
@@ -45,7 +47,6 @@ class Scene : public Asset
 
     Entity createEntity(const std::string &name = std::string());
     Entity createEntityWithUUID(UUID uuid, const std::string &name);
-    void destroyEntity(Entity entity);
     void processDestructionQueue(); // Processes the queue
 
     std::string getName() const { return m_sceneName; }
@@ -65,13 +66,17 @@ class Scene : public Asset
 
     Entity getSelectedEntity();
     void setSelectedEntity(Entity entity);
+    const UUID getRootEntityUUID() const { return {0x0000000000000001}; }
+    Entity getRootEntity();
+
     void setPath(const fs::path &path) { m_path = path; }
     const fs::path &getPath() const { return m_path; }
     void setViewportInfo(ViewportInfo info) { m_viewportInfo = info; }
     ViewportInfo getViewportInfo() const { return m_viewportInfo; }
     auto getEnvironment() const { return m_environment; }
     void setEnvironment(Environment env) { m_environment = env; } 
-
+    auto getSceneGraph() const { return m_sceneGraph; }
+    
     [[nodiscard]] AssetType getType() const override { return AssetType::Scene; }
 
   private:
@@ -81,18 +86,19 @@ class Scene : public Asset
   private:
     friend class Entity;
     entt::registry m_registry;
-    std::string m_sceneName;
-    SceneType m_sceneType;
     std::unordered_map<UUID, entt::entity> m_entityMap;
-    std::vector<entt::entity> m_destructionQueue;
-    ViewportInfo m_viewportInfo;
-
+    
     entt::entity m_selectedEntity{entt::null};
+    entt::entity m_rootEntity{entt::null}; // Root entity of the scene graph:w
+    
     fs::path m_path;
-
+    
+    Ref<SceneGraph> m_sceneGraph;
+    SceneType m_sceneType;
+    std::string m_sceneName;
+    ViewportInfo m_viewportInfo;
     Ref<EditorCamera> m_editorCamera;
     Ref<OrthographicCamera> m_orthographicCamera;
-
     LightCache m_lightCache;
     Environment m_environment;
 };

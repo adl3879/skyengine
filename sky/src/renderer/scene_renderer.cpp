@@ -576,7 +576,10 @@ void SceneRenderer::updateLights(Ref<Scene> scene)
 
 void SceneRenderer::mousePicking(Ref<Scene> scene) 
 {
-    if (ImGuizmo::IsUsing() || Input::isKeyPressed(Key::LeftAlt) || !scene->getViewportInfo().isFocus) return;
+    // TODO: mouse picking should only work on the viewport
+    if (ImGuizmo::IsUsing() 
+        || Input::isKeyPressed(Key::LeftAlt) 
+        || !scene->getViewportInfo().isFocus) return;
     static bool called = false;
 
     if (Input::isMouseButtonPressed(Mouse::ButtonLeft))

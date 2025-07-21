@@ -10,7 +10,6 @@
 #include "asset_management/asset_manager.h"
 #include "asset_management/texture_importer.h"
 #include "core/events/key_codes.h"
-#include "core/log/log.h"
 #include "graphics/vulkan/vk_types.h"
 #include "scene/components.h"
 #include "scene/entity.h"

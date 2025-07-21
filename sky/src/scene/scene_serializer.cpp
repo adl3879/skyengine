@@ -47,7 +47,15 @@ bool SceneSerializer::deserialize(const fs::path &filepath)
 			const auto uuid = entity["uuid"].as<UUID>();
 			const auto tag = entity["tag"].as<std::string>();
 			auto deserializedEntity = m_scene->createEntityWithUUID(uuid, tag);
+            m_scene->getSceneGraph()->unlink(deserializedEntity);
 			deserializeEntity(entity, deserializedEntity);
+
+            if (uuid == m_scene->getRootEntityUUID()) 
+            {
+                auto root = m_scene->getRootEntity();
+                auto &rl = root.getComponent<RelationshipComponent>();
+                rl = deserializedEntity.getComponent<RelationshipComponent>();
+            }
 		}
     }
 
@@ -62,13 +70,13 @@ void SceneSerializer::serializeEntity(YAML::Emitter &out, Entity entity, AssetHa
 	out << YAML::Key << "tag" << YAML::Value << entity.getComponent<TagComponent>();
 	out << YAML::Key << "visibility" << YAML::Value << entity.getComponent<VisibilityComponent>();
     {
-		const auto &hierarchyComponent = entity.getComponent<HierarchyComponent>();
-		out << YAML::Key << "hierarchy" << YAML::BeginMap;
-		out << YAML::Key << "parent" << hierarchyComponent.parent;
-		out << YAML::Key << "children" << YAML::Value << YAML::BeginSeq;
-		for (const auto &child : hierarchyComponent.children) out << child;
-		out << YAML::EndSeq;
-		out << YAML::EndMap;
+        const auto &rel = entity.getComponent<RelationshipComponent>();
+        out << YAML::Key << "relationship" << YAML::BeginMap;
+        out << YAML::Key << "parent" << YAML::Value << rel.parent;
+        out << YAML::Key << "firstChild" << YAML::Value << rel.firstChild;
+        out << YAML::Key << "nextSibling" << YAML::Value << rel.nextSibling;
+        out << YAML::Key << "previousSibling" << YAML::Value << rel.previousSibling;
+        out << YAML::EndMap;
 	}
 	if (entity.hasComponent<TransformComponent>())
     {
@@ -123,12 +131,13 @@ void SceneSerializer::deserializeEntity(YAML::detail::iterator_value key, Entity
 	if (auto uuid = key["uuid"]) entity.getComponent<IDComponent>() = uuid.as<UUID>();
 	if (auto tag = key["tag"]) entity.getComponent<TagComponent>() = tag.as<std::string>();
 	if (auto visibility = key["visibility"]) entity.getComponent<VisibilityComponent>() = visibility.as<bool>();
-	if (auto hierarchy = key["hierarchy"])
+	if (auto relationship = key["relationship"])
     {
-		auto &hierarchyComponent = entity.getComponent<HierarchyComponent>();
-		hierarchyComponent.parent = hierarchy["parent"].as<UUID>();
-		for (const auto child : hierarchy["children"])
-			hierarchyComponent.children.push_back(child.as<UUID>());
+        auto &rel = entity.getComponent<RelationshipComponent>();
+        rel.parent = relationship["parent"].as<UUID>();
+        rel.firstChild = relationship["firstChild"].as<UUID>();
+        rel.nextSibling = relationship["nextSibling"].as<UUID>();
+        rel.previousSibling = relationship["previousSibling"].as<UUID>();
     }
 	if (auto transform = key["transform"])
     {

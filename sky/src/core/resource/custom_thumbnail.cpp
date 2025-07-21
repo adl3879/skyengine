@@ -2,7 +2,6 @@
 
 #include "asset_management/asset.h"
 #include "core/application.h"
-#include "core/log/log.h"
 #include "core/project_management/project_manager.h"
 #include "core/helpers/image.h"
 #include "core/uuid.h"
@@ -176,7 +175,8 @@ ImageID CustomThumbnail::getOrCreateThumbnail(const fs::path &path)
 	}
 
     auto assetType = getAssetTypeFromFileExtension(path.extension());
-    if (assetType != AssetType::Scene)
+    if (assetType != AssetType::Scene
+        || assetType != AssetType::TextureCube)
     {
         auto renderer = Application::getRenderer();
         auto drawImage = renderer->createNewDrawImage(m_size, m_drawImageFormat);

@@ -55,8 +55,6 @@ void EditorLayer::onUpdate(float dt)
         droppedFiles.pop_back();
         m_assetBrowserPanel.handleDroppedFile(filename);
     }
-
-    m_activeScene->processDestructionQueue();
 }
 
 void EditorLayer::onEvent(Event &e) 

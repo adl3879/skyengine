@@ -1,27 +1,6 @@
 {
   "terminal.external.windowsExec": "cmd.exe",
   "terminal.explorerKind": "external",
-  "cSpell.words": [
-    "Assimp",
-    "Brdf",
-    "Cubemap",
-    "entt",
-    "equirect",
-    "Equirectangular",
-    "filewatch",
-    "glfw",
-    "gltf",
-    "Guizmo",
-    "Hdri",
-    "imgui",
-    "multisampling",
-    "prefilter",
-    "prefiltered",
-    "Skybox",
-    "skyengine",
-    "skypch",
-    "stbi"
-  ],
   "cmake.generator": "Ninja",
   "cmake.configureSettings": {
     "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"

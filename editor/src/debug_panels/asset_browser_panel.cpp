@@ -520,14 +520,14 @@ void AssetBrowserPanel::drawFileAssetBrowser(fs::directory_entry directoryEntry)
 
     ImGui::PushID(filenameString.c_str());
 
-    ImageID icon;
+    ImageID icon{NULL_IMAGE_ID};
     {
         auto assetType = getAssetTypeFromFileExtension(path.extension());
         icon = CustomThumbnail::get().getOrCreateThumbnail(relativePath);
         
         if (directoryEntry.is_directory()) icon = m_icons["directory"];
-        else if (assetType == AssetType::Scene) icon = icon == NULL_IMAGE_ID ? m_icons["scene"] : icon;
-        else icon = NULL_IMAGE_ID;
+        if (assetType == AssetType::Scene) icon = icon == NULL_IMAGE_ID ? m_icons["scene"] : icon;
+        if (assetType == AssetType::TextureCube) icon = NULL_IMAGE_ID;
     }
     if (icon == NULL_IMAGE_ID) icon = m_icons["file"];
 

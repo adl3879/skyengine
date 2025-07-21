@@ -3,7 +3,7 @@
 #include <skypch.h>
 
 #include "core/transform/transform.h"
-#include "renderer/scene_renderer.h"
+#include "renderer/mesh.h"
 #include "renderer/light.h"
 #include "core/uuid.h"
 
@@ -27,10 +27,12 @@ struct ModelComponent
     std::map<uint32_t, AssetHandle> customMaterialOverrides;
 };
 
-struct HierarchyComponent
+struct RelationshipComponent
 {
-    UUID parent;
-    std::vector<UUID> children;
+    UUID parent{NULL_UUID};
+    UUID firstChild{NULL_UUID};
+    UUID nextSibling{NULL_UUID};
+    UUID previousSibling{NULL_UUID};   
 };
 
 struct SpriteRendererComponent
