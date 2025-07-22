@@ -88,6 +88,7 @@ void SceneGraph::traverse(Entity entity, std::function<void(Entity, int)> visit,
 void SceneGraph::unlink(Entity entity)
 {
     if (!valid(entity)) return;
+    auto tag = entity.getComponent<TagComponent>();
 
     UUID entityUUID = entity.getComponent<IDComponent>();
     auto &rel = entity.getComponent<RelationshipComponent>();

@@ -61,8 +61,6 @@ Entity Scene::createEntityWithUUID(UUID uuid, const std::string& name)
     entity.addComponent<VisibilityComponent>() = true;
 
     m_entityMap[uuid] = entity;
-    if (m_rootEntity != entt::null)
-        m_sceneGraph->parentEntity({m_rootEntity, this}, entity);
 
     return entity;
 }

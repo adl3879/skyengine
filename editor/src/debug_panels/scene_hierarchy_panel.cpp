@@ -3,7 +3,6 @@
 #include <imgui.h>
 #include <tracy/Tracy.hpp>
 #include <IconsFontAwesome5.h>
-#include "core/log/log.h"
 #include "scene/components.h"
 #include "asset_management/asset_manager.h"
 #include "scene/scene.h"
@@ -57,7 +56,8 @@ void SceneHierarchyPanel::render()
 
 	    if (ImGui::BeginPopupContextWindow())
 		{
-			createEntityPopup();
+			auto e = createEntityPopup();
+            m_context->getSceneGraph()->parentEntity(m_context->getRootEntity(), e);
 			ImGui::EndPopup();
 		}
 

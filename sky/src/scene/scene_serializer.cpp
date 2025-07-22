@@ -16,10 +16,11 @@ void SceneSerializer::serialize(const fs::path &path, AssetHandle handle)
 	out << YAML::Key << "type" << YAML::Value << sceneTypeToString(m_scene->getSceneType());
 	
 	out << YAML::Key << "entities" << YAML::Value << YAML::BeginSeq;
-	for (auto entityId : m_scene->getRegistry().view<entt::entity>())
+	for (auto eMap : m_scene->getEntityMap())
     {
-		Entity entity{entityId, m_scene.get()};
-		serializeEntity(out, entity, handle);
+        auto e = Entity{eMap.second, m_scene.get()};
+        if (e.getComponent<TagComponent>() != "Root")
+            serializeEntity(out, e, handle);
     }
 
     out << YAML::EndSeq;
@@ -46,15 +47,16 @@ bool SceneSerializer::deserialize(const fs::path &filepath)
         {
 			const auto uuid = entity["uuid"].as<UUID>();
 			const auto tag = entity["tag"].as<std::string>();
-			auto deserializedEntity = m_scene->createEntityWithUUID(uuid, tag);
-            m_scene->getSceneGraph()->unlink(deserializedEntity);
-			deserializeEntity(entity, deserializedEntity);
+            auto dEntity = m_scene->createEntityWithUUID(uuid, tag);
+            m_scene->getSceneGraph()->unlink(dEntity);
+            deserializeEntity(entity, dEntity);
 
-            if (uuid == m_scene->getRootEntityUUID()) 
+            auto rl = dEntity.getComponent<RelationshipComponent>();
+            if (rl.parent == m_scene->getRootEntityUUID() && rl.previousSibling == NULL_UUID) 
             {
+                // this is the first child of root
                 auto root = m_scene->getRootEntity();
-                auto &rl = root.getComponent<RelationshipComponent>();
-                rl = deserializedEntity.getComponent<RelationshipComponent>();
+                root.getComponent<RelationshipComponent>().firstChild = dEntity.getComponent<IDComponent>();
             }
 		}
     }

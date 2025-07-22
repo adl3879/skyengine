@@ -55,6 +55,7 @@ class Scene : public Asset
     void setSceneType(SceneType type) { m_sceneType = type; }
 
     entt::registry &getRegistry() { return m_registry; }
+    auto getEntityMap() const { return m_entityMap; }
     const auto &getEditorCamera() { return m_editorCamera; }
     const auto &getGameCamera() { return m_orthographicCamera; }
     Entity getEntityFromUUID(UUID uuid);
