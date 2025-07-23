@@ -108,6 +108,7 @@ void SceneHierarchyPanel::render()
 	} 
 
     ImGui::End();
+    processPendingDeletions();
 }
 
 void SceneHierarchyPanel::drawEntityNode(Entity entity, const char *query)
@@ -130,6 +131,40 @@ void SceneHierarchyPanel::drawEntityNode(Entity entity, const char *query)
     bool open = ImGui::TreeNodeEx((void *)(uint64_t)(uint32_t)entity, flags, "%s", tag.c_str());
     ImGui::PopStyleColor(2);
 
+    if (ImGui::BeginDragDropSource())
+    {
+        UUID id = entity.getComponent<IDComponent>();
+        ImGui::SetDragDropPayload("SCENE_ENTITY", &id, sizeof(UUID));
+        ImGui::Text("Move %s", tag.c_str());
+        ImGui::EndDragDropSource();
+    }
+
+    // Highlight drop target if dragging
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly) && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+    {
+        ImVec2 min = ImGui::GetItemRectMin();
+        ImVec2 max = ImGui::GetItemRectMax();
+        ImU32 highlightColor = ImGui::GetColorU32(ImGuiCol_HeaderHovered); // Choose any suitable color
+
+        ImGui::GetWindowDrawList()->AddRectFilled(min, max, highlightColor, 4.0f); // 4.0f = corner radius
+    }
+
+    if (ImGui::BeginDragDropTarget())
+    {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("SCENE_ENTITY"))
+        {
+            UUID droppedUUID = *(const UUID*)payload->Data;
+            Entity droppedEntity = m_context->getEntityFromUUID(droppedUUID);
+
+            // Make sure it's not dropped on itself or any of its children
+            // if (droppedEntity != entity && !isDescendantOf(droppedEntity, entity))
+            // {
+            //     m_context->getSceneGraph()->parentEntity(entity, droppedEntity); // Parent target ← dragged
+            // }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
     // Highlight the row if the entity is selected
     if (ImGui::IsItemHovered() || m_context->getSelectedEntity() == entity)
     {
@@ -141,7 +176,6 @@ void SceneHierarchyPanel::drawEntityNode(Entity entity, const char *query)
         m_context->setSelectedEntity(entity);
     }
 
-    bool isEntityDeleted = false;
     if (ImGui::BeginPopupContextItem())
     {
         if (ImGui::BeginMenu("Add child"))
@@ -154,16 +188,17 @@ void SceneHierarchyPanel::drawEntityNode(Entity entity, const char *query)
             }
             ImGui::EndPopup();
         }
-        if (ImGui::MenuItem("Delete entity"))
+        if (tag != "Root")
         {
-            isEntityDeleted = true;
+            if (ImGui::MenuItem("Delete entity"))
+                m_entitiesToDelete.push_back(entity);
         }
         ImGui::EndPopup();
     }
 
 	ImGui::TableNextColumn();
     ImGui::PushStyleColor(ImGuiCol_Text, {1, 1, 1, 0.6});
-    // ImGui::Text(getEntityType(entity).c_str());
+    ImGui::Text(getEntityType(entity).c_str());
     ImGui::PopStyleColor();
 
 	ImGui::TableNextColumn();
@@ -193,11 +228,6 @@ void SceneHierarchyPanel::drawEntityNode(Entity entity, const char *query)
         }
 
         ImGui::TreePop();
-    }
-
-    if (isEntityDeleted)
-    {
-        // TODO: Handle entity deletion
     }
 }
 
@@ -290,5 +320,14 @@ Entity SceneHierarchyPanel::createEntityPopup()
     }
     m_context->setSelectedEntity(entity);
     return entity;
+}
+
+void SceneHierarchyPanel::processPendingDeletions()
+{
+    for (Entity entity : m_entitiesToDelete)
+    {
+        m_context->getSceneGraph()->deleteEntity(entity);
+    }
+    m_entitiesToDelete.clear();
 }
 } // namespace sky

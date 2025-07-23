@@ -47,6 +47,7 @@ class Scene : public Asset
 
     Entity createEntity(const std::string &name = std::string());
     Entity createEntityWithUUID(UUID uuid, const std::string &name);
+    void destroyEntity(Entity entity);
     void processDestructionQueue(); // Processes the queue
 
     std::string getName() const { return m_sceneName; }

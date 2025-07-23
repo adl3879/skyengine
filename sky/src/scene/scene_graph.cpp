@@ -9,7 +9,7 @@ SceneGraph::SceneGraph(Scene *context)
     : m_context(context)
 {}
 
-void SceneGraph::destroyEntity(Entity entity)
+void SceneGraph::deleteEntity(Entity entity)
 {
     if (!valid(entity)) return;
     
@@ -21,14 +21,14 @@ void SceneGraph::destroyEntity(Entity entity)
     {
         auto childEntity = getEntityFromUUID(child);
         auto &next = childEntity.getComponent<RelationshipComponent>().nextSibling;
-        destroyEntity(childEntity);
+        deleteEntity(childEntity);
         child = next;
     }
 
     // Unlink the entity from its parent and siblings
     unlink(entity);
 
-    m_context->getRegistry().destroy(entity);
+    m_context->destroyEntity(entity);
 }
 
 void SceneGraph::parentEntity(Entity parent, Entity child)

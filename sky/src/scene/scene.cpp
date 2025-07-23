@@ -65,9 +65,22 @@ Entity Scene::createEntityWithUUID(UUID uuid, const std::string& name)
     return entity;
 }
 
+void Scene::destroyEntity(Entity entity)
+{
+    if (!m_registry.valid(entity)) return;
+
+    m_entityMap.erase(entity.getComponent<IDComponent>());
+    m_registry.destroy(entity);
+    setSelectedEntity({m_rootEntity, this});
+}
+
 Entity Scene::getEntityFromUUID(UUID uuid)
 {
-    return {m_entityMap.at(uuid), this};
+    auto it = m_entityMap.find(uuid);
+    if (it != m_entityMap.end())
+        return {it->second, this};
+
+    return {}; // return invalid Entity
 }
 
 void Scene::newScene(const std::string &name) 
