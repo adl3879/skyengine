@@ -142,6 +142,7 @@ void EditorLayer::setPanelContexts()
     m_sceneHierarchyPanel.setContext(m_activeScene);
     m_titlebarPanel.setContext(m_activeScene);
     m_inspectorPanel.setContext(m_activeScene);
+    m_environmentPanel.setContext(m_activeScene);
 }
 
 void EditorLayer::registerEditorEvents() 

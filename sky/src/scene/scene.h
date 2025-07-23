@@ -76,7 +76,8 @@ class Scene : public Asset
     void setViewportInfo(ViewportInfo info) { m_viewportInfo = info; }
     ViewportInfo getViewportInfo() const { return m_viewportInfo; }
     auto getEnvironment() const { return m_environment; }
-    void setEnvironment(Environment env) { m_environment = env; } 
+    void setEnvironment(Environment env) { m_environment = env; }
+    void useEnvironment(); 
     auto getSceneGraph() const { return m_sceneGraph; }
     
     [[nodiscard]] AssetType getType() const override { return AssetType::Scene; }

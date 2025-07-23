@@ -22,6 +22,7 @@ class SceneGraph
     void unlink(Entity entity);
     Entity getEntityFromUUID(UUID uuid);
     bool valid(Entity entity) const;
+    bool isDescendantOf(Entity child, Entity parent); 
 
   private:
 

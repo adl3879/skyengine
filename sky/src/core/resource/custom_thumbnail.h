@@ -9,7 +9,6 @@
 #include "graphics/vulkan/vk_device.h"
 #include "graphics/vulkan/vk_types.h"
 #include "renderer/passes/infinite_grid.h"
-#include "renderer/scene_renderer.h"
 #include "renderer/passes/thumbnail_gradient.h"
 #include "renderer/passes/forward_renderer.h"
 #include "renderer/passes/format_converter.h"

@@ -7,13 +7,6 @@
 
 namespace sky
 {
-enum class SkyType
-{
-	ClearColor = 0,
-	Atmosphere,
-    HdriCubemap,
-};
-
 struct SkyAtmosphere
 {
 	float       time{24.f};
@@ -26,16 +19,8 @@ struct SkyAtmosphere
 	float       rayleighAbsorptionBase{0.f}; 
 };
 
-struct SkyHdriCubemap
-{
-    AssetHandle handle;
-};
-
 struct Environment
 {
-	SkyType skyType = SkyType::ClearColor;
-
-	std::optional<SkyAtmosphere> skyAtmosphere;
-	std::optional<SkyHdriCubemap> skyHdriCubemap;
+    AssetHandle skyboxHandle{NULL_UUID};
 };
 }

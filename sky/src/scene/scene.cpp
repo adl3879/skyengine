@@ -6,7 +6,10 @@
 #include "scene/components.h"
 #include "scene_manager.h"
 #include "core/application.h"
+#include "asset_management/asset_manager.h"
 #include "skypch.h"
+#include "renderer/texture.h"
+#include "core/helpers/image.h"
 
 namespace sky
 {
@@ -109,6 +112,23 @@ void Scene::setSelectedEntity(Entity entity)
 LightID Scene::addLightToCache(const Light &light, const Transform &transform)
 {
     return m_lightCache.addLight(light, transform);
+}
+
+void Scene::useEnvironment()
+{
+    auto env = m_environment;
+    auto renderer = Application::getRenderer();
+    if (m_environment.skyboxHandle != NULL_UUID)
+    {
+        AssetManager::getAssetAsync<TextureCube>(env.skyboxHandle, [=](const Ref<TextureCube> &hdrTex){
+            auto hdrImageId = helper::loadImageFromTexture(hdrTex, VK_FORMAT_R32G32B32A32_SFLOAT);
+            renderer->getIBL().setHdrImageId(hdrImageId);
+        });
+    }
+    else 
+    {
+        renderer->getIBL().setHdrImageId(NULL_IMAGE_ID);
+    }
 }
 
 std::string sceneTypeToString(SceneType type)

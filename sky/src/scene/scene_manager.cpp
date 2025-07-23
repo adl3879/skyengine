@@ -35,6 +35,7 @@ void SceneManager::openScene(const fs::path &path)
         m_activeScene = scene;
 		m_activeScene->init();
         m_activeScene->setPath(path);
+        m_activeScene->useEnvironment();
     });
 }
 

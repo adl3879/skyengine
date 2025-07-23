@@ -3,7 +3,7 @@
 #include "components.h"
 #include "asset_management/asset_manager.h"
 #include "scene.h"
-#include "yaml-cpp/emittermanip.h"
+#include "core/resource/environment_serializer.h"
 
 namespace sky
 {
@@ -14,7 +14,9 @@ void SceneSerializer::serialize(const fs::path &path, AssetHandle handle)
 
 	out << YAML::Key << "name" << YAML::Value << m_scene->getName();
 	out << YAML::Key << "type" << YAML::Value << sceneTypeToString(m_scene->getSceneType());
-	
+    EnvironmentSerializer envSerializer;
+    envSerializer.serialize(out, m_scene->getEnvironment());
+
 	out << YAML::Key << "entities" << YAML::Value << YAML::BeginSeq;
 	for (auto eMap : m_scene->getEntityMap())
     {
@@ -40,6 +42,10 @@ bool SceneSerializer::deserialize(const fs::path &filepath)
 
     if (data["name"]) m_scene->setName(data["name"].as<std::string>());
     if (data["type"]) m_scene->setSceneType(sceneTypeFromString(data["type"].as<std::string>()));
+
+    EnvironmentSerializer envSerializer;
+    auto env = envSerializer.deserialize(data);
+    m_scene->setEnvironment(env);
 
 	if (auto entities = data["entities"])
     {

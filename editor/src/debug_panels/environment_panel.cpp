@@ -5,10 +5,7 @@
 #include "asset_management/asset.h"
 #include "asset_management/asset_manager.h"
 #include "asset_management/editor_asset_manager.h"
-#include "core/application.h"
 #include "core/helpers/imgui.h"
-#include "core/helpers/image.h"
-#include "renderer/texture.h"
 
 namespace sky 
 {
@@ -20,7 +17,7 @@ void EnvironmentPanel::render()
 
     ImGui::Begin(ICON_FA_CLOUD_SUN " Environment", &m_isOpen);
 
-    helper::imguiCollapsingHeaderStyle("Sky", []() {
+    helper::imguiCollapsingHeaderStyle("Sky", [this]() {
         if (ImGui::BeginTable("sk_y", 2, ImGuiTableFlags_Resizable))
         {
             ImGui::TableNextRow();
@@ -37,10 +34,8 @@ void EnvironmentPanel::render()
                     if (assetType == AssetType::TextureCube)
                     {
                         auto handle = AssetManager::getOrCreateAssetHandle(path, AssetType::TextureCube);
-                        AssetManager::getAssetAsync<TextureCube>(handle, [=](const Ref<TextureCube> &hdrTex){
-                            auto hdrImageId = helper::loadImageFromTexture(hdrTex, VK_FORMAT_R32G32B32A32_SFLOAT);
-                            auto renderer = Application::getRenderer();
-                            renderer->getIBL().setHdrImageId(hdrImageId);
+                        m_context->setEnvironment({
+                            .skyboxHandle = handle
                         });
                     }
                 }

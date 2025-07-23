@@ -139,28 +139,12 @@ void SceneHierarchyPanel::drawEntityNode(Entity entity, const char *query)
         ImGui::EndDragDropSource();
     }
 
-    // Highlight drop target if dragging
-    if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly) && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
-    {
-        ImVec2 min = ImGui::GetItemRectMin();
-        ImVec2 max = ImGui::GetItemRectMax();
-        ImU32 highlightColor = ImGui::GetColorU32(ImGuiCol_HeaderHovered); // Choose any suitable color
-
-        ImGui::GetWindowDrawList()->AddRectFilled(min, max, highlightColor, 4.0f); // 4.0f = corner radius
-    }
-
     if (ImGui::BeginDragDropTarget())
     {
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("SCENE_ENTITY"))
         {
             UUID droppedUUID = *(const UUID*)payload->Data;
             Entity droppedEntity = m_context->getEntityFromUUID(droppedUUID);
-
-            // Make sure it's not dropped on itself or any of its children
-            // if (droppedEntity != entity && !isDescendantOf(droppedEntity, entity))
-            // {
-            //     m_context->getSceneGraph()->parentEntity(entity, droppedEntity); // Parent target ← dragged
-            // }
         }
         ImGui::EndDragDropTarget();
     }
