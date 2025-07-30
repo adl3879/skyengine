@@ -1,16 +1,10 @@
 #include "image_based_lighting.h"
-#include "asset_management/texture_cube_importer.h"
-#include "core/helpers/image.h"
 #include "graphics/vulkan/vk_types.h"
 
 namespace sky 
 {
 void ImageBasedLighting::init(gfx::Device &device)
 {
-    // auto path = "C:\\Users\\Toyosi Adekanmbi\\Desktop\\TYGame\\assets\\textures\\skybox\\skybox.hdr";
-    // auto hdrTex = TextureCubeImporter::loadTexture(path);
-    // m_hdrImageId = helper::loadImageFromTexture(hdrTex, VK_FORMAT_R32G32B32A32_SFLOAT);
-    
     m_equirectangularToCubemapPass.init(device, VK_FORMAT_R16G16B16A16_SFLOAT, {512, 512});
     m_irradiancePass.init(device, VK_FORMAT_R16G16B16A16_SFLOAT, 32);
     m_prefilterEnvmapPass.init(device, VK_FORMAT_R16G16B16A16_SFLOAT, 1024, 5);
@@ -49,5 +43,9 @@ void ImageBasedLighting::cleanup(gfx::Device &device)
     m_irradiancePass.cleanup(device);
     m_prefilterEnvmapPass.cleanup(device);
     m_skyboxPass.cleanup(device);
+}
+
+void ImageBasedLighting::reset()
+{
 }
 }

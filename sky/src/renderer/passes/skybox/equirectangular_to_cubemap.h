@@ -13,6 +13,7 @@ class EquirectangularToCubemapPass : public Pass
     void init(gfx::Device &device, VkFormat format, VkExtent2D extent);
     void draw(gfx::Device &device, gfx::CommandBuffer cmd, ImageID hdrImage, VkExtent2D extent);
     void cleanup(gfx::Device &device);
+    void reset() { m_cubemapImageId = NULL_IMAGE_ID; }
 
     auto getCubemapId() const { return m_cubemapImageId; }
 

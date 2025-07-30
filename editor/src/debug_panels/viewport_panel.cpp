@@ -10,7 +10,6 @@
 #include "asset_management/asset_manager.h"
 #include "asset_management/texture_importer.h"
 #include "core/events/key_codes.h"
-#include "graphics/vulkan/vk_types.h"
 #include "scene/components.h"
 #include "scene/entity.h"
 #include "core/events/input.h"
@@ -20,90 +19,102 @@ namespace sky
 {
 void ViewportPanel::render()
 {
-    auto renderer = Application::getRenderer();
-    drawViewport("Scene", renderer->getSceneImage());
-    drawViewport("Game", renderer->getGameDrawImageId());
+    drawSceneViewport();
+    drawGameViewport();
 }
 
-void ViewportPanel::drawViewport(const char* title, ImageID image) 
+void ViewportPanel::drawSceneViewport()
 {
-    ZoneScopedN("Viewport render");
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::Begin("Scene");
+
+    auto viewportOffset = ImGui::GetCursorPos();
+    auto viewportSize = ImGui::GetContentRegionAvail();
+    auto windowSize = ImGui::GetWindowSize();
+    auto miniBound = ImGui::GetWindowPos();
+    miniBound.x += viewportOffset.x;
+    miniBound.y += viewportOffset.y;
+
+    auto maxBound = ImVec2(miniBound.x + windowSize.x, miniBound.y + windowSize.y);
+    m_viewportBounds[0] = {miniBound.x, miniBound.y};
+    m_viewportBounds[1] = {maxBound.x, maxBound.y};
+
+    auto [mx, my] = ImGui::GetMousePos();
+    mx -= m_viewportBounds[0].x;
+    my -= m_viewportBounds[0].y;
+
+    auto mainWindowSize = Application::getWindow()->getExtent();
+    auto ratioX = mainWindowSize.width / windowSize.x;
+    auto ratioY = mainWindowSize.height / windowSize.y;
+
+    bool isMouseInViewport = mx >= 0 && mx <= viewportSize.x && my >= 0 && my <= viewportSize.y;
+
+    m_context->setViewportInfo({
+        .size = {viewportSize.x, viewportSize.y},
+        .mousePos = {mx * ratioX, (windowSize.y - my) * ratioY},
+        .isFocus = isMouseInViewport && !m_itemIsDraggedOver,
+    });
+    ImGui::Image(Application::getRenderer()->getSceneImage(), 
+        viewportSize, 
+        /*vertical flip*/ {0, 1}, {1, 0});
+
+    if (ImGui::BeginDragDropTarget())
     {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-		ImGui::Begin(title);
+        handleViewportDrop();
+        ImGui::EndDragDropTarget(); 
+        m_itemIsDraggedOver = true;
+    } else m_itemIsDraggedOver = false;
 
-		auto viewportOffset = ImGui::GetCursorPos();
-		auto viewportSize = ImGui::GetContentRegionAvail();
-		auto windowSize = ImGui::GetWindowSize();
-		auto miniBound = ImGui::GetWindowPos();
-		miniBound.x += viewportOffset.x;
-		miniBound.y += viewportOffset.y;
+    // controls
+    ImGui::SetItemAllowOverlap();
+    ImGui::SetCursorPos({10, 40});
 
-		auto maxBound = ImVec2(miniBound.x + windowSize.x, miniBound.y + windowSize.y);
-		m_viewportBounds[0] = {miniBound.x, miniBound.y};
-		m_viewportBounds[1] = {maxBound.x, maxBound.y};
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{8, 0});
+    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2{0.5, 0.5});
 
-		auto [mx, my] = ImGui::GetMousePos();
-		mx -= m_viewportBounds[0].x;
-		my -= m_viewportBounds[0].y;
+    // color to show it is selected
+    drawControls(ICON_FA_MOUSE_POINTER, 
+        "Select", 
+        m_gizmoType == -1, 
+        [&]{ m_gizmoType = -1; });
+    ImGui::SameLine();
+    drawControls(ICON_FA_ARROWS_ALT, 
+        "Move", 
+        m_gizmoType == ImGuizmo::OPERATION::TRANSLATE, 
+        [&]{ m_gizmoType = ImGuizmo::OPERATION::TRANSLATE; });
+    ImGui::SameLine();
+    drawControls(ICON_FA_SYNC_ALT, 
+        "Rotate",  
+        m_gizmoType == ImGuizmo::OPERATION::ROTATE, 
+        [&]{ m_gizmoType = ImGuizmo::OPERATION::ROTATE; });
+    ImGui::SameLine();
+    drawControls(ICON_FA_EXPAND_ARROWS_ALT, 
+        "Scale", 
+        m_gizmoType == ImGuizmo::OPERATION::SCALE, 
+        [&] { m_gizmoType = ImGuizmo::OPERATION::SCALE; });
+    ImGui::SameLine();
 
-		auto mainWindowSize = Application::getWindow()->getExtent();
-		auto ratioX = mainWindowSize.width / windowSize.x;
-		auto ratioY = mainWindowSize.height / windowSize.y;
+    ImGui::PopStyleVar(2);
 
-		bool isMouseInViewport = mx >= 0 && mx <= viewportSize.x && my >= 0 && my <= viewportSize.y;
+    drawGizmo({viewportSize.x, viewportSize.y}); 
+    // drawCameraRect();
 
-		m_context->setViewportInfo({
-			.size = {viewportSize.x, viewportSize.y},
-			.mousePos = {mx * ratioX, (windowSize.y - my) * ratioY},
-			.isFocus = isMouseInViewport && !m_itemIsDraggedOver,
-		});
-		ImGui::Image(image, viewportSize, /*vertical flip*/ {0, 1}, {1, 0});
- 
-		if (ImGui::BeginDragDropTarget())
-		{
-			handleViewportDrop();
-			ImGui::EndDragDropTarget(); 
-            m_itemIsDraggedOver = true;
-		} else m_itemIsDraggedOver = false;
+    ImGui::End();
+    ImGui::PopStyleVar();
+}
 
-		// controls
-		ImGui::SetItemAllowOverlap();
-		ImGui::SetCursorPos({10, 40});
+void ViewportPanel::drawGameViewport()
+{
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::Begin("Game");
 
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{8, 0});
-		ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2{0.5, 0.5});
-
-		// color to show it is selected
-		drawControls(ICON_FA_MOUSE_POINTER, 
-			"Select", 
-			m_gizmoType == -1, 
-			[&]{ m_gizmoType = -1; });
-		ImGui::SameLine();
-		drawControls(ICON_FA_ARROWS_ALT, 
-			"Move", 
-			m_gizmoType == ImGuizmo::OPERATION::TRANSLATE, 
-			[&]{ m_gizmoType = ImGuizmo::OPERATION::TRANSLATE; });
-		ImGui::SameLine();
-		drawControls(ICON_FA_SYNC_ALT, 
-			"Rotate",  
-			m_gizmoType == ImGuizmo::OPERATION::ROTATE, 
-			[&]{ m_gizmoType = ImGuizmo::OPERATION::ROTATE; });
-		ImGui::SameLine();
-		drawControls(ICON_FA_EXPAND_ARROWS_ALT, 
-			"Scale", 
-			m_gizmoType == ImGuizmo::OPERATION::SCALE, 
-			[&] { m_gizmoType = ImGuizmo::OPERATION::SCALE; });
-		ImGui::SameLine();
-
-		ImGui::PopStyleVar(2);
-
-		drawGizmo({viewportSize.x, viewportSize.y}); 
-        // drawCameraRect();
-
-		ImGui::End();
-		ImGui::PopStyleVar();
-    }
+    auto viewportSize = ImGui::GetContentRegionAvail();
+    ImGui::Image(Application::getRenderer()->getGameImage(), 
+        viewportSize, 
+        /*vertical flip*/ {0, 1}, {1, 0});
+    
+        ImGui::End();
+    ImGui::PopStyleVar();
 }
 
 void ViewportPanel::drawCameraRect()

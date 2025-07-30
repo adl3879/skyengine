@@ -37,6 +37,7 @@ void EnvironmentPanel::render()
                         m_context->setEnvironment({
                             .skyboxHandle = handle
                         });
+                        m_context->useEnvironment();
                     }
                 }
                 ImGui::EndDragDropTarget();

@@ -12,6 +12,7 @@ class BrdfLutPass : public Pass
     void init(gfx::Device& device, VkFormat format, uint32_t size = 512);
     void draw(gfx::Device& device, gfx::CommandBuffer cmd);
     void cleanup(gfx::Device& device);
+    void reset() { m_brdfLutId = NULL_IMAGE_ID; }
     
     ImageID getLutId() const { return m_brdfLutId; }
 

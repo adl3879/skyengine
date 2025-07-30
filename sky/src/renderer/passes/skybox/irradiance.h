@@ -12,6 +12,7 @@ public:
     void init(gfx::Device& device, VkFormat format, uint32_t size = 32);
     void draw(gfx::Device& device, gfx::CommandBuffer cmd, ImageID environmentMap);
     void cleanup(gfx::Device& device);
+    void reset() { m_irradianceMapId = NULL_IMAGE_ID; }
     
     ImageID getCubemapId() const { return m_irradianceMapId; }
 

@@ -32,7 +32,7 @@ class OrthographicCamera : public Camera
 
   private:
     void recalculateViewMatrix();
-
+ 
   private:
     glm::mat4 m_projectionMatrix = glm::mat4(1.0f);
     glm::mat4 m_viewMatrix = glm::mat4(1.0f);

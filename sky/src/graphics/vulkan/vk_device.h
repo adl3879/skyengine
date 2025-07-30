@@ -49,6 +49,11 @@ struct FrameData
     VkSemaphore swapchainSemaphore, renderSemaphore;
     VkFence renderFence;
 
+    // Multiple offscreen command buffers for different render targets
+    static constexpr int MAX_OFFSCREEN_COMMANDS = 4;
+    VkCommandBuffer offscreenCommandBuffers[MAX_OFFSCREEN_COMMANDS];
+    std::atomic<int> offscreenCommandIndex{0}; // Track which buffer to use next
+
 	DeletionQueue deletionQueue;
 	DescriptorAllocatorGrowable frameDescriptors;
 };
@@ -101,10 +106,12 @@ class Device
     CommandBuffer allocateSecondaryCommandBuffer();
     void endFrame(CommandBuffer cmd);
     void cleanup();
+    CommandBuffer beginOffscreenFrame();
+    void endOffscreenFrame(CommandBuffer cmd);
 
 	AllocatedBuffer createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 	void destroyBuffer(const AllocatedBuffer &buffer);
-	void immediateSubmit(std::function<void(VkCommandBuffer cmd)> &&function);
+	void immediateSubmit(std::function<void(CommandBuffer cmd)> &&function);
 	uint32_t getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound) const;
 
 	bool isInitialized() const { return m_isInitialized; }

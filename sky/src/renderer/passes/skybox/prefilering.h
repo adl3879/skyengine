@@ -13,6 +13,7 @@ class PrefilterEnvmapPass : public Pass
     void init(gfx::Device& device, VkFormat format, uint32_t baseSize, uint32_t mipLevels);
     void draw(gfx::Device& device, gfx::CommandBuffer cmd, ImageID environmentMap);
     void cleanup(gfx::Device& device);
+    void reset() { m_prefilteredMapId = NULL_IMAGE_ID; }
 
     ImageID getCubemapId() const { return m_prefilteredMapId; }
 

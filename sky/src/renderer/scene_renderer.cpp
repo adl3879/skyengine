@@ -218,11 +218,12 @@ void SceneRenderer::createDrawImage(glm::ivec2 size)
             .samples = m_samples,
         };
 
-        m_drawImageID = m_device.createImage(createInfo);
-        m_gameDrawImageID = m_device.createImage(createInfo);
+        m_sceneRenderTargets.color = m_device.createImage(createInfo);
+        m_gameRenderTargets.color = m_device.createImage(createInfo);
         { // postFX
             createInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-            m_postFXImageID = m_device.createImage(createInfo);
+            m_sceneRenderTargets.postFX = m_device.createImage(createInfo);
+            m_gameRenderTargets.postFX = m_device.createImage(createInfo);
         }
     }
 
@@ -233,11 +234,13 @@ void SceneRenderer::createDrawImage(glm::ivec2 size)
         usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         usages |= VK_IMAGE_USAGE_SAMPLED_BIT;
 
-        m_resolveImageID = m_device.createImage(gfx::vkutil::CreateImageInfo{
+        auto info = gfx::vkutil::CreateImageInfo{
             .format = m_drawImageFormat,
             .usage = usages,
             .extent = drawImageExtent,
-        });
+        };
+        m_sceneRenderTargets.resolve = m_device.createImage(info);
+        m_gameRenderTargets.resolve = m_device.createImage(info);
     }
 
     { // setup depth image
@@ -247,19 +250,21 @@ void SceneRenderer::createDrawImage(glm::ivec2 size)
             .extent = drawImageExtent,
             .samples = m_samples,
         };
-        m_depthImageID = m_device.createImage(createInfo);
+        m_sceneRenderTargets.depth = m_device.createImage(createInfo);
+        m_gameRenderTargets.depth = m_device.createImage(createInfo);
 
         if (isMultisamplingEnabled()) 
         {
             createInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-            m_resolveDepthImageID = m_device.createImage(createInfo);
+            m_sceneRenderTargets.resolveDepth = m_device.createImage(createInfo);
+            m_gameRenderTargets.resolveDepth = m_device.createImage(createInfo);
         }
     }
 }
 
 gfx::AllocatedImage SceneRenderer::getDrawImage() 
 {
-	return m_device.getImage(m_drawImageID);
+	return m_device.getImage(m_sceneRenderTargets.color);
 }
 
 void SceneRenderer::drawMesh(MeshID id, const glm::mat4 &transform, bool visibility, uint32_t uniqueId, MaterialID mat) 
@@ -289,20 +294,18 @@ void SceneRenderer::drawModel(Ref<Model> model, const glm::mat4 &transform)
     }
 }
 
-void SceneRenderer::render(gfx::CommandBuffer &cmd, 
-    VkImage swapchainImage,
-    uint32_t swapchainImageIndex,
-    Ref<Scene> scene, 
-    Camera &camera, 
-    ImageID drawImageID) 
-{
+void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode mode) 
+{    
+    auto &cam = mode == RenderMode::Scene ? scene->getEditorCamera() : scene->getEditorCamera();
+    const auto &targets = mode == RenderMode::Scene ? m_sceneRenderTargets : m_gameRenderTargets;
+
     auto &lightCache = scene->getLightCache();
     {
         const auto gpuSceneData = GPUSceneData{
-            .view = camera.getView(),
-            .proj = camera.getProjection(),
-            .viewProj = camera.getViewProjection(),
-            .cameraPos = {camera.getPosition(), 1.f},
+            .view = cam->getView(),
+            .proj = cam->getProjection(),
+            .viewProj = cam->getViewProjection(),
+            .cameraPos = {cam->getPosition(), 1.f},
             .mousePos = scene->getViewportInfo().mousePos,
             .ambientColor = LinearColorNoAlpha::white(),
             .ambientIntensity = 0.3f,
@@ -313,9 +316,7 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
             .numLights = (uint32_t)lightCache.getSize(),
             .materialsBuffer = m_materialCache.getMaterialDataBufferAddress(),
         };
-        uint32_t bufferIndex = (drawImageID == m_gameDrawImageID) ? 
-            (m_device.getCurrentFrameIndex() + 1) % gfx::FRAME_OVERLAP : 
-            m_device.getCurrentFrameIndex();
+        uint32_t bufferIndex = m_device.getCurrentFrameIndex();
         m_sceneDataBuffer.uploadNewData(
             cmd, 
             bufferIndex, 
@@ -326,9 +327,10 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
         lightCache.upload(m_device, cmd);
 	}
 
-    const auto &drawImage = m_device.getImage(m_drawImageID);
-    const auto &resolveImage = m_device.getImage(m_resolveImageID);
-    const auto &depthImage = m_device.getImage(m_depthImageID);
+    const auto &drawImage = m_device.getImage(targets.color);
+    const auto &resolveImage = m_device.getImage(targets.resolve);
+    const auto &depthImage = m_device.getImage(targets.depth);
+    const auto &postFXImage = m_device.getImage(targets.postFX);
 
     gfx::vkutil::transitionImage(cmd, 
         drawImage.image, 
@@ -372,7 +374,7 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
 		m_forwardRenderer.draw(m_device,
 			cmd,
 			drawImage.getExtent2D(),
-			camera,
+			*cam,
 			m_sceneDataBuffer.getBuffer(),
 			m_meshCache,
 			m_meshDrawCommands);
@@ -382,7 +384,7 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
 			drawImage.getExtent2D(), 
 			m_sceneDataBuffer.getBuffer());
 
-		mousePicking(scene);
+        if (mode == RenderMode::Scene) mousePicking(scene);
 	}
     vkCmdEndRendering(cmd);
     
@@ -393,7 +395,7 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
 
     if (isMultisamplingEnabled())
     {
-        const auto &resolveDepthImage = m_device.getImage(m_resolveDepthImageID);
+        const auto &resolveDepthImage = m_device.getImage(targets.resolveDepth);
 
         gfx::vkutil::transitionImage(
             cmd,
@@ -408,7 +410,7 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
 
         vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
 
-        m_depthResolvePass.draw(m_device, cmd, m_depthImageID, gfx::vkutil::sampleCountToInt(m_samples));
+        m_depthResolvePass.draw(m_device, cmd, targets.depth, gfx::vkutil::sampleCountToInt(m_samples));
 
         vkCmdEndRendering(cmd);
 
@@ -421,40 +423,9 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
     } 
 
     {
-        auto swapchain = m_device.getSwapchain();
-
-        // Fences are reset here to prevent the deadlock in case swapchain becomes dirty
-        swapchain.resetFences(m_device.getDevice(), m_device.getCurrentFrameIndex());
-
-        auto swapchainLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        {
-            // clear swapchain image
-            VkImageSubresourceRange clearRange = gfx::vkinit::imageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
-            gfx::vkutil::transitionImage(cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_GENERAL);
-            swapchainLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-            const auto clearValue = VkClearColorValue{{1.f, 1.f, 1.f, 1.f}};
-            vkCmdClearColorImage(cmd, swapchainImage, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
-        }
-
-        ZoneScopedN("Imgui draw");
-        gfx::vkutil::transitionImage(cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        swapchainLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        m_imguiBackend.draw(cmd, 
-            m_device, 
-            swapchain.getImageView(swapchainImageIndex), 
-            swapchain.getExtent(),
-            ImGui::GetDrawData());
-        
-        gfx::vkutil::transitionImage(cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-    }
-    {
-        ImageID sourceImageID = isMultisamplingEnabled() ? m_resolveImageID : m_drawImageID;
-        ImageID depthImageID = isMultisamplingEnabled() ? m_resolveDepthImageID : m_depthImageID;
-
-        const auto &postFXImage = m_device.getImage(m_postFXImageID);
-        
+        ImageID sourceImageID = isMultisamplingEnabled() ? targets.resolve : targets.color;
+        ImageID depthImageID = isMultisamplingEnabled() ? targets.resolveDepth : targets.depth;
+ 
         gfx::vkutil::transitionImage(
             cmd,
             postFXImage.image,
@@ -476,9 +447,46 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd,
             m_sceneDataBuffer.getBuffer());
             
         vkCmdEndRendering(cmd);
+    } 
+
+    gfx::vkutil::transitionImage(
+        cmd,
+        postFXImage.image,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+}
+
+void SceneRenderer::renderImgui(gfx::CommandBuffer &cmd, 
+    VkImage swapchainImage,
+    uint32_t swapchainImageIndex)
+{
+    auto swapchain = m_device.getSwapchain();
+
+    // Fences are reset here to prevent the deadlock in case swapchain becomes dirty
+    swapchain.resetFences(m_device.getDevice(), m_device.getCurrentFrameIndex());
+
+    auto swapchainLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    {
+        // clear swapchain image
+        VkImageSubresourceRange clearRange = gfx::vkinit::imageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
+        gfx::vkutil::transitionImage(cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_GENERAL);
+        swapchainLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+        const auto clearValue = VkClearColorValue{{1.f, 1.f, 1.f, 1.f}};
+        vkCmdClearColorImage(cmd, swapchainImage, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
     }
 
-    clearDrawCommands();
+    ZoneScopedN("Imgui draw");
+    gfx::vkutil::transitionImage(cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    swapchainLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    m_imguiBackend.draw(cmd, 
+        m_device, 
+        swapchain.getImageView(swapchainImageIndex), 
+        swapchain.getExtent(),
+        ImGui::GetDrawData());
+    
+    gfx::vkutil::transitionImage(cmd, swapchainImage, swapchainLayout, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 }
 
 void SceneRenderer::update(Ref<Scene> scene) 

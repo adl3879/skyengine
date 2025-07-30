@@ -9,6 +9,7 @@
 #include <tracy/Tracy.hpp>
 #include <vulkan/vulkan_core.h>
 
+#include "graphics/vulkan/vk_device.h"
 #include "scene/scene_manager.h"
 #include "core/events/event_bus.h"
 #include "core/resource/custom_thumbnail.h"
@@ -57,37 +58,54 @@ void Application::run()
         ImGui::NewFrame();
         ImGuizmo::BeginFrame();
 
-        // some imgui UI to test
-        // ImGui::ShowDemoWindow();
         for (Layer *layer : m_layerStack) layer->onImGuiRender();
 
         // make imgui calculate internal draw structures
         ImGui::Render();
-
-        auto scene = SceneManager::get().getActiveScene();
-        auto cmd = m_gfxDevice->beginFrame();
-        CustomThumbnail::get().render(cmd);
-        m_renderer->update(scene);
-
-        auto swapchain = m_gfxDevice->getSwapchain();
-        const auto [swapchainImage, swapchainImageIndex] = swapchain.acquireImage(m_gfxDevice->getDevice(), m_gfxDevice->getCurrentFrameIndex());
-
-        m_renderer->render(cmd, 
-            swapchainImage,
-            swapchainImageIndex,
-            scene, 
-            *scene->getEditorCamera(), 
-            m_renderer->getSceneImage());
-
-        m_gfxDevice->endFrame(cmd);
-
-        swapchain.submitAndPresent(cmd, m_gfxDevice->getGraphicsQueue(), m_gfxDevice->getCurrentFrameIndex(), swapchainImageIndex);
-        m_gfxDevice->incrementFrameNumber();
-    
-        if (m_gfxDevice->needsSwapchainRecreate())
+ 
+        // Render each target with its own command buffer
         {
-            auto extent = m_window->getExtent();
-            m_gfxDevice->recreateSwapchain(cmd, extent.width, extent.height);
+            auto scene = SceneManager::get().getActiveScene();
+            m_renderer->update(scene);
+
+            // Render scene targets
+            {
+                auto cmd = m_gfxDevice->beginOffscreenFrame();
+                m_renderer->render(cmd, scene, RenderMode::Scene);
+                m_gfxDevice->endOffscreenFrame(cmd);
+            }
+
+            // Render game targets  
+            {
+                auto cmd = m_gfxDevice->beginOffscreenFrame();
+                m_renderer->render(cmd, scene, RenderMode::Game);
+                m_gfxDevice->endOffscreenFrame(cmd);
+            }
+
+            m_renderer->clearDrawCommands();
+        }
+
+        {
+            auto swapchain = m_gfxDevice->getSwapchain();
+            auto cmd = m_gfxDevice->beginFrame();
+
+            CustomThumbnail::get().render(cmd);
+
+            const auto [swapchainImage, swapchainImageIndex] = 
+                swapchain.acquireImage(m_gfxDevice->getDevice(), m_gfxDevice->getCurrentFrameIndex());
+            m_renderer->renderImgui(cmd, swapchainImage, swapchainImageIndex);
+                
+            VK_CHECK(vkEndCommandBuffer(cmd));
+            
+            swapchain.resetFences(m_gfxDevice->getDevice(), m_gfxDevice->getCurrentFrameIndex());
+            swapchain.submitAndPresent(cmd, m_gfxDevice->getGraphicsQueue(), m_gfxDevice->getCurrentFrameIndex(), swapchainImageIndex);
+            m_gfxDevice->incrementFrameNumber();
+            
+            if (m_gfxDevice->needsSwapchainRecreate())
+            {
+                auto extent = m_window->getExtent();
+                m_gfxDevice->recreateSwapchain(cmd, extent.width, extent.height);
+            }
         }
 
         for (Layer *layer : m_layerStack) layer->onUpdate(m_fps.getDeltaTime());

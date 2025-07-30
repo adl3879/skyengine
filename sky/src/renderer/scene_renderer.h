@@ -17,6 +17,21 @@
 
 namespace sky
 {
+struct RenderTargets 
+{
+    ImageID color;
+    ImageID depth;
+    ImageID resolve;
+    ImageID resolveDepth;
+    ImageID postFX;
+};
+
+enum class RenderMode
+{
+    Scene = 0,
+    Game
+};
+
 class SceneRenderer
 {
   public:    
@@ -30,12 +45,10 @@ class SceneRenderer
     SceneRenderer operator=(SceneRenderer &) = delete;
 
     void init(glm::ivec2 size);
-    void render(gfx::CommandBuffer &cmd, 
+    void render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode mode);
+    void renderImgui(gfx::CommandBuffer &cmd, 
         VkImage swapchainImage,
-        uint32_t swapchainImageIndex,
-        Ref<Scene> scene, 
-        Camera &cam, 
-        ImageID drawImage);
+        uint32_t swapchainImageIndex);
     void update(Ref<Scene> scene);
 
     void initBuiltins();
@@ -51,7 +64,6 @@ class SceneRenderer
     Ref<Model> getTempModel(const fs::path &path) { return m_tempModels.at(path); }
     bool isTempModelLoaded(const fs::path &path) { return m_tempModels.contains(path); }
 
-    ImageID getGameDrawImageId() const { return m_gameDrawImageID; }
     gfx::Device &getDevice() const { return m_device; }
     const Mesh &getMesh(MeshID id) const { return m_meshCache.getCPUMesh(id); }
     const Material &getMaterial(MaterialID id) const { return m_materialCache.getMaterial(id); }
@@ -71,7 +83,8 @@ class SceneRenderer
     auto getCubeMesh() const { return m_builtinModels.at(ModelType::Cube); }
 
     // Final draw image from the scene renderer
-    ImageID getSceneImage() const { return m_postFXImageID; }
+    ImageID getSceneImage() const { return m_sceneRenderTargets.postFX; }
+    ImageID getGameImage() const { return m_gameRenderTargets.postFX; }
 
   private:
     void destroy();
@@ -120,6 +133,10 @@ class SceneRenderer
 
     gfx::NBuffer m_sceneDataBuffer;
 
+  private: 
+    RenderTargets m_sceneRenderTargets;
+    RenderTargets m_gameRenderTargets;
+
   private:
     ForwardRendererPass m_forwardRenderer;
     InfiniteGridPass m_infiniteGridPass;
@@ -130,13 +147,6 @@ class SceneRenderer
     SpriteBatchRenderer m_spriteRenderer;
     ImageBasedLighting m_ibl;
 	gfx::ImGuiBackend m_imguiBackend;
-
-    ImageID m_drawImageID{NULL_IMAGE_ID};
-    ImageID m_gameDrawImageID{NULL_IMAGE_ID};
-    ImageID m_depthImageID{NULL_IMAGE_ID};
-    ImageID m_resolveImageID{NULL_IMAGE_ID};
-    ImageID m_resolveDepthImageID{NULL_IMAGE_ID};
-    ImageID m_postFXImageID{NULL_IMAGE_ID};
 
     VkFormat m_drawImageFormat{VK_FORMAT_R16G16B16A16_SFLOAT};
     VkFormat m_depthImageFormat{VK_FORMAT_D32_SFLOAT};

@@ -34,14 +34,14 @@ void Swapchain::create(const vkb::Device &device, VkFormat swapchainFormat, std:
     // vSync = false;
 
     auto res = vkb::SwapchainBuilder{device}
-                   .set_desired_format(VkSurfaceFormatKHR{
-                       .format = swapchainFormat,
-                       .colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
-                   })
-                   .add_image_usage_flags(VK_IMAGE_USAGE_TRANSFER_DST_BIT)
-                   .set_desired_present_mode(vSync ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR)
-                   .set_desired_extent(width, height)
-                   .build();
+        .set_desired_format(VkSurfaceFormatKHR{
+            .format = swapchainFormat,
+            .colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
+        })
+        .add_image_usage_flags(VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+        .set_desired_present_mode(vSync ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR)
+        .set_desired_extent(width, height)
+        .build();
     if (!res.has_value())
     {
         SKY_CORE_ERROR("failed to create swapchain: error = {}, vk result = {}", res.full_error().type.message(),
@@ -103,7 +103,7 @@ std::pair<VkImage, std::uint32_t> Swapchain::acquireImage(VkDevice device, std::
 {
     std::uint32_t swapchainImageIndex{};
     const auto result = vkAcquireNextImageKHR(device, m_swapchain, NO_TIMEOUT, m_frames[frameIndex].swapchainSemaphore,
-                                              VK_NULL_HANDLE, &swapchainImageIndex);
+        VK_NULL_HANDLE, &swapchainImageIndex);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
     {
         m_dirty = true;

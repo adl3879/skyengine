@@ -119,12 +119,12 @@ void Device::initVulkan()
 	//We want a gpu that can write to the SDL surface and supports vulkan 1.3 with the correct features
 	vkb::PhysicalDeviceSelector selector{ m_instance };
     m_physicalDevice = selector.set_minimum_version(1, 3)
-                               .set_required_features(deviceFeatures)
-                               .set_required_features_13(features13)
-                               .set_required_features_12(features12)
-                               .set_surface(m_surface)
-                               .select()
-                               .value();
+        .set_required_features(deviceFeatures)
+        .set_required_features_13(features13)
+        .set_required_features_12(features12)
+        .set_surface(m_surface)
+        .select()
+        .value();
 
     checkDeviceCapabilities();
 
@@ -154,9 +154,20 @@ void Device::initCommands()
     {
         VK_CHECK(vkCreateCommandPool(m_device, &commandPoolInfo, nullptr, &m_frames[i].commandPool));
 
-        // allocate the default command buffer that we will use for rendering
-        VkCommandBufferAllocateInfo cmdAllocInfo = vkinit::commandBufferAllocateInfo(m_frames[i].commandPool, 1);
-        VK_CHECK(vkAllocateCommandBuffers(m_device, &cmdAllocInfo, &m_frames[i].mainCommandBuffer));
+        // Allocate main + multiple offscreen command buffers
+        const int totalBuffers = 1 + FrameData::MAX_OFFSCREEN_COMMANDS;
+        std::vector<VkCommandBuffer> cmdBuffers(totalBuffers);
+        
+        VkCommandBufferAllocateInfo cmdAllocInfo = vkinit::commandBufferAllocateInfo(m_frames[i].commandPool, totalBuffers);
+        VK_CHECK(vkAllocateCommandBuffers(m_device, &cmdAllocInfo, cmdBuffers.data()));
+        
+        m_frames[i].mainCommandBuffer = cmdBuffers[0];
+        for (int j = 0; j < FrameData::MAX_OFFSCREEN_COMMANDS; j++) {
+            m_frames[i].offscreenCommandBuffers[j] = cmdBuffers[1 + j];
+        }
+        
+        // Reset the atomic counter
+        m_frames[i].offscreenCommandIndex.store(0);
     }
 
     // create a command pool for immediate commands
@@ -371,7 +382,7 @@ void Device::destroyBuffer(const AllocatedBuffer &buffer)
     vmaDestroyBuffer(m_allocator, buffer.buffer, buffer.allocation);
 }
 
-void Device::immediateSubmit(std::function<void(VkCommandBuffer)> &&function) 
+void Device::immediateSubmit(std::function<void(gfx::CommandBuffer)> &&function) 
 {
     std::lock_guard<std::mutex> lock(m_queueMutex);
 
@@ -387,7 +398,7 @@ void Device::immediateSubmit(std::function<void(VkCommandBuffer)> &&function)
 
     VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
 
-    function(cmd);
+    function({cmd});
 
     VK_CHECK(vkEndCommandBuffer(cmd));
 
@@ -611,8 +622,16 @@ CommandBuffer Device::beginFrame()
 {
     m_swapchain.beginFrame(m_device, getCurrentFrameIndex());
     
-    const auto &frame = getCurrentFrame();
+    auto &frame = getCurrentFrame();
+    
+    // Reset offscreen command buffer counter for this frame
+    frame.offscreenCommandIndex.store(0);
+    
     const auto &cmd = frame.mainCommandBuffer;
+    
+    // Reset the command buffer first
+    VK_CHECK(vkResetCommandBuffer(cmd, 0));
+    
     const auto cmdBeginInfo = VkCommandBufferBeginInfo{
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
@@ -668,12 +687,78 @@ VkCommandPool Device::getThreadCommandPool()
 
 void Device::endFrame(CommandBuffer cmd) 
 {
-    VK_CHECK(vkEndCommandBuffer(cmd));
-    // m_frameNumber++;
+    VK_CHECK(vkEndCommandBuffer(cmd.handle));
+
+    const auto &frame = getCurrentFrame();
+    
+    // Protect with the same queue mutex
+    std::lock_guard<std::mutex> lock(m_queueMutex);
+    
+    const auto submitInfo = VkCommandBufferSubmitInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+        .commandBuffer = cmd.handle,
+    };
+    
+    const auto submit = VkSubmitInfo2{
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+        .commandBufferInfoCount = 1,
+        .pCommandBufferInfos = &submitInfo,
+    };
+    
+    VK_CHECK(vkQueueSubmit2(m_graphicsQueue, 1, &submit, frame.renderFence));
 }
 
 VkDescriptorSetLayout Device::getBindlessDescSetLayout() const
 {
     return m_imageCache.bindlessSetManager.getDescSetLayout();
+}
+
+CommandBuffer Device::beginOffscreenFrame() 
+{
+    auto &frame = getCurrentFrame();
+    
+    // Get next available offscreen command buffer
+    int bufferIndex = frame.offscreenCommandIndex.fetch_add(1);
+    if (bufferIndex >= FrameData::MAX_OFFSCREEN_COMMANDS) {
+        SKY_CORE_ERROR("Too many offscreen command buffers requested in single frame! Max: {}", 
+                       FrameData::MAX_OFFSCREEN_COMMANDS);
+        // Fallback to last buffer (will cause issues but won't crash)
+        bufferIndex = FrameData::MAX_OFFSCREEN_COMMANDS - 1;
+    }
+    
+    const auto &cmd = frame.offscreenCommandBuffers[bufferIndex];
+    
+    // Reset and begin the offscreen command buffer
+    VK_CHECK(vkResetCommandBuffer(cmd, 0));
+    
+    const auto cmdBeginInfo = VkCommandBufferBeginInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+    };
+    VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
+
+    return {cmd};
+}
+
+void Device::endOffscreenFrame(CommandBuffer cmd) 
+{
+    VK_CHECK(vkEndCommandBuffer(cmd.handle));
+
+    // Use mutex to protect queue submission
+    std::lock_guard<std::mutex> lock(m_queueMutex);
+
+    const auto submitInfo = VkCommandBufferSubmitInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+        .commandBuffer = cmd.handle,
+    };
+    
+    const auto submit = VkSubmitInfo2{
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+        .commandBufferInfoCount = 1,
+        .pCommandBufferInfos = &submitInfo,
+    };
+    
+    // Submit without fence - will be synchronized by frame fence
+    VK_CHECK(vkQueueSubmit2(m_graphicsQueue, 1, &submit, VK_NULL_HANDLE));
 }
 } // namespace sky

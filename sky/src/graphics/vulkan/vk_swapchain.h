@@ -8,7 +8,7 @@
 
 namespace sky::gfx
 {
- constexpr unsigned int FRAME_OVERLAP = 2;
+constexpr unsigned int FRAME_OVERLAP = 2;
 
 class Swapchain
 {
