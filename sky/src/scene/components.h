@@ -6,6 +6,7 @@
 #include "renderer/mesh.h"
 #include "renderer/light.h"
 #include "core/uuid.h"
+#include "renderer/camera/game_camera.h"
 
 namespace sky
 {
@@ -39,5 +40,33 @@ struct SpriteRendererComponent
 {
     AssetHandle textureHandle = NULL_UUID;
     glm::vec4 tint{1.f, 1.f, 1.f, 1.f};
+};
+
+struct CameraComponent
+{
+    GameCamera camera;
+
+    bool isPrimary = false;
+    bool isActive = true;
+    int renderOrder = 0;
+
+    CameraComponent() = default;
+    
+    CameraComponent(ProjectionType projType, float fov = 60.0f, float orthoSize = 5.0f)
+    {
+        camera.setProjectionType(projType);
+        if (projType == ProjectionType::Perspective) camera.setFieldOfView(fov);
+        else camera.setOrthographicSize(orthoSize);
+    }
+    
+    void makePerspective(float fov = 60.0f, float aspect = 16.0f/9.0f, float nearPlane = 0.1f, float farPlane = 1000.0f)
+    {
+        camera.setPerspective(fov, aspect, nearPlane, farPlane);
+    }
+    
+    void makeOrthographic(float size = 5.0f, float aspect = 16.0f/9.0f, float nearPlane = 0.1f, float farPlane = 1000.0f)
+    {
+        camera.setOrthographic(size, aspect, nearPlane, farPlane);
+    }
 };
 }

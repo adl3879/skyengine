@@ -11,6 +11,7 @@
 #include "renderer/environment.h"
 #include "renderer/light_cache.h"
 #include "scene/scene_graph.h"
+#include "scene/systems/camera_system.h"
 
 namespace sky
 {
@@ -70,6 +71,8 @@ class Scene : public Asset
     void setSelectedEntity(Entity entity);
     const UUID getRootEntityUUID() const { return {0x0000000000000001}; }
     Entity getRootEntity();
+    auto getSceneGraph() const { return m_sceneGraph; }
+    auto getCameraSystem() { return m_cameraSystem; }
 
     void setPath(const fs::path &path) { m_path = path; }
     const fs::path &getPath() const { return m_path; }
@@ -78,7 +81,6 @@ class Scene : public Asset
     auto getEnvironment() const { return m_environment; }
     void setEnvironment(Environment env) { m_environment = env; }
     void useEnvironment(); 
-    auto getSceneGraph() const { return m_sceneGraph; }
     
     [[nodiscard]] AssetType getType() const override { return AssetType::Scene; }
 
@@ -102,6 +104,7 @@ class Scene : public Asset
     ViewportInfo m_viewportInfo;
     Ref<EditorCamera> m_editorCamera;
     Ref<OrthographicCamera> m_orthographicCamera;
+    Ref<CameraSystem> m_cameraSystem;
     LightCache m_lightCache;
     Environment m_environment;
 };

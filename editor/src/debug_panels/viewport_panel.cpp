@@ -271,6 +271,7 @@ void ViewportPanel::handleViewportDrop()
                 auto entity = m_context->createEntity(path.stem().string());
                 entity.addComponent<ModelComponent>().handle = handle;
                 entity.getComponent<TransformComponent>().setPosition(getRayIntersectionPoint());
+                m_context->getSceneGraph()->parentEntity(m_context->getRootEntity(), entity);
                 m_context->setSelectedEntity(entity);
 				break;
             }

@@ -66,7 +66,7 @@ void SceneRenderer::init(glm::ivec2 size)
 
     ImGui::CreateContext();
 
-    float fontSize = 27.f;
+    float fontSize = 26.f; 
     auto &io = ImGui::GetIO();
     io.ConfigWindowsMoveFromTitleBarOnly = true;
     io.ConfigFlags = ImGuiConfigFlags_DockingEnable;
@@ -129,6 +129,12 @@ void SceneRenderer::initBuiltins()
 void SceneRenderer::initSceneData() 
 {
     m_sceneDataBuffer.init(
+        m_device,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+        sizeof(GPUSceneData),
+        gfx::FRAME_OVERLAP,
+        "scene data");
+    m_gameDataBuffer.init(
         m_device,
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
         sizeof(GPUSceneData),
@@ -296,8 +302,15 @@ void SceneRenderer::drawModel(Ref<Model> model, const glm::mat4 &transform)
 
 void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode mode) 
 {    
-    auto &cam = mode == RenderMode::Scene ? scene->getEditorCamera() : scene->getEditorCamera();
+    auto camSystem = scene->getCameraSystem();
+    Camera* cam = mode == RenderMode::Scene 
+        ? static_cast<Camera*>(scene->getEditorCamera().get()) 
+        : static_cast<Camera*>(camSystem->getActiveCameraForRendering());
+
+    if (!cam) return;
+
     const auto &targets = mode == RenderMode::Scene ? m_sceneRenderTargets : m_gameRenderTargets;
+    auto sceneDataBuffer = mode == RenderMode::Scene ? m_sceneDataBuffer : m_gameDataBuffer;
 
     auto &lightCache = scene->getLightCache();
     {
@@ -317,7 +330,8 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode
             .materialsBuffer = m_materialCache.getMaterialDataBufferAddress(),
         };
         uint32_t bufferIndex = m_device.getCurrentFrameIndex();
-        m_sceneDataBuffer.uploadNewData(
+
+        sceneDataBuffer.uploadNewData(
             cmd, 
             bufferIndex, 
             (void *)&gpuSceneData,
@@ -350,12 +364,15 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     }
 
-    m_ibl.draw(m_device, cmd, m_sceneDataBuffer.getBuffer());
+    m_ibl.draw(m_device, cmd, sceneDataBuffer.getBuffer());
 
+    auto clearColor = mode == RenderMode::Scene
+        ? glm::vec4{0.01f, 0.01f, 0.01f, 1.f}
+        : camSystem->getActiveCameraForRendering()->getBackgroundColor();
     const auto renderInfo = gfx::vkutil::createRenderingInfo({
         .renderExtent = drawImage.getExtent2D(),
         .colorImageView = drawImage.imageView,
-        .colorImageClearValue = glm::vec4{0.01f, 0.01f, 0.01f, 1.f},
+        .colorImageClearValue = clearColor,
         .depthImageView = depthImage.imageView,
         .depthImageClearValue = 1.f,
         .resolveImageView = isMultisamplingEnabled() ? resolveImage.imageView : VK_NULL_HANDLE
@@ -364,25 +381,28 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode
     vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
     {
         if (SceneManager::get().sceneIsType(SceneType::Scene3D)) {
-            m_ibl.drawSky(m_device, cmd, drawImage.getExtent2D(), m_sceneDataBuffer.getBuffer());
-            m_infiniteGridPass.draw(m_device, 
-                cmd, 
-                drawImage.getExtent2D(),
-                m_sceneDataBuffer.getBuffer());
+            m_ibl.drawSky(m_device, cmd, drawImage.getExtent2D(), sceneDataBuffer.getBuffer());
+            if (mode == RenderMode::Scene)
+            {
+                m_infiniteGridPass.draw(m_device, 
+                    cmd, 
+                    drawImage.getExtent2D(),
+                    sceneDataBuffer.getBuffer());
+            }
         }
 
 		m_forwardRenderer.draw(m_device,
 			cmd,
 			drawImage.getExtent2D(),
 			*cam,
-			m_sceneDataBuffer.getBuffer(),
+			sceneDataBuffer.getBuffer(),
 			m_meshCache,
 			m_meshDrawCommands);
 
 		m_spriteRenderer.flush(m_device, 
 			cmd,
 			drawImage.getExtent2D(), 
-			m_sceneDataBuffer.getBuffer());
+			sceneDataBuffer.getBuffer());
 
         if (mode == RenderMode::Scene) mousePicking(scene);
 	}
@@ -444,7 +464,7 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode
             cmd,
             sourceImageID,
             depthImageID,
-            m_sceneDataBuffer.getBuffer());
+            sceneDataBuffer.getBuffer());
             
         vkCmdEndRendering(cmd);
     } 

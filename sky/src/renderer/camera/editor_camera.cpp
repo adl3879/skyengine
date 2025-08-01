@@ -29,7 +29,6 @@ void EditorCamera::updateView()
 {
     if (SceneManager::get().sceneIsType(SceneType::Scene2D)) 
         m_yaw = m_pitch = 0.0f; // Lock the camera's rotation
-
     
     glm::quat orientation = getOrientation();
     if (!m_isFreeLook)

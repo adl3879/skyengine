@@ -181,6 +181,9 @@ void InspectorPanel::drawDefaultView()
 		helper::imguiCollapsingHeaderStyle(
 			"SPRITE RENDERER", [&]() { drawSpriteRendererComponent(); 
 		}, entity.hasComponent<SpriteRendererComponent>());
+        helper::imguiCollapsingHeaderStyle("CAMERA", [&](){
+            drawCameraComponent();
+        }, entity.hasComponent<CameraComponent>());
 	}
 }
 
@@ -808,5 +811,160 @@ void InspectorPanel::drawDirectionalLightComponent()
 
 		ImGui::EndTable();
 	}
+}
+
+void InspectorPanel::drawCameraComponent()
+{
+    auto entity = m_context->getSelectedEntity();
+    auto camSystem = m_context->getCameraSystem();
+    if (ImGui::BeginTable("CameraTable", 2, ImGuiTableFlags_Resizable))
+    {
+        auto& camera = entity.getComponent<CameraComponent>();
+
+        ImVec2 headerPadding = ImVec2(10, 10);
+        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, headerPadding);
+
+        // Clear Flags
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("Clear Flags");
+        ImGui::TableNextColumn();
+        
+        ClearFlags currentClearFlags = camera.camera.getClearFlags();
+        const char* clearFlagTypes[] = { "Skybox", "Solid Color", "Depth Only", "Don't Clear" };
+        int clearFlagsItem = static_cast<int>(currentClearFlags);
+        
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        if (ImGui::Combo("##ClearFlags", &clearFlagsItem, clearFlagTypes, 4))
+        {
+            camera.camera.setClearFlags(static_cast<ClearFlags>(clearFlagsItem));
+        }
+
+        // Background Color (only show if Solid Color is selected)
+        if (currentClearFlags == ClearFlags::SolidColor)
+        {
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("Background");
+            ImGui::TableNextColumn();
+            glm::vec3 backgroundColor = camera.camera.getBackgroundColor();
+            float color[3] = { backgroundColor.r, backgroundColor.g, backgroundColor.b };
+
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            if (ImGui::ColorEdit3("##Background", color))
+            {
+                camera.camera.setBackgroundColor({color[0], color[1], color[2], 1.f});
+            }
+        }
+
+        // Camera Settings Header
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("Primary Camera");
+        ImGui::TableNextColumn();
+
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        if (ImGui::Checkbox("##Primary", &camera.isPrimary)) 
+            camSystem->findAndSetPrimaryCamera();
+
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("Active");
+        ImGui::TableNextColumn();
+
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        if (ImGui::Checkbox("##Active", &camera.isActive))
+            camSystem->findAndSetPrimaryCamera();
+
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("Render Order");
+        ImGui::TableNextColumn();
+
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        ImGui::DragInt("##RenderOrder", &camera.renderOrder, 1.0f, -100, 100);
+
+        // Projection Type
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("Projection");
+        ImGui::TableNextColumn();
+        
+        ProjectionType currentProjection = camera.camera.getProjectionType();
+        const char* projectionTypes[] = { "Perspective", "Orthographic" };
+        int currentItem = (currentProjection == ProjectionType::Perspective) ? 0 : 1;
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        if (ImGui::Combo("##Projection", &currentItem, projectionTypes, 2))
+        {
+            ProjectionType newProjection = (currentItem == 0) ? ProjectionType::Perspective : ProjectionType::Orthographic;
+            if (newProjection != currentProjection)
+            {
+                if (newProjection == ProjectionType::Perspective)
+                {
+                    camera.makePerspective();
+                }
+                else
+                {
+                    camera.makeOrthographic();
+                }
+            }
+        }
+
+        // Projection-specific settings
+        if (currentProjection == ProjectionType::Perspective)
+        {
+            // Field of View
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("Field of View");
+            ImGui::TableNextColumn();
+            float fov = camera.camera.getFieldOfView();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            if (ImGui::SliderFloat("##FOV", &fov, 1.0f, 179.0f, "%.1f°"))
+            {
+                camera.camera.setFieldOfView(fov);
+            }
+        }
+        else // Orthographic
+        {
+            // Orthographic Size
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("Size");
+            ImGui::TableNextColumn();
+            float orthoSize = camera.camera.getOrthographicSize();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            if (ImGui::DragFloat("##OrthoSize", &orthoSize, 0.1f, 0.1f, 100.0f, "%.2f"))
+            {
+                camera.camera.setOrthographicSize(orthoSize);
+            }
+        }
+
+        // Near and Far Planes
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("Near Plane");
+        ImGui::TableNextColumn();
+        float nearPlane = camera.camera.getNear();
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        if (ImGui::DragFloat("##NearPlane", &nearPlane, 0.01f, 0.001f, 1000.0f, "%.3f"))
+        {
+            camera.camera.setNearClipPlane(nearPlane);
+        }
+
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("Far Plane");
+        ImGui::TableNextColumn();
+        float farPlane = camera.camera.getFar();
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        if (ImGui::DragFloat("##FarPlane", &farPlane, 1.0f, nearPlane + 0.1f, 10000.0f, "%.1f"))
+        {
+            camera.camera.setFarClipPlane(farPlane);
+        }
+
+        ImGui::PopStyleVar();
+        ImGui::EndTable();
+    }
 }
 } // namespace sky

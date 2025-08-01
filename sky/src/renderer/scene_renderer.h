@@ -132,6 +132,7 @@ class SceneRenderer
     };
 
     gfx::NBuffer m_sceneDataBuffer;
+    gfx::NBuffer m_gameDataBuffer;
 
   private: 
     RenderTargets m_sceneRenderTargets;

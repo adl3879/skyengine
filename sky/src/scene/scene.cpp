@@ -17,6 +17,8 @@ Scene::Scene(const std::string &name, SceneType type)
     : m_sceneName(name), m_sceneType(type) 
 {
     m_sceneGraph = CreateRef<SceneGraph>(this);
+    m_cameraSystem = CreateRef<CameraSystem>(this);
+
 	newScene(name);
     m_rootEntity = createEntityWithUUID(getRootEntityUUID(), "Root");
 }
@@ -26,7 +28,6 @@ void Scene::init()
     m_lightCache.init(Application::getRenderer()->getDevice());
     
     m_editorCamera = CreateRef<EditorCamera>(45.f, 16 / 9, 0.1f, 1000.f);
-
     m_orthographicCamera = CreateRef<OrthographicCamera>(-1.0f, 1.0f, -1.0f, 1.0f);
     m_orthographicCamera->setProjection(16.f/9.f, 1.f);
 }
@@ -39,6 +40,7 @@ void Scene::update(float dt)
         m_editorCamera->setViewportSize(m_viewportInfo.size);
         m_editorCamera->update(dt);
     }
+    m_cameraSystem->updateCameraTransforms();
 }
 
 void Scene::onEvent(Event& e)

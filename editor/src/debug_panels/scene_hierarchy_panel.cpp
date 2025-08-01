@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include <tracy/Tracy.hpp>
 #include <IconsFontAwesome5.h>
+#include "renderer/camera/game_camera.h"
 #include "scene/components.h"
 #include "asset_management/asset_manager.h"
 #include "scene/scene.h"
@@ -145,6 +146,9 @@ void SceneHierarchyPanel::drawEntityNode(Entity entity, const char *query)
         {
             UUID droppedUUID = *(const UUID*)payload->Data;
             Entity droppedEntity = m_context->getEntityFromUUID(droppedUUID);
+            auto sceneGraph = m_context->getSceneGraph();
+            if (!sceneGraph->isDescendantOf(droppedEntity, entity))
+                sceneGraph->parentEntity(entity, droppedEntity);
         }
         ImGui::EndDragDropTarget();
     }
@@ -290,6 +294,12 @@ Entity SceneHierarchyPanel::createEntityPopup()
             sl.id = m_context->addLightToCache(sl, entity.getComponent<TransformComponent>());
         }
         ImGui::EndPopup();
+    }
+    if (ImGui::MenuItem("Camera"))
+    {
+        entity = m_context->createEntity("Camera");
+        entity.addComponent<CameraComponent>(ProjectionType::Perspective);
+        m_context->getCameraSystem()->findAndSetPrimaryCamera();
     }
     ImGui::Separator();
     if (ImGui::MenuItem("Sprite Renderer"))

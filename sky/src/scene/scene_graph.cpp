@@ -128,17 +128,14 @@ bool SceneGraph::valid(Entity entity) const
 
 bool SceneGraph::isDescendantOf(Entity child, Entity parent)
 {
-    if (!valid(child) || !valid(parent)) return false;
+    if (child.getComponent<IDComponent>() == m_context->getRootEntityUUID()) return true;
 
     auto &childRel = child.getComponent<RelationshipComponent>();
-    while (childRel.parent != NULL_UUID)
+    while (childRel.parent != m_context->getRootEntityUUID())
     {
-        if (childRel.parent == parent.getComponent<IDComponent>())
-        {
-            return true;
-        }
-        child = getEntityFromUUID(childRel.parent);
-        childRel = child.getComponent<RelationshipComponent>();
+        if (childRel.parent == parent.getComponent<IDComponent>()) return true;
+        auto c = getEntityFromUUID(childRel.parent);
+        childRel = c.getComponent<RelationshipComponent>();
     }
     return false;
 }
