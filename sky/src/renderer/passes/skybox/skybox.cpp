@@ -23,7 +23,6 @@ void SkyboxPass::init(gfx::Device &device, VkFormat format)
         .setShaders(vertexShader, fragShader)
         .setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
         .setPolygonMode(VK_POLYGON_MODE_FILL)
-        // ?
         .disableBlending()
         .setCullMode(VK_CULL_MODE_FRONT_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
         .setMultisamplingNone()

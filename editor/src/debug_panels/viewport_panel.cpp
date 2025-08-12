@@ -28,6 +28,40 @@ void ViewportPanel::drawSceneViewport()
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::Begin("Scene");
 
+    auto selectedEntity = m_context->getSelectedEntity();
+    if (selectedEntity.hasComponent<CameraComponent>())
+    {
+        ImVec2 content_region = ImGui::GetContentRegionAvail();
+        ImVec2 child_size = ImVec2(420, 280); // width, height
+        uint32_t gap = 20; // gap between the viewport and the child window
+        
+        ImVec2 child_pos = ImVec2(
+            content_region.x - gap - child_size.x,  // right edge
+            content_region.y - gap - child_size.y   // bottom edge
+        );
+        
+        auto cursorPos = ImGui::GetCursorPos();
+        ImGui::SetCursorPos({cursorPos.x + child_pos.x, cursorPos.y + child_pos.y});
+
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.05f, 0.05f, 0.05f, 1.0f)); 
+        
+        ImGui::BeginChild("BottomRightChild", child_size, true, ImGuiWindowFlags_NoScrollbar);
+        
+        ImGui::Text("Camera Preview");
+        // ImGui::Separator();
+        ImVec2 image_size = ImGui::GetContentRegionAvail();
+        auto cam = selectedEntity.getComponent<CameraComponent>().camera;
+        ImGui::Image(cam.getPreviewImage(), image_size);
+
+        m_context->sceneViewportIsVisible = ImGui::IsWindowAppearing() || !ImGui::IsWindowCollapsed();
+        
+        ImGui::EndChild();
+
+        ImGui::PopStyleColor();
+
+        ImGui::SetCursorPos({cursorPos.x, cursorPos.y}); // Reset cursor position
+    }
+
     auto viewportOffset = ImGui::GetCursorPos();
     auto viewportSize = ImGui::GetContentRegionAvail();
     auto windowSize = ImGui::GetWindowSize();
@@ -109,11 +143,20 @@ void ViewportPanel::drawGameViewport()
     ImGui::Begin("Game");
 
     auto viewportSize = ImGui::GetContentRegionAvail();
+
+    m_context->setGameViewportInfo({
+        .size = {viewportSize.x, viewportSize.y},
+        .mousePos = {0, 0},
+        .isFocus = ImGui::IsWindowFocused() && !ImGui::IsWindowCollapsed(),
+    });
+
     ImGui::Image(Application::getRenderer()->getGameImage(), 
         viewportSize, 
         /*vertical flip*/ {0, 1}, {1, 0});
+
+    m_context->gameViewportIsVisible = ImGui::IsWindowAppearing() || !ImGui::IsWindowCollapsed();
     
-        ImGui::End();
+    ImGui::End();
     ImGui::PopStyleVar();
 }
 

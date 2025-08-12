@@ -4,6 +4,8 @@
 #include "asset_management/asset_manager.h"
 #include "scene.h"
 #include "core/resource/environment_serializer.h"
+#include "scene/components.h"
+#include "yaml-cpp/emittermanip.h"
 
 namespace sky
 {
@@ -130,6 +132,23 @@ void SceneSerializer::serializeEntity(YAML::Emitter &out, Entity entity, AssetHa
         out << YAML::Key << "texture" << YAML::Value << spriteRenderer.textureHandle;
         out << YAML::EndMap;
     }
+    if (entity.hasComponent<CameraComponent>())
+    {
+        const auto &camComp = entity.getComponent<CameraComponent>();
+        out << YAML::Key << "camera" << YAML::BeginMap;
+        out << YAML::Key << "isPrimary" << YAML::Value << camComp.isPrimary;
+        out << YAML::Key << "isActive" << YAML::Value << camComp.isActive;
+        out << YAML::Key << "renderOrder" << YAML::Value << camComp.renderOrder;
+        out << YAML::Key << "clearFlags" << YAML::Value << clearFlagsToString(camComp.camera.getClearFlags());
+        out << YAML::Key << "backgroundColor" << YAML::Value << camComp.camera.getBackgroundColor();
+        out << YAML::Key << "projectionType" << YAML::Value << projectionTypeToString(camComp.camera.getProjectionType());
+        out << YAML::Key << "fieldOfView" << YAML::Value << camComp.camera.getFieldOfView();
+        out << YAML::Key << "orthographicSize" << YAML::Value << camComp.camera.getOrthographicSize();
+        out << YAML::Key << "nearPlane" << YAML::Value << camComp.camera.getNear();
+        out << YAML::Key << "farPlane" << YAML::Value << camComp.camera.getFar();
+        out << YAML::Key << "viewport" << YAML::Value << camComp.camera.getViewport();
+        out << YAML::EndMap;
+    }
 
 	out << YAML::EndMap;
 }
@@ -191,6 +210,21 @@ void SceneSerializer::deserializeEntity(YAML::detail::iterator_value key, Entity
         auto &spriteRenderer = entity.addComponent<SpriteRendererComponent>();
         spriteRenderer.tint = sprite["tint"].as<glm::vec4>();
         spriteRenderer.textureHandle = sprite["texture"].as<AssetHandle>();
+    }
+    if (auto camera = key["camera"])
+    {
+        auto &camComp = entity.addComponent<CameraComponent>();
+        camComp.isPrimary = camera["isPrimary"].as<bool>();
+        camComp.isActive = camera["isActive"].as<bool>();
+        camComp.renderOrder = camera["renderOrder"].as<uint32_t>();
+        camComp.camera.setClearFlags(clearFlagsFromString(camera["clearFlags"].as<std::string>()));
+        camComp.camera.setBackgroundColor(camera["backgroundColor"].as<glm::vec4>());
+        camComp.camera.setProjectionType(projectionTypeFromString(camera["projectionType"].as<std::string>()));
+        camComp.camera.setFieldOfView(camera["fieldOfView"].as<float>());
+        camComp.camera.setOrthographicSize(camera["orthographicSize"].as<float>());
+        camComp.camera.setNearClipPlane(camera["nearPlane"].as<float>());
+        camComp.camera.setFarClipPlane(camera["farPlane"].as<float>());
+        camComp.camera.setViewport(camera["viewport"].as<glm::vec4>());
     }
 }
 } // namespace sky

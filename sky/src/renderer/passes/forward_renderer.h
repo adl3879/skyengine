@@ -47,6 +47,8 @@ class ForwardRendererPass : public Pass
 
     void cleanup(const gfx::Device &device);
 
+    bool initialized{false};
+
   private:
     struct PushConstants
 	{

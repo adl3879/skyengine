@@ -30,6 +30,8 @@ void InfiniteGridPass::init(const gfx::Device &device, VkFormat format, VkSample
         .disableDepthTest()
         .setColorAttachmentFormat(VK_FORMAT_R16G16B16A16_SFLOAT)
         .build(device.getDevice());
+
+    initialized = true;
 }
 
 void InfiniteGridPass::draw(gfx::Device &device, 

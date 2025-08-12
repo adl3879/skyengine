@@ -69,6 +69,7 @@ void Application::run()
             m_renderer->update(scene);
 
             // Render scene targets
+            if (scene->sceneViewportIsVisible) 
             {
                 auto cmd = m_gfxDevice->beginOffscreenFrame();
                 m_renderer->render(cmd, scene, RenderMode::Scene);
@@ -76,6 +77,7 @@ void Application::run()
             }
 
             // Render game targets  
+            if (scene->gameViewportIsVisible) 
             {
                 auto cmd = m_gfxDevice->beginOffscreenFrame();
                 m_renderer->render(cmd, scene, RenderMode::Game);

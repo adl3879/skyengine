@@ -310,7 +310,7 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode
     if (!cam) return;
 
     const auto &targets = mode == RenderMode::Scene ? m_sceneRenderTargets : m_gameRenderTargets;
-    auto sceneDataBuffer = mode == RenderMode::Scene ? m_sceneDataBuffer : m_gameDataBuffer;
+    auto &sceneDataBuffer = mode == RenderMode::Scene ? m_sceneDataBuffer : m_gameDataBuffer;
 
     auto &lightCache = scene->getLightCache();
     {
@@ -380,8 +380,8 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode
 
     vkCmdBeginRendering(cmd, &renderInfo.renderingInfo);
     {
+        m_ibl.drawSky(m_device, cmd, drawImage.getExtent2D(), sceneDataBuffer.getBuffer());
         if (SceneManager::get().sceneIsType(SceneType::Scene3D)) {
-            m_ibl.drawSky(m_device, cmd, drawImage.getExtent2D(), sceneDataBuffer.getBuffer());
             if (mode == RenderMode::Scene)
             {
                 m_infiniteGridPass.draw(m_device, 

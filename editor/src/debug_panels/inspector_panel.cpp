@@ -454,10 +454,9 @@ void InspectorPanel::drawTransformComponent()
 		ImGui::TableNextColumn();
 		ImGui::Text("Rotation");
 		ImGui::TableNextColumn();
-		glm::vec3 eulerAngles = glm::eulerAngles(transform.getRotationQuaternion());
-		glm::vec3 eulerDegrees = glm::degrees(eulerAngles);
+		glm::vec3 eulerDegrees = transform.getRotationDegrees();
 		helper::imguiDrawVec3Control("Rotation", eulerDegrees);
-		if (eulerDegrees != glm::degrees(glm::eulerAngles(transform.getRotationQuaternion())))
+		if (eulerDegrees != transform.getRotationDegrees())
 		{
 			glm::vec3 radians = glm::radians(eulerDegrees);
 			transform.setRotationDegrees(glm::quat(radians));
@@ -964,6 +963,35 @@ void InspectorPanel::drawCameraComponent()
         }
 
         ImGui::PopStyleVar();
+
+        // Viewport Settings Section
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("Viewport Position");
+        ImGui::TableNextColumn();
+
+        // Get viewport settings (assuming you have these in your camera)
+        glm::vec4 viewportRect = camera.camera.getViewport(); // x, y, width, height (normalized 0-1)
+        float viewport[4] = { viewportRect.x, viewportRect.y, viewportRect.z, viewportRect.w };
+
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        if (ImGui::DragFloat2("##ViewportPosition", viewport, 0.01f, 0.0f, 1.0f, "%.2f"))
+        {
+            camera.camera.setViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+        }
+
+        // Viewport Size Section
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("Viewport Size");
+        ImGui::TableNextColumn();
+
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        if (ImGui::DragFloat2("##ViewportSize", &viewport[2], 0.01f, 0.0f, 1.0f, "%.2f"))
+        {
+            camera.camera.setViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+        }
+
         ImGui::EndTable();
     }
 }

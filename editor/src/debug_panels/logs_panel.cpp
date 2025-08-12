@@ -22,6 +22,11 @@ void LogsPanel::render()
 {
     ZoneScopedN("Logs panel");
     ImGui::Begin("Log   ");
+
+    // Early exit if window is collapsed/minimized
+    if (ImGui::IsWindowCollapsed()) {
+        return;
+    }
     
     auto &logs = Log::getLogSink()->getLogEntries();
     

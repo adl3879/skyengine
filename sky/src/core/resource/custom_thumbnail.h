@@ -54,8 +54,8 @@ class CustomThumbnail
 	VkFormat m_drawImageFormat{VK_FORMAT_R8G8B8A8_UNORM};
 
 	ThumbnailGradientPass m_thumbnailGradientPass;
-    ForwardRendererPass m_forwardRenderer;
     FormatConverterPass m_formatConverterPass;
+    ForwardRendererPass m_forwardRenderer;
     InfiniteGridPass m_infiniteGridPass;
     SpriteBatchRenderer m_spriteRenderer;
 

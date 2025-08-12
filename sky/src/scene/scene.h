@@ -78,11 +78,17 @@ class Scene : public Asset
     const fs::path &getPath() const { return m_path; }
     void setViewportInfo(ViewportInfo info) { m_viewportInfo = info; }
     ViewportInfo getViewportInfo() const { return m_viewportInfo; }
+    void setGameViewportInfo(ViewportInfo info) { m_gameViewportInfo = info; }
+    ViewportInfo getGameViewportInfo() const { return m_gameViewportInfo; }
+
     auto getEnvironment() const { return m_environment; }
     void setEnvironment(Environment env) { m_environment = env; }
     void useEnvironment(); 
     
     [[nodiscard]] AssetType getType() const override { return AssetType::Scene; }
+
+  public:
+    bool sceneViewportIsVisible, gameViewportIsVisible;
 
   private:
     void newScene(const std::string &name);
@@ -101,7 +107,7 @@ class Scene : public Asset
     Ref<SceneGraph> m_sceneGraph;
     SceneType m_sceneType;
     std::string m_sceneName;
-    ViewportInfo m_viewportInfo;
+    ViewportInfo m_viewportInfo, m_gameViewportInfo;
     Ref<EditorCamera> m_editorCamera;
     Ref<OrthographicCamera> m_orthographicCamera;
     Ref<CameraSystem> m_cameraSystem;

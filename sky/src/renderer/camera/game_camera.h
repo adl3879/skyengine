@@ -2,6 +2,7 @@
 
 #include <skypch.h>
 
+#include "graphics/vulkan/vk_types.h"
 #include "renderer/camera/camera.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -22,6 +23,11 @@ enum class ClearFlags
     DepthOnly,
     DontClear
 };
+
+std::string clearFlagsToString(ClearFlags flags);
+ClearFlags clearFlagsFromString(const std::string & str);
+std::string projectionTypeToString(ProjectionType type);
+ProjectionType projectionTypeFromString(const std::string & str);
 
 class GameCamera : public Camera
 {
@@ -82,6 +88,7 @@ class GameCamera : public Camera
 
     // Viewport and rendering
     void setViewport(float x, float y, float width, float height);
+    void setViewport(const glm::vec4& viewport);
     void setDepth(int depth);
     void setClearFlags(ClearFlags flags);
     void setBackgroundColor(const glm::vec4& color);
@@ -116,6 +123,9 @@ class GameCamera : public Camera
     int getDepth() const { return m_depth; }
     ClearFlags getClearFlags() const { return m_clearFlags; }
     const glm::vec4& getBackgroundColor() const { return m_backgroundColor; }
+
+    // Preview
+    ImageID getPreviewImage();
 
   private:
     // Transform

@@ -46,7 +46,7 @@ void CameraSystem::findAndSetPrimaryCamera()
     for (auto entity : view)
     {
         auto& camera = view.get<CameraComponent>(entity);
-        if (camera.isActive)
+        if (camera.isActive )
         {
             m_activeCameraEntity = entity;
             return;
@@ -78,7 +78,7 @@ std::vector<std::pair<Entity, CameraComponent*>> CameraSystem::getSortedCameras(
     return cameras;
 }
 
-void CameraSystem::updateCameraTransforms()
+void CameraSystem::update()
 {
     auto view = m_scene->getRegistry().view<CameraComponent, TransformComponent>();
     for (auto entity : view)
@@ -88,6 +88,8 @@ void CameraSystem::updateCameraTransforms()
         // Update camera position and rotation from transform
         camera.camera.setPosition(transform.getPosition());
         camera.camera.setRotation(transform.getRotation());
+
+        camera.camera.setAspectRatio(m_scene->getGameViewportInfo().size.x / m_scene->getGameViewportInfo().size.y);
     }
 }
 }

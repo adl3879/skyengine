@@ -20,8 +20,8 @@ class Application
     Application(const Application&) = delete;
     Application& operator=(const Application&) = delete;
 
-    static constexpr int WIDTH = 1400;
-    static constexpr int HEIGHT = 1000;
+    static constexpr int WIDTH = 1;
+    static constexpr int HEIGHT = 1;
     static constexpr const char* TITLE = "Sky Engine";
 
     void onEvent(Event &e);

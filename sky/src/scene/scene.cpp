@@ -40,7 +40,7 @@ void Scene::update(float dt)
         m_editorCamera->setViewportSize(m_viewportInfo.size);
         m_editorCamera->update(dt);
     }
-    m_cameraSystem->updateCameraTransforms();
+    m_cameraSystem->update();
 }
 
 void Scene::onEvent(Event& e)

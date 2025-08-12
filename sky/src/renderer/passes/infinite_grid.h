@@ -18,6 +18,8 @@ class InfiniteGridPass : public Pass
         const gfx::AllocatedBuffer &sceneDataBuffer);
     void cleanup(const gfx::Device &device);
 
+    bool initialized{false};
+
   private:
 	struct PushConstants
 	{

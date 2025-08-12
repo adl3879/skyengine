@@ -21,7 +21,7 @@ class CameraSystem
     GameCamera* getActiveCameraForRendering();
     void findAndSetPrimaryCamera();
     std::vector<std::pair<Entity, CameraComponent*>> getSortedCameras() const;
-    void updateCameraTransforms();
+    void update();
 
   private:
     Scene* m_scene = nullptr;

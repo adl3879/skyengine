@@ -29,7 +29,7 @@ void ImageBasedLighting::drawSky(gfx::Device &device,
     VkExtent2D extent,
     const gfx::AllocatedBuffer &sceneDataBuffer)
 {
-    if (m_hdrImageId == NULL_IMAGE_ID)  return;
+    if (m_hdrImageId == NULL_IMAGE_ID) return;
     m_skyboxPass.draw(device, 
         cmd, 
         extent,

@@ -34,11 +34,9 @@ class SceneManager
     void closeScene(const fs::path &path);
     void saveActiveScene();
     void saveAll();
-    const fs::path &getCurrentViewport() const { return m_currentViewport; }
 
   private:
     Ref<Scene> m_activeScene = nullptr;
     SceneState m_sceneState;
-    fs::path m_currentViewport;
 };
 } // namespace sky

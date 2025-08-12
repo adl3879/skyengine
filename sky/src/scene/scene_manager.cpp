@@ -23,12 +23,10 @@ void SceneManager::reset()
 {
     m_activeScene = CreateRef<Scene>();
     m_activeScene->init();
-    m_currentViewport.clear();
 }
 
 void SceneManager::openScene(const fs::path &path) 
 {
-    m_currentViewport = path;
     auto handle = AssetManager::getOrCreateAssetHandle(path, AssetType::Scene);
     AssetManager::getAssetAsync<Scene>(handle, [=, this](const Ref<Scene> &scene) 
     {

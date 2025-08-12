@@ -8,10 +8,8 @@
 #include "core/project_management/project_manager.h"
 #include "core/helpers/imgui.h"
 #include "environment_panel.h"
-#include "renderer/scene_renderer.h"
 #include "core/helpers/image.h"
-#include "embed/window_images.embed";
-#include "scene/scene_manager.h"
+#include "embed/window_images.embed"
 #include "core/events/event_bus.h"
 
 namespace sky
@@ -46,7 +44,7 @@ void TitlebarPanel::render(float &outTitlebarHeight)
     ImGui::SetCursorPos(ImVec2(windowPadding.x, windowPadding.y + titlebarVerticalOffset));
     const ImVec2 titlebarMin = ImGui::GetCursorScreenPos();
     const ImVec2 titlebarMax = {ImGui::GetCursorScreenPos().x + ImGui::GetWindowWidth() - windowPadding.y * 2.0f,
-                                ImGui::GetCursorScreenPos().y + titlebarHeight};
+        ImGui::GetCursorScreenPos().y + titlebarHeight};
     auto *bgDrawList = ImGui::GetBackgroundDrawList();
     auto *fgDrawList = ImGui::GetForegroundDrawList();
 
@@ -56,7 +54,7 @@ void TitlebarPanel::render(float &outTitlebarHeight)
         const int logoHeight = 60;
         const ImVec2 logoOffset(16.0f + windowPadding.x, 5.0f + windowPadding.y + titlebarVerticalOffset);
         const ImVec2 logoRectStart = {ImGui::GetItemRectMin().x + logoOffset.x,
-                                      ImGui::GetItemRectMin().y + logoOffset.y};
+            ImGui::GetItemRectMin().y + logoOffset.y};
         const ImVec2 logoRectMax = {logoRectStart.x + logoWidth, logoRectStart.y + logoHeight};
 
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 2.0f + windowPadding.x);
@@ -178,6 +176,7 @@ void TitlebarPanel::render(float &outTitlebarHeight)
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.2f, 0.2f, 0.6f));
 		if (ImGui::ImageButton("##play", m_playIcon, btnSize))
 		{
+            ImGui::SetWindowFocus("Game");
 		}
         ImGui::SameLine();
 		if (ImGui::ImageButton("##pause", m_pauseIcon, btnSize))
@@ -283,8 +282,6 @@ bool TitlebarPanel::beginMenubar(const ImRect &barRect)
 {
     ImGuiWindow *window = ImGui::GetCurrentWindow();
     if (window->SkipItems) return false;
-    /*if (!(window->Flags & ImGuiWindowFlags_MenuBar))
-        return false;*/
 
     IM_ASSERT(!window->DC.MenuBarAppending);
     ImGui::BeginGroup(); // Backup position on layer 0 // FIXME: Misleading to use a group for that backup/restore
@@ -302,10 +299,10 @@ bool TitlebarPanel::beginMenubar(const ImRect &barRect)
     // to display over the lower-right rounded area, which looks particularly glitchy.
     ImRect bar_rect = result; // window->MenuBarRect();
     ImRect clip_rect(IM_ROUND(ImMax(window->Pos.x, bar_rect.Min.x + window->WindowBorderSize + window->Pos.x - 10.0f)),
-                     IM_ROUND(bar_rect.Min.y + window->WindowBorderSize + window->Pos.y),
-                     IM_ROUND(ImMax(bar_rect.Min.x + window->Pos.x,
-                                    bar_rect.Max.x - ImMax(window->WindowRounding, window->WindowBorderSize))),
-                     IM_ROUND(bar_rect.Max.y + window->Pos.y));
+        IM_ROUND(bar_rect.Min.y + window->WindowBorderSize + window->Pos.y),
+        IM_ROUND(ImMax(bar_rect.Min.x + window->Pos.x,
+            bar_rect.Max.x - ImMax(window->WindowRounding, window->WindowBorderSize))),
+        IM_ROUND(bar_rect.Max.y + window->Pos.y));
 
     clip_rect.ClipWith(window->OuterRectClipped);
     ImGui::PushClipRect(clip_rect.Min, clip_rect.Max, false);
@@ -351,7 +348,7 @@ void TitlebarPanel::endMenubar()
             //    true; // Hide highlight for the current frame so we don't see the intermediary selection.
             //g.NavDisableMouseHover = g.NavMousePosDirty = true;
             ImGui::NavMoveRequestForward(g.NavMoveDir, g.NavMoveClipDir, g.NavMoveFlags,
-                                         g.NavMoveScrollFlags); // Repeat
+                g.NavMoveScrollFlags); // Repeat
         }
     }
 

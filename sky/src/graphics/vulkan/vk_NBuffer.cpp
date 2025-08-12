@@ -20,7 +20,7 @@ void NBuffer::init(Device &gfxDevice, VkBufferUsageFlags usage, std::size_t data
     for (std::size_t i = 0; i < numFramesInFlight; ++i)
     {
         stagingBuffers.push_back(gfxDevice.createBuffer(dataSize, usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                                        VMA_MEMORY_USAGE_AUTO_PREFER_HOST));
+            VMA_MEMORY_USAGE_AUTO_PREFER_HOST));
     }
 
     initialized = true;

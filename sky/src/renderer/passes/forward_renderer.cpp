@@ -42,6 +42,8 @@ void ForwardRendererPass::init(
         .setColorAttachmentFormat(format)
         .setDepthFormat(VK_FORMAT_D32_SFLOAT)
         .build(device.getDevice());
+
+    initialized = true;
 }
 
 void ForwardRendererPass::draw(

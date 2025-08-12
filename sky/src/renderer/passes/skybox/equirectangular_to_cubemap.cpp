@@ -132,4 +132,4 @@ void EquirectangularToCubemapPass::cleanup(gfx::Device &device)
         vkDestroyImageView(device.getDevice(), view, nullptr);
     }
 }
-}
+    }
