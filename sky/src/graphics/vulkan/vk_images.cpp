@@ -186,4 +186,22 @@ void generateMipmaps(VkCommandBuffer cmd, VkImage image, VkExtent2D imageExtent,
     depInfo.pImageMemoryBarriers = &barrier;
     vkCmdPipelineBarrier2(cmd, &depInfo);
 }
+
+void clearColorImage(VkCommandBuffer cmd, VkImage image, VkImageLayout imageLayout)
+{
+    VkClearColorValue clearColor = {};
+    clearColor.float32[0] = 0.0f; // R
+    clearColor.float32[1] = 0.0f; // G  
+    clearColor.float32[2] = 0.0f; // B
+    clearColor.float32[3] = 1.0f; // A
+    
+    VkImageSubresourceRange range = {};
+    range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    range.baseMipLevel = 0;
+    range.levelCount = 1;
+    range.baseArrayLayer = 0;
+    range.layerCount = 1;
+    
+    vkCmdClearColorImage(cmd, image, imageLayout, &clearColor, 1, &range);
+}
 } // namespace sky::vkutil

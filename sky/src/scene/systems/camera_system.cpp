@@ -1,5 +1,6 @@
 #include "camera_system.h"
 
+#include "scene/components.h"
 #include "scene/entity.h"
 
 namespace sky
@@ -87,7 +88,7 @@ void CameraSystem::update()
         
         // Update camera position and rotation from transform
         camera.camera.setPosition(transform.getPosition());
-        camera.camera.setRotation(transform.getRotation());
+        camera.camera.setRotation(transform.getRotationQuaternion());
 
         camera.camera.setAspectRatio(m_scene->getGameViewportInfo().size.x / m_scene->getGameViewportInfo().size.y);
     }

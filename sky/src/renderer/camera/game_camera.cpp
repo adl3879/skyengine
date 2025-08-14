@@ -28,8 +28,7 @@ void GameCamera::setRotation(const glm::quat& rotation)
 
 void GameCamera::setRotation(const glm::vec3& eulerAngles)
 {
-    glm::vec3 radians = eulerAngles;
-    m_rotation = glm::quat(radians);
+    m_rotation = glm::quat(eulerAngles);
     m_viewDirty = true;
     m_viewProjectionDirty = true;
     m_vectorsDirty = true;
@@ -183,9 +182,13 @@ void GameCamera::updateViewMatrix() const
 {
     if (!m_viewDirty) return;
     
-    glm::mat4 rotationMatrix = glm::mat4_cast(glm::conjugate(m_rotation));
+    // Use the conjugate (inverse) of the rotation quaternion for the view matrix
+    glm::quat invRotation = glm::conjugate(m_rotation);
+    glm::mat4 rotationMatrix = glm::mat4_cast(invRotation);
     glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), -m_position);
-    m_viewMatrix = translationMatrix * rotationMatrix;
+    
+    // View matrix = R^-1 * T^-1 (rotation inverse then translation inverse)
+    m_viewMatrix = rotationMatrix * translationMatrix;
     
     m_viewDirty = false;
 }
@@ -266,10 +269,18 @@ ImageID GameCamera::getPreviewImage()
 
     auto lightCache = scene->getLightCache();
 
+    // Calculate new projection matrix with aspect ratio of 420/280
+    auto viewportRatio = m_viewport.z / m_viewport.w;
+    auto aspectRatio = glm::max(420.f/280.f * viewportRatio, 0.01f);
+    auto projection = 
+        glm::perspective(glm::radians(m_fieldOfView), aspectRatio, m_nearClipPlane, m_farClipPlane);
+
+    auto viewProjection = projection * m_viewMatrix;
+
     const auto gpuSceneData = SceneRenderer::GPUSceneData{
 		.view = this->getView(),
-		.proj = this->getProjection(),
-		.viewProj = this->getViewProjection(),
+		.proj = projection,
+		.viewProj = viewProjection,
 		.cameraPos = glm::vec4(0.f),
         .mousePos = {0.f, 0.f},
 		.ambientColor = LinearColorNoAlpha::white(),

@@ -454,12 +454,11 @@ void InspectorPanel::drawTransformComponent()
 		ImGui::TableNextColumn();
 		ImGui::Text("Rotation");
 		ImGui::TableNextColumn();
-		glm::vec3 eulerDegrees = transform.getRotationDegrees();
+		glm::vec3 eulerDegrees = transform.getRotationDegreesSafe();
 		helper::imguiDrawVec3Control("Rotation", eulerDegrees);
 		if (eulerDegrees != transform.getRotationDegrees())
 		{
-			glm::vec3 radians = glm::radians(eulerDegrees);
-			transform.setRotationDegrees(glm::quat(radians));
+            transform.setRotationDegrees(eulerDegrees);
 		}
 
 		// Draw Scale row

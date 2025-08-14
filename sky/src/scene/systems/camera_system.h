@@ -17,6 +17,7 @@ class CameraSystem
     CameraSystem(Scene* scene) : m_scene(scene) {}
 
     void setActiveCamera(Entity entity);
+    void unsetActiveCamera() { m_activeCameraEntity = entt::null; }
     Entity getActiveCamera();
     GameCamera* getActiveCameraForRendering();
     void findAndSetPrimaryCamera();

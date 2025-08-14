@@ -51,7 +51,8 @@ void ViewportPanel::drawSceneViewport()
         // ImGui::Separator();
         ImVec2 image_size = ImGui::GetContentRegionAvail();
         auto cam = selectedEntity.getComponent<CameraComponent>().camera;
-        ImGui::Image(cam.getPreviewImage(), image_size);
+        ImGui::Image(cam.getPreviewImage(), image_size,
+            /*vertical flip*/ {0, 1}, {1, 0});
 
         m_context->sceneViewportIsVisible = ImGui::IsWindowAppearing() || !ImGui::IsWindowCollapsed();
         

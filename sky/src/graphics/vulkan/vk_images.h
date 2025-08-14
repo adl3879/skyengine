@@ -14,4 +14,5 @@ void generateMipmaps(VkCommandBuffer cmd,
     uint32_t mipLevels, 
     uint32_t layerCount = 1, 
     VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
+void clearColorImage(VkCommandBuffer cmd, VkImage image, VkImageLayout imageLayout);
 } // namespace vkutil

@@ -32,7 +32,7 @@ void Scene::init()
     m_orthographicCamera->setProjection(16.f/9.f, 1.f);
 }
 
-void Scene::update(float dt) 
+void Scene::update(float dt)
 {
     auto sceneState = SceneManager::get().getSceneState();
     if (sceneState == SceneState::Edit)

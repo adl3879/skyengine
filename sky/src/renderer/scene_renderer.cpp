@@ -307,7 +307,13 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode
         ? static_cast<Camera*>(scene->getEditorCamera().get()) 
         : static_cast<Camera*>(camSystem->getActiveCameraForRendering());
 
-    if (!cam) return;
+    if (!cam)
+    {
+        // clear the game image if no camera is set
+        auto image = m_device.getImage(m_gameRenderTargets.postFX);
+        gfx::vkutil::clearColorImage(cmd, image.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        return;
+    }
 
     const auto &targets = mode == RenderMode::Scene ? m_sceneRenderTargets : m_gameRenderTargets;
     auto &sceneDataBuffer = mode == RenderMode::Scene ? m_sceneDataBuffer : m_gameDataBuffer;

@@ -215,6 +215,10 @@ void SceneSerializer::deserializeEntity(YAML::detail::iterator_value key, Entity
     {
         auto &camComp = entity.addComponent<CameraComponent>();
         camComp.isPrimary = camera["isPrimary"].as<bool>();
+        if (camComp.isPrimary)
+        {
+            m_scene->getCameraSystem()->setActiveCamera(entity);
+        }
         camComp.isActive = camera["isActive"].as<bool>();
         camComp.renderOrder = camera["renderOrder"].as<uint32_t>();
         camComp.camera.setClearFlags(clearFlagsFromString(camera["clearFlags"].as<std::string>()));
