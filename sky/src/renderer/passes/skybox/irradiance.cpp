@@ -68,6 +68,12 @@ void IrradiancePass::init(gfx::Device& device, VkFormat format, uint32_t size)
     }
 }
 
+void IrradiancePass::reset(gfx::Device &device, gfx::CommandBuffer cmd)
+{
+    auto image = device.getImage(m_irradianceMapId);
+    gfx::vkutil::clearColorImage(cmd, image.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+}
+
 void IrradiancePass::draw(gfx::Device& device, gfx::CommandBuffer cmd, ImageID environmentMap)
 {
     // Standard cubemap face orientations

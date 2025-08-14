@@ -1,4 +1,5 @@
 #include "image_based_lighting.h"
+
 #include "graphics/vulkan/vk_types.h"
 
 namespace sky 
@@ -13,14 +14,24 @@ void ImageBasedLighting::init(gfx::Device &device)
 }
 
 void ImageBasedLighting::draw(gfx::Device &device, gfx::CommandBuffer cmd, const gfx::AllocatedBuffer &sceneDataBuffer) {
-    if (m_hdrImageId == NULL_IMAGE_ID)  return;
-    if (m_dirty) 
+    if (m_hdrImageId == NULL_IMAGE_ID) 
     {
-        m_dirty = false;
+        // reset all passes
+        m_equirectangularToCubemapPass.reset(device, cmd);
+        m_irradiancePass.reset(device, cmd);
+        m_prefilterEnvmapPass.reset(device, cmd);
+        m_brdfLutPass.reset(device, cmd);
+        return;
+    }
+
+    if (m_dirty) 
+    { 
         m_equirectangularToCubemapPass.draw(device, cmd, m_hdrImageId, {512, 512});
         m_irradiancePass.draw(device, cmd, m_equirectangularToCubemapPass.getCubemapId());
         m_prefilterEnvmapPass.draw(device, cmd, m_equirectangularToCubemapPass.getCubemapId());
         m_brdfLutPass.draw(device, cmd);
+
+        m_dirty = false;
     }
 }
 
@@ -43,9 +54,5 @@ void ImageBasedLighting::cleanup(gfx::Device &device)
     m_irradiancePass.cleanup(device);
     m_prefilterEnvmapPass.cleanup(device);
     m_skyboxPass.cleanup(device);
-}
-
-void ImageBasedLighting::reset()
-{
 }
 }

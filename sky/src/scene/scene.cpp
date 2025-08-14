@@ -34,12 +34,8 @@ void Scene::init()
 
 void Scene::update(float dt)
 {
-    auto sceneState = SceneManager::get().getSceneState();
-    if (sceneState == SceneState::Edit)
-    {
-        m_editorCamera->setViewportSize(m_viewportInfo.size);
-        m_editorCamera->update(dt);
-    }
+    m_editorCamera->setViewportSize(m_viewportInfo.size);
+    m_editorCamera->update(dt);
     m_cameraSystem->update();
 }
 

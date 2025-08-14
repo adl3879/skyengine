@@ -1,6 +1,5 @@
 #include "scene_manager.h"
 
-#include "core/application.h"
 #include "core/resource/custom_thumbnail.h"
 #include "scene_serializer.h"
 #include "asset_management/asset_manager.h"
@@ -15,7 +14,6 @@ SceneManager &SceneManager::get()
 
 SceneManager::SceneManager()
 {
-	m_sceneState = SceneState::Edit;
     m_activeScene = CreateRef<Scene>();
 }
 

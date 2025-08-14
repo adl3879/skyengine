@@ -1,7 +1,9 @@
 #include "equirectangular_to_cubemap.h"
+
 #include "core/application.h"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
+#include "graphics/vulkan/vk_images.h"
 #include "graphics/vulkan/vk_pipelines.h"
 #include "graphics/vulkan/vk_utils.h"
 #include <vulkan/vulkan_core.h>
@@ -64,6 +66,12 @@ void EquirectangularToCubemapPass::init(gfx::Device &device, VkFormat format, Vk
         
         VK_CHECK(vkCreateImageView(device.getDevice(), &viewInfo, nullptr, &m_cubemapFaceViews[i]));
     }
+}
+
+void EquirectangularToCubemapPass::reset(gfx::Device &device, gfx::CommandBuffer cmd)
+{
+    auto image = device.getImage(m_cubemapImageId);
+    gfx::vkutil::clearColorImage(cmd, image.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 }
 
 void EquirectangularToCubemapPass::draw(gfx::Device &device, 

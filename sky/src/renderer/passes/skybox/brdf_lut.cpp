@@ -47,6 +47,12 @@ void BrdfLutPass::init(gfx::Device& device, VkFormat format, uint32_t size)
     m_brdfLutId = device.createImage(imageInfo);
 }
 
+void BrdfLutPass::reset(gfx::Device &device, gfx::CommandBuffer cmd)
+{
+    auto image = device.getImage(m_brdfLutId);
+    gfx::vkutil::clearColorImage(cmd, image.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+}
+
 void BrdfLutPass::draw(gfx::Device& device, gfx::CommandBuffer cmd)
 {
     const uint32_t lutSize = device.getImage(m_brdfLutId).imageExtent.width;

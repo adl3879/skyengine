@@ -21,7 +21,6 @@ class ImageBasedLighting
         VkExtent2D extent,
         const gfx::AllocatedBuffer &sceneDataBuffer);
     void cleanup(gfx::Device &device);
-    void reset();
 
     void setHdrImageId(ImageID imageId) { m_hdrImageId = imageId; m_dirty = true; }
 

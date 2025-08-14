@@ -7,12 +7,6 @@
 
 namespace sky
 {
-enum class SceneState
-{
-    Edit,
-    Play
-};
-
 class SceneManager
 {
   public:
@@ -27,9 +21,6 @@ class SceneManager
     Ref<Scene> getActiveScene() const { return m_activeScene; }
     bool sceneIsType(SceneType type) const;
 
-    SceneState getSceneState() const { return m_sceneState; }
-    void setSceneState(SceneState sceneState) { m_sceneState = sceneState; }
-
     void openScene(const fs::path &path);
     void closeScene(const fs::path &path);
     void saveActiveScene();
@@ -37,6 +28,5 @@ class SceneManager
 
   private:
     Ref<Scene> m_activeScene = nullptr;
-    SceneState m_sceneState;
 };
 } // namespace sky

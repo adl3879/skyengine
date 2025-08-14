@@ -24,6 +24,13 @@ enum class SceneType
     SceneUI
 };
 
+enum class SceneState
+{
+    Play,
+    Pause,
+    Stop
+};
+
 std::string sceneTypeToString(SceneType type);
 SceneType sceneTypeFromString(const std::string &type);
 
@@ -49,7 +56,6 @@ class Scene : public Asset
     Entity createEntity(const std::string &name = std::string());
     Entity createEntityWithUUID(UUID uuid, const std::string &name);
     void destroyEntity(Entity entity);
-    void processDestructionQueue(); // Processes the queue
 
     std::string getName() const { return m_sceneName; }
     void setName(const std::string &name) { m_sceneName = name; }
@@ -84,6 +90,12 @@ class Scene : public Asset
     auto getEnvironment() const { return m_environment; }
     void setEnvironment(Environment env) { m_environment = env; }
     void useEnvironment(); 
+
+    void setSceneState(SceneState state) { m_sceneState = state; }
+    SceneState getSceneState() const { return m_sceneState; }
+    bool isPlaying() const { return m_sceneState == SceneState::Play; }
+    bool isPaused() const { return m_sceneState == SceneState::Pause; }
+    bool isStopped() const { return m_sceneState == SceneState::Stop; }
     
     [[nodiscard]] AssetType getType() const override { return AssetType::Scene; }
 
@@ -103,9 +115,11 @@ class Scene : public Asset
     entt::entity m_rootEntity{entt::null}; // Root entity of the scene graph:w
     
     fs::path m_path;
+
+    SceneType m_sceneType;
+    SceneState m_sceneState = SceneState::Stop;
     
     Ref<SceneGraph> m_sceneGraph;
-    SceneType m_sceneType;
     std::string m_sceneName;
     ViewportInfo m_viewportInfo, m_gameViewportInfo;
     Ref<EditorCamera> m_editorCamera;
