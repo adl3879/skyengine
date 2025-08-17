@@ -238,7 +238,7 @@ void GameCamera::updateVectors() const
 
 ImageID GameCamera::getPreviewImage()
 {
-    auto scene = SceneManager::get().getActiveScene();
+    auto scene = SceneManager::get().getEditorScene();
     auto renderer = Application::getRenderer();
     auto &device = Application::getRenderer()->getDevice();
     auto cmd = device.beginOffscreenFrame();

@@ -41,6 +41,7 @@ SceneRenderer::~SceneRenderer()
     m_postFXPass.cleanup(m_device);
     m_ibl.cleanup(m_device);
     m_imguiBackend.cleanup(m_device);
+    m_debugLineRenderer.cleanup(m_device);
 }
 
 bool SceneRenderer::isMultisamplingEnabled() const
@@ -62,6 +63,7 @@ void SceneRenderer::init(glm::ivec2 size)
     m_infiniteGridPass.init(m_device, m_drawImageFormat, m_samples);
     m_depthResolvePass.init(m_device, m_depthImageFormat);
     m_postFXPass.init(m_device, m_drawImageFormat);
+    m_debugLineRenderer.init(m_device, m_drawImageFormat, m_samples);
     m_ibl.init(m_device);
 
     ImGui::CreateContext();
@@ -311,7 +313,7 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode
     {
         // clear the game image if no camera is set
         auto image = m_device.getImage(m_gameRenderTargets.postFX);
-        gfx::vkutil::clearColorImage(cmd, image.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        gfx::vkutil::clearColorImage(cmd, image.image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         return;
     }
 
@@ -409,6 +411,8 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode
 			cmd,
 			drawImage.getExtent2D(), 
 			sceneDataBuffer.getBuffer());
+
+        m_debugLineRenderer.draw(m_device, cmd, sceneDataBuffer.getBuffer());
 
         if (mode == RenderMode::Scene) mousePicking(scene);
 	}

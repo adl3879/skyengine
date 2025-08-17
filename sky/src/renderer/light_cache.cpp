@@ -60,6 +60,8 @@ LightID LightCache::addLight(const Light &light, const Transform &transform)
 
 void LightCache::updateLight(LightID id, const Light &light, const Transform &transform) 
 {
+    if (m_lightDataCPU.size() <= id) return;
+
     auto &ld = m_lightDataCPU.at(id);
 	ld.position = transform.getPosition();
     ld.type = light.getShaderType();

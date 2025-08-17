@@ -207,7 +207,7 @@ void CustomThumbnail::refreshSceneThumbnail(const fs::path &path)
 
 void CustomThumbnail::generateSceneThumbnail(gfx::CommandBuffer cmd, const fs::path &path, ImageID imageId)
 {
-    auto scene = SceneManager::get().getActiveScene();
+    auto scene = SceneManager::get().getEditorScene();
     auto renderer = Application::getRenderer();
     auto &device = Application::getRenderer()->getDevice();
 

@@ -62,10 +62,12 @@ void Application::run()
 
         // make imgui calculate internal draw structures
         ImGui::Render();
+
+        for (Layer *layer : m_layerStack) layer->onUpdate(m_fps.getDeltaTime());
  
         // Render each target with its own command buffer
         {
-            auto scene = SceneManager::get().getActiveScene();
+            auto scene = SceneManager::get().getEditorScene();
             m_renderer->update(scene);
 
             // Render scene targets
@@ -80,7 +82,7 @@ void Application::run()
             if (scene->gameViewportIsVisible) 
             {
                 auto cmd = m_gfxDevice->beginOffscreenFrame();
-                m_renderer->render(cmd, scene, RenderMode::Game);
+                m_renderer->render(cmd, SceneManager::get().getActiveScene(), RenderMode::Game);
                 m_gfxDevice->endOffscreenFrame(cmd);
             }
 
@@ -109,8 +111,6 @@ void Application::run()
                 m_gfxDevice->recreateSwapchain(cmd, extent.width, extent.height);
             }
         }
-
-        for (Layer *layer : m_layerStack) layer->onUpdate(m_fps.getDeltaTime());
 
         EditorEventBus::get().processEvents();
         m_fps.frameRendered();

@@ -4,6 +4,7 @@
 #include <vulkan/vulkan_core.h>
 
 #include "image_based_lighting.h"
+#include "passes/debug_line_renderer.h"
 #include "passes/post_fx.h"
 #include "renderer/passes/depth_resolve.h"
 #include "renderer/camera/camera.h"
@@ -79,6 +80,7 @@ class SceneRenderer
     
     ForwardRendererPass getForwardRendererPass() const { return m_forwardRenderer; }
     auto &getIBL()  { return m_ibl; }
+    auto &getDebugLineRenderer() { return m_debugLineRenderer; }
     auto getSphereMesh() const { return m_builtinModels.at(ModelType::Sphere); }
     auto getCubeMesh() const { return m_builtinModels.at(ModelType::Cube); }
 
@@ -148,6 +150,7 @@ class SceneRenderer
     SpriteBatchRenderer m_spriteRenderer;
     ImageBasedLighting m_ibl;
 	gfx::ImGuiBackend m_imguiBackend;
+    DebugLineRenderer m_debugLineRenderer;
 
     VkFormat m_drawImageFormat{VK_FORMAT_R16G16B16A16_SFLOAT};
     VkFormat m_depthImageFormat{VK_FORMAT_D32_SFLOAT};

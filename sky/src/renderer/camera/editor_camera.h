@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/events/key_event.h"
+#include "skypch.h"
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
 
@@ -25,6 +26,9 @@ class EditorCamera : public Camera
     SKY_INLINE const float &getNear() const override { return m_nearClip; }
     SKY_INLINE const float &getFar() const override  { return m_farClip; }
     SKY_INLINE const float &getAspect() const override  { return m_aspectRatio; }
+
+    SKY_INLINE const glm::vec3 &getForward() const override { return getForwardDirection(); }
+    SKY_INLINE const glm::vec3 &getUp() const override { return getUpDirection(); }
 
     void update(float ts);
     void onEvent(Event &e);

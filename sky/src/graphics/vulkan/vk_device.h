@@ -53,6 +53,7 @@ struct FrameData
     static constexpr int MAX_OFFSCREEN_COMMANDS = 4;
     VkCommandBuffer offscreenCommandBuffers[MAX_OFFSCREEN_COMMANDS];
     std::atomic<int> offscreenCommandIndex{0}; // Track which buffer to use next
+    std::vector<VkFence> offscreenFences;  // Add fences
 
 	DeletionQueue deletionQueue;
 	DescriptorAllocatorGrowable frameDescriptors;
@@ -61,6 +62,7 @@ struct FrameData
 struct CommandBuffer
 {
 	VkCommandBuffer handle;
+    VkFence fence = VK_NULL_HANDLE;
 	operator VkCommandBuffer() const { return handle; }
 };
 

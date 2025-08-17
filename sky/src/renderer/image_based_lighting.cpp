@@ -16,11 +16,12 @@ void ImageBasedLighting::init(gfx::Device &device)
 void ImageBasedLighting::draw(gfx::Device &device, gfx::CommandBuffer cmd, const gfx::AllocatedBuffer &sceneDataBuffer) {
     if (m_hdrImageId == NULL_IMAGE_ID) 
     {
+        // TODO! uncomment this
         // reset all passes
-        m_equirectangularToCubemapPass.reset(device, cmd);
-        m_irradiancePass.reset(device, cmd);
-        m_prefilterEnvmapPass.reset(device, cmd);
-        m_brdfLutPass.reset(device, cmd);
+        // m_equirectangularToCubemapPass.reset(device, cmd);
+        // m_irradiancePass.reset(device, cmd);
+        // m_prefilterEnvmapPass.reset(device, cmd);
+        // m_brdfLutPass.reset(device, cmd);
         return;
     }
 

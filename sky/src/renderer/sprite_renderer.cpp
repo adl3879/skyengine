@@ -80,17 +80,17 @@ void SpriteBatchRenderer::init(gfx::Device &device, VkFormat format)
     m_pInfo.pipelineLayout = gfx::vkutil::createPipelineLayout(device.getDevice(), layouts, pushConstantRanges);
 
     m_pInfo.pipeline = gfx::PipelineBuilder{m_pInfo.pipelineLayout}
-                           .setShaders(vertexShader, fragShader)
-                           .setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-                           .setVertexInputState(vertexInputInfo)
-                           .setPolygonMode(VK_POLYGON_MODE_FILL)
-                           .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
-                           .setMultisamplingNone()
-						   .enableBlending()
-                           .enableDepthTest(true, VK_COMPARE_OP_ALWAYS)
-                           .setColorAttachmentFormat(format)
-                           .setDepthFormat(VK_FORMAT_D32_SFLOAT)
-                           .build(device.getDevice());
+        .setShaders(vertexShader, fragShader)
+        .setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+        .setVertexInputState(vertexInputInfo)
+        .setPolygonMode(VK_POLYGON_MODE_FILL)
+        .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
+        .setMultisamplingNone()
+        .enableBlending()
+        .enableDepthTest(true, VK_COMPARE_OP_ALWAYS)
+        .setColorAttachmentFormat(format)
+        .setDepthFormat(VK_FORMAT_D32_SFLOAT)
+        .build(device.getDevice());
 }
 
 void SpriteBatchRenderer::cleanup(gfx::Device &device) 
@@ -221,7 +221,7 @@ std::array<glm::vec2, 4> SpriteBatchRenderer::calculateTransformedVertices(const
         {
             glm::vec2 translated = point - pivot;
             return glm::vec2(translated.x * cosAngle - translated.y * sinAngle + pivot.x,
-                             translated.x * sinAngle + translated.y * cosAngle + pivot.y);
+                translated.x * sinAngle + translated.y * cosAngle + pivot.y);
         };
 
         bottomLeft = rotate(bottomLeft);

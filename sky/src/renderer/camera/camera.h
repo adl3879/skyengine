@@ -16,5 +16,7 @@ class Camera
     virtual SKY_INLINE const float      &getNear() const = 0;
     virtual SKY_INLINE const float      &getFar() const = 0;
     virtual SKY_INLINE const float      &getAspect() const = 0;
+    virtual SKY_INLINE const glm::vec3  &getForward() const = 0;
+    virtual SKY_INLINE const glm::vec3  &getUp() const = 0;
 };
 }

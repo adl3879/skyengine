@@ -4,7 +4,6 @@
 
 #include <entt/entt.hpp>
 #include "renderer/camera/editor_camera.h"
-#include "renderer/camera/orthographic_camera.h"
 #include "core/uuid.h"
 #include "core/filesystem.h"
 #include "asset_management/asset.h"
@@ -65,7 +64,6 @@ class Scene : public Asset
     entt::registry &getRegistry() { return m_registry; }
     auto getEntityMap() const { return m_entityMap; }
     const auto &getEditorCamera() { return m_editorCamera; }
-    const auto &getGameCamera() { return m_orthographicCamera; }
     Entity getEntityFromUUID(UUID uuid);
     LightCache &getLightCache() { return m_lightCache; }
     bool isEditorCameraFreeLook() const { return m_editorCamera->isFreeLook(); }
@@ -123,7 +121,6 @@ class Scene : public Asset
     std::string m_sceneName;
     ViewportInfo m_viewportInfo, m_gameViewportInfo;
     Ref<EditorCamera> m_editorCamera;
-    Ref<OrthographicCamera> m_orthographicCamera;
     Ref<CameraSystem> m_cameraSystem;
     LightCache m_lightCache;
     Environment m_environment;

@@ -11,6 +11,7 @@
 #include "core/helpers/image.h"
 #include "embed/window_images.embed"
 #include "core/events/event_bus.h"
+#include "scene/scene_manager.h"
 
 namespace sky
 {
@@ -177,11 +178,13 @@ void TitlebarPanel::render(float &outTitlebarHeight)
 		if (m_context->isStopped() && ImGui::ImageButton("##play", m_playIcon, btnSize))
 		{
             m_context->setSceneState(SceneState::Play);
+            SceneManager::get().enterPlayMode();
             ImGui::SetWindowFocus("Game");
 		}
 		else if (m_context->isPlaying() && ImGui::ImageButton("##stop", m_stopIcon, btnSize))
 		{
             m_context->setSceneState(SceneState::Stop);
+            SceneManager::get().exitPlayMode();
             ImGui::SetWindowFocus("Scene");
 		}
         ImGui::SameLine();

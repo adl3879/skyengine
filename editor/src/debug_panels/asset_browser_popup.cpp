@@ -188,7 +188,7 @@ void AssetBrowserPopup::fileBrowserPopup()
                         case AssetType::Scene: 
                         {
 							const auto path = m_currentDirectory / buffer;
-                            auto scene = SceneManager::get().getActiveScene();
+                            auto scene = SceneManager::get().getEditorScene();
                             SceneSerializer serializer(scene);
                             serializer.serialize(fs::relative(path, 
                                 ProjectManager::getConfig().getAssetDirectory()), scene->handle);

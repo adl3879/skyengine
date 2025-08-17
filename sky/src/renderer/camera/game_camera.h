@@ -97,7 +97,7 @@ class GameCamera : public Camera
     const glm::quat& getRotation() const { return m_rotation; }
     glm::vec3 getEulerAngles() const; // Returns in degrees
     
-    const glm::vec3& getForward() const 
+    SKY_INLINE const glm::vec3& getForward() const override
     { 
         if (m_vectorsDirty) updateVectors();
         return m_forward; 
@@ -109,7 +109,7 @@ class GameCamera : public Camera
         return m_right; 
     }
     
-    const glm::vec3& getUp() const 
+    SKY_INLINE const glm::vec3& getUp() const override
     { 
         if (m_vectorsDirty) updateVectors();
         return m_up; 

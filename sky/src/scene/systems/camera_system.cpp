@@ -1,5 +1,6 @@
 #include "camera_system.h"
 
+#include "core/application.h"
 #include "scene/components.h"
 #include "scene/entity.h"
 
@@ -91,6 +92,9 @@ void CameraSystem::update()
         camera.camera.setRotation(transform.getRotationQuaternion());
 
         camera.camera.setAspectRatio(m_scene->getGameViewportInfo().size.x / m_scene->getGameViewportInfo().size.y);
+
+        auto renderer = Application::getRenderer();
+        renderer->getDebugLineRenderer().addCameraFrustum(camera.camera);
     }
 }
 }

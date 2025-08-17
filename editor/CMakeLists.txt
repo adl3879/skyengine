@@ -46,7 +46,9 @@ set(SHADERS
     "brdf_lut.frag"
     "prefilter_envmap.frag"
     "equirect_to_cubemap.vert"
-    "equirect_to_cubemap.frag")
+    "equirect_to_cubemap.frag"
+    "debug_line.vert"
+    "debug_line.frag")
 
 set(SKY_SHADERS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/res/shaders/")
 list(TRANSFORM SHADERS PREPEND "${SKY_SHADERS_DIR}")

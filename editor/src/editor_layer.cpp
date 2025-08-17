@@ -16,7 +16,7 @@ namespace sky
 EditorLayer::EditorLayer()
 {
     const auto window = Application::getWindow();
-    m_activeScene = SceneManager::get().getActiveScene();
+    m_activeScene = SceneManager::get().getEditorScene();
     m_activeScene->init();
 
     m_renderer = Application::getRenderer();
@@ -44,7 +44,7 @@ void EditorLayer::onDetach()
 
 void EditorLayer::onUpdate(float dt) 
 {
-    m_activeScene = SceneManager::get().getActiveScene();
+    m_activeScene = SceneManager::get().getEditorScene();
     m_activeScene->update(dt);
     setPanelContexts();
 

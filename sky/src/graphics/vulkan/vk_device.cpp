@@ -84,11 +84,11 @@ void Device::initVulkan()
 
 	//make the vulkan instance, with basic debug features
     m_instance = builder.set_app_name("Sky Engine")
-                     .request_validation_layers(bUseValidationLayers)
-                     .use_default_debug_messenger()
-                     .require_api_version(1, 3, 0)
-                     .build()
-                     .value();
+        .request_validation_layers(bUseValidationLayers)
+        .use_default_debug_messenger()
+        .require_api_version(1, 3, 0)
+        .build()
+        .value();
 
 	m_debugMessenger = m_instance.debug_messenger;
 
@@ -164,6 +164,16 @@ void Device::initCommands()
         m_frames[i].mainCommandBuffer = cmdBuffers[0];
         for (int j = 0; j < FrameData::MAX_OFFSCREEN_COMMANDS; j++) {
             m_frames[i].offscreenCommandBuffers[j] = cmdBuffers[1 + j];
+        }
+
+        // Initialize fences for offscreen command buffers
+        m_frames[i].offscreenFences.resize(FrameData::MAX_OFFSCREEN_COMMANDS);
+        for (int j = 0; j < FrameData::MAX_OFFSCREEN_COMMANDS; j++) {
+            VkFenceCreateInfo fenceInfo{
+                .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+                .flags = VK_FENCE_CREATE_SIGNALED_BIT  // Start signaled so first use doesn't block
+            };
+            VK_CHECK(vkCreateFence(m_device, &fenceInfo, nullptr, &m_frames[i].offscreenFences[j]));
         }
         
         // Reset the atomic counter
@@ -721,12 +731,17 @@ CommandBuffer Device::beginOffscreenFrame()
     int bufferIndex = frame.offscreenCommandIndex.fetch_add(1);
     if (bufferIndex >= FrameData::MAX_OFFSCREEN_COMMANDS) {
         SKY_CORE_ERROR("Too many offscreen command buffers requested in single frame! Max: {}", 
-                       FrameData::MAX_OFFSCREEN_COMMANDS);
+            FrameData::MAX_OFFSCREEN_COMMANDS);
         // Fallback to last buffer (will cause issues but won't crash)
         bufferIndex = FrameData::MAX_OFFSCREEN_COMMANDS - 1;
     }
     
     const auto &cmd = frame.offscreenCommandBuffers[bufferIndex];
+    const auto fence = frame.offscreenFences[bufferIndex];
+    
+    // Wait for previous use of this command buffer to complete
+    VK_CHECK(vkWaitForFences(m_device, 1, &fence, VK_TRUE, UINT64_MAX));
+    VK_CHECK(vkResetFences(m_device, 1, &fence));
     
     // Reset and begin the offscreen command buffer
     VK_CHECK(vkResetCommandBuffer(cmd, 0));
@@ -737,7 +752,7 @@ CommandBuffer Device::beginOffscreenFrame()
     };
     VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
 
-    return {cmd};
+    return {cmd, fence};
 }
 
 void Device::endOffscreenFrame(CommandBuffer cmd) 
@@ -758,7 +773,6 @@ void Device::endOffscreenFrame(CommandBuffer cmd)
         .pCommandBufferInfos = &submitInfo,
     };
     
-    // Submit without fence - will be synchronized by frame fence
-    VK_CHECK(vkQueueSubmit2(m_graphicsQueue, 1, &submit, VK_NULL_HANDLE));
+    VK_CHECK(vkQueueSubmit2(m_graphicsQueue, 1, &submit, cmd.fence));
 }
 } // namespace sky

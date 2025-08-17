@@ -28,8 +28,6 @@ void Scene::init()
     m_lightCache.init(Application::getRenderer()->getDevice());
     
     m_editorCamera = CreateRef<EditorCamera>(45.f, 16 / 9, 0.1f, 1000.f);
-    m_orthographicCamera = CreateRef<OrthographicCamera>(-1.0f, 1.0f, -1.0f, 1.0f);
-    m_orthographicCamera->setProjection(16.f/9.f, 1.f);
 }
 
 void Scene::update(float dt)
@@ -116,7 +114,7 @@ void Scene::useEnvironment()
 {
     auto env = m_environment;
     auto renderer = Application::getRenderer();
-    if (m_environment.skyboxHandle != NULL_UUID)
+    if (env.skyboxHandle != NULL_UUID)
     {
         AssetManager::getAssetAsync<TextureCube>(env.skyboxHandle, [=](const Ref<TextureCube> &hdrTex){
             auto hdrImageId = helper::loadImageFromTexture(hdrTex, VK_FORMAT_R32G32B32A32_SFLOAT);
