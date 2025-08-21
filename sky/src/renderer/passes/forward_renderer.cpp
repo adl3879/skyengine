@@ -165,7 +165,7 @@ void ForwardRendererPass::draw3(
                     
                     drawCommands.push_back(MeshDrawCommand{
                         .meshId = mesh,
-                        .modelMatrix = transform.getModelMatrix(),
+                        .modelMatrix = transform.getWorldMatrix(),
                         .isVisible = visibility,
                         .material = material
                     });
@@ -181,7 +181,7 @@ void ForwardRendererPass::draw3(
 
             drawCommands.push_back(MeshDrawCommand{
                 .meshId = builtinModels[modelComponent.type],
-                .modelMatrix = transform.getModelMatrix(),
+                .modelMatrix = transform.getWorldMatrix(),
                 .isVisible = visibility,
                 .material = material
             });

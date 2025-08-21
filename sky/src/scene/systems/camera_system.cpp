@@ -94,7 +94,10 @@ void CameraSystem::update()
         camera.camera.setAspectRatio(m_scene->getGameViewportInfo().size.x / m_scene->getGameViewportInfo().size.y);
 
         auto renderer = Application::getRenderer();
-        renderer->getDebugLineRenderer().addCameraFrustum(camera.camera);
+        if (m_scene->getSelectedEntity() == entity)
+        {
+            renderer->getDebugLineRenderer().addCameraFrustum(camera.camera);
+        }
     }
 }
 }

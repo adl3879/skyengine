@@ -7,7 +7,7 @@ namespace sky
 {
 void DebugLineRenderer::init(gfx::Device &device, VkFormat format, VkSampleCountFlagBits samples)
 {
-    VkDeviceSize bufferSize = sizeof(LineVertex) * m_maxLines * 2; // 2 vertices per line
+    VkDeviceSize bufferSize = sizeof(LineVertex) * m_maxLines * 6; // 2 vertices per line
     m_vertexBuffer = device.createBuffer(
         bufferSize,
 		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -40,17 +40,43 @@ void DebugLineRenderer::init(gfx::Device &device, VkFormat format, VkSampleCount
         .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
         .setMultisampling(samples)
         .enableBlending()
-        .enableDepthTest(true, VK_COMPARE_OP_ALWAYS)
+        .enableDepthTest(true, VK_COMPARE_OP_LESS_OR_EQUAL)
         .setColorAttachmentFormat(format)
         .build(device.getDevice());
 }
 
 void DebugLineRenderer::addLine(const glm::vec3& start, const glm::vec3& end, const glm::vec3& color)
 {
-    if (m_vertices.size() >= m_maxLines * 2) return; // Buffer full
+    if (m_vertices.size() >= m_maxLines * 6) return; // 6 vertices per line (2 triangles)
     
-    m_vertices.push_back({start, color});
-    m_vertices.push_back({end, color});
+    // Calculate line direction and perpendicular vector
+    glm::vec3 direction = glm::normalize(end - start);
+    glm::vec3 perpendicular = glm::vec3(-direction.y, direction.x, 0.0f);
+    
+    // If line is mostly vertical, use different perpendicular
+    if (glm::length(perpendicular) < 0.1f) {
+        perpendicular = glm::vec3(0.0f, 0.0f, 1.0f);
+    }
+    float thickness = 0.01f; // Adjust thickness as needed
+    perpendicular = glm::normalize(perpendicular) * (thickness * 0.5f);
+    
+    // Create quad vertices
+    glm::vec3 v1 = start - perpendicular;
+    glm::vec3 v2 = start + perpendicular;
+    glm::vec3 v3 = end + perpendicular;
+    glm::vec3 v4 = end - perpendicular;
+    
+    // Add two triangles to form a quad with proper UV coordinates
+    // Triangle 1: v1, v2, v3
+    m_vertices.push_back({v1, color, {0.0f, 0.0f}});
+    m_vertices.push_back({v2, color, {0.0f, 1.0f}});
+    m_vertices.push_back({v3, color, {1.0f, 1.0f}});
+    
+    // Triangle 2: v1, v3, v4
+    m_vertices.push_back({v1, color, {0.0f, 0.0f}});
+    m_vertices.push_back({v3, color, {1.0f, 1.0f}});
+    m_vertices.push_back({v4, color, {1.0f, 0.0f}});
+    
     m_needsBufferUpdate = true;
 }
 
@@ -91,7 +117,7 @@ VkPipelineVertexInputStateCreateInfo DebugLineRenderer::getVertexInputState() co
         .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
     };
 
-    static std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{{
+    static std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{{
         {
             .location = 0,
             .binding = 0,
@@ -103,8 +129,14 @@ VkPipelineVertexInputStateCreateInfo DebugLineRenderer::getVertexInputState() co
             .binding = 0,
             .format = VK_FORMAT_R32G32B32_SFLOAT, // color
             .offset = offsetof(LineVertex, color)
+        },
+        {
+            .location = 2,
+            .binding = 0,
+            .format = VK_FORMAT_R32G32_SFLOAT, // uv
+            .offset = offsetof(LineVertex, uv)
         }
-    }};
+    }}; 
 
     return VkPipelineVertexInputStateCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -155,50 +187,39 @@ void DebugLineRenderer::cleanup(gfx::Device &device)
 
 void DebugLineRenderer::addCameraFrustum(Camera &camera, const glm::vec3 &color)
 {
-    auto forward = camera.getForward();
-    auto up = camera.getUp();
-    auto position = camera.getPosition();
-    auto size = camera.getFar() * 0.001f; // Adjust size based on far plane distance
-
-    // Create a simple frustum shape
-    glm::vec3 right = glm::normalize(glm::cross(forward, up));
+    auto corners = sky::edge::calculateFrustumCornersWorldSpace(camera);
     
-    // Near plane (small rectangle)
-    float nearSize = size * 0.3f;
-    float nearDist = size * 0.2f;
-    glm::vec3 nearCenter = position + forward * nearDist;
+    // Get camera position to calculate distances
+    glm::vec3 cameraPos = camera.getPosition();
     
-    glm::vec3 nearTL = nearCenter + up * nearSize - right * nearSize;      // top-left
-    glm::vec3 nearTR = nearCenter + up * nearSize + right * nearSize;      // top-right
-    glm::vec3 nearBL = nearCenter - up * nearSize - right * nearSize;      // bottom-left
-    glm::vec3 nearBR = nearCenter - up * nearSize + right * nearSize;      // bottom-right
+    // Scale far plane corners to limit distance
+    float maxDistance = 50.0f; // Example max distance, adjust as needed
+    for (int i = 4; i < 8; ++i) { // Far plane corners are indices 4-7
+        glm::vec3 direction = corners[i] - cameraPos;
+        float currentDistance = glm::length(direction);
+        
+        if (currentDistance > maxDistance) {
+            // Clamp to max distance
+            corners[i] = cameraPos + glm::normalize(direction) * maxDistance;
+        }
+    }
     
-    // Far plane (larger rectangle)
-    float farSize = size;
-    float farDist = size;
-    glm::vec3 farCenter = position + forward * farDist;
+    // Draw near plane (first 4 corners)
+    addLine(corners[0], corners[1], color);
+    addLine(corners[1], corners[2], color); 
+    addLine(corners[2], corners[3], color);
+    addLine(corners[3], corners[0], color);
     
-    glm::vec3 farTL = farCenter + up * farSize - right * farSize;          // top-left
-    glm::vec3 farTR = farCenter + up * farSize + right * farSize;          // top-right
-    glm::vec3 farBL = farCenter - up * farSize - right * farSize;          // bottom-left
-    glm::vec3 farBR = farCenter - up * farSize + right * farSize;          // bottom-right
+    // Draw far plane (last 4 corners)
+    addLine(corners[4], corners[5], color);
+    addLine(corners[5], corners[6], color);
+    addLine(corners[6], corners[7], color);
+    addLine(corners[7], corners[4], color);
     
-    // Draw near plane
-    addLine(nearTL, nearTR, color);
-    addLine(nearTR, nearBR, color);
-    addLine(nearBR, nearBL, color);
-    addLine(nearBL, nearTL, color);
-    
-    // Draw far plane
-    addLine(farTL, farTR, color);
-    addLine(farTR, farBR, color);
-    addLine(farBR, farBL, color);
-    addLine(farBL, farTL, color);
-    
-    // Connect near to far (frustum edges)
-    addLine(nearTL, farTL, color);
-    addLine(nearTR, farTR, color);
-    addLine(nearBL, farBL, color);
-    addLine(nearBR, farBR, color);
+    // Connect near to far
+    addLine(corners[0], corners[4], color);
+    addLine(corners[1], corners[5], color);
+    addLine(corners[2], corners[6], color);
+    addLine(corners[3], corners[7], color);
 }
 }

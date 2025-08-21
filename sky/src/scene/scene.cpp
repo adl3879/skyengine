@@ -18,6 +18,7 @@ Scene::Scene(const std::string &name, SceneType type)
 {
     m_sceneGraph = CreateRef<SceneGraph>(this);
     m_cameraSystem = CreateRef<CameraSystem>(this);
+    m_transformSystem = CreateRef<TransformSystem>(this);
 
 	newScene(name);
     m_rootEntity = createEntityWithUUID(getRootEntityUUID(), "Root");
@@ -35,6 +36,7 @@ void Scene::update(float dt)
     m_editorCamera->setViewportSize(m_viewportInfo.size);
     m_editorCamera->update(dt);
     m_cameraSystem->update();
+    m_transformSystem->update();
 }
 
 void Scene::onEvent(Event& e)

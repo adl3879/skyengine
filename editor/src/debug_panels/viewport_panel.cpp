@@ -366,52 +366,51 @@ void ViewportPanel::drawGizmo(const glm::vec2 &size)
     if (selectedEntity && m_gizmoType != -1)
     {
         auto &tc = selectedEntity.getComponent<TransformComponent>();
-        auto transform = tc.getModelMatrix();
 
-        // Snapping
+        glm::mat4 transform = tc.getWorldMatrix();
+
+        // --- Snapping ---
         bool snap = Input::isKeyPressed(Key::LeftControl);
         float snapValue = m_gizmoType == ImGuizmo::OPERATION::ROTATE ? 45.0f : 0.5f;
         float snapValues[3] = {snapValue, snapValue, snapValue};
 
-        ImGuizmo::Manipulate(glm::value_ptr(cameraView), 
-            glm::value_ptr(cameraProjection), 
+        ImGuizmo::Manipulate(
+            glm::value_ptr(cameraView),
+            glm::value_ptr(cameraProjection),
             (ImGuizmo::OPERATION)m_gizmoType,
-            ImGuizmo::MODE::LOCAL, 
+            ImGuizmo::MODE::WORLD, 
             glm::value_ptr(transform),
-            nullptr, 
-            snap ? snapValues : nullptr);
+            nullptr,
+            snap ? snapValues : nullptr
+        );
 
-	    if (ImGuizmo::IsUsing())
+        if (ImGuizmo::IsUsing())
         {
-            glm::mat4 localTransform = glm::mat4(transform);
-           
-            // Decompose local transform
-            float decomposedPosition[3];
-            float decomposedEuler[3];
-            float decomposedScale[3];
-            ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(localTransform), 
-                decomposedPosition, 
-                decomposedEuler,
-                decomposedScale);
+            // If entity has a parent, we must convert back to local
+            glm::mat4 parentWorld = glm::mat4(1.0f);
+            if (selectedEntity.hasComponent<RelationshipComponent>())
+            {
+                auto &rel = selectedEntity.getComponent<RelationshipComponent>();
+                if (rel.parent != NULL_UUID)
+                {
+                    auto parentEntity = m_context->getEntityFromUUID(rel.parent);
+                    auto &parentTransform = parentEntity.getComponent<TransformComponent>();
+                    parentWorld = parentTransform.getWorldMatrix();
+                }
+            }
 
-            const auto &localPosition = glm::vec3(decomposedPosition[0], decomposedPosition[1], decomposedPosition[2]);
-            const auto &localScale = glm::vec3(decomposedScale[0], decomposedScale[1], decomposedScale[2]);
+            // Local = inverse(parentWorld) * newWorld
+            glm::mat4 newLocalTransform = glm::inverse(parentWorld) * transform;
 
-            localTransform[0] /= localScale.x;
-            localTransform[1] /= localScale.y;
-            localTransform[2] /= localScale.z;
-            const auto &rotationMatrix = glm::mat3(localTransform);
-            const glm::quat &localRotation = glm::normalize(glm::quat(rotationMatrix));
+            // 4. Decompose to position, rotation, scale
+            glm::vec3 pos, scale;
+            glm::quat rot;
+            math::DecomposeMatrix(newLocalTransform, pos, rot, scale);
 
-            const glm::mat4 &rotationMatrix4 = glm::mat4_cast(localRotation);
-            const glm::mat4 &scaleMatrix = glm::scale(glm::mat4(1.0f), localScale);
-            const glm::mat4 &translationMatrix = glm::translate(glm::mat4(1.0f), localPosition);
-            const glm::mat4 &newLocalTransform = translationMatrix * rotationMatrix4 * scaleMatrix;
-
-            tc.setPosition(localPosition);
-            if (m_gizmoType != ImGuizmo::SCALE) tc.setRotation(localRotation);
-            tc.setScale(localScale);
-        }
+            tc.setPosition(pos);
+            if (m_gizmoType != ImGuizmo::SCALE) tc.setRotation(rot);
+            tc.setScale(scale);
+        } 
     }
 }
 } // namespace sky

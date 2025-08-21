@@ -11,6 +11,7 @@ struct LineVertex
 {
     glm::vec3 position;
     glm::vec3 color;
+    glm::vec2 uv;
 };
 
 static constexpr uint32_t DEFAULT_MAX_LINES = 10000;

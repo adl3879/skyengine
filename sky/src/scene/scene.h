@@ -3,6 +3,7 @@
 #include <skypch.h>
 
 #include <entt/entt.hpp>
+#include "core/transform/transform.h"
 #include "renderer/camera/editor_camera.h"
 #include "core/uuid.h"
 #include "core/filesystem.h"
@@ -11,6 +12,7 @@
 #include "renderer/light_cache.h"
 #include "scene/scene_graph.h"
 #include "scene/systems/camera_system.h"
+#include "systems/transform_system.h"
 
 namespace sky
 {
@@ -122,6 +124,7 @@ class Scene : public Asset
     ViewportInfo m_viewportInfo, m_gameViewportInfo;
     Ref<EditorCamera> m_editorCamera;
     Ref<CameraSystem> m_cameraSystem;
+    Ref<TransformSystem> m_transformSystem;
     LightCache m_lightCache;
     Environment m_environment;
 };

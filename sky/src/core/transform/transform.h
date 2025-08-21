@@ -199,6 +199,11 @@ class Transform
         return translation * rotation * scale;
     }
 
+    SKY_INLINE glm::mat4 getWorldMatrix() const
+    {
+        return m_worldMatrix;
+    }
+
     SKY_INLINE void setTransformMatrix(const glm::mat4 &matrix)
     {
         math::DecomposeMatrix(matrix, m_position, m_rotationQuat, m_scale);
@@ -223,6 +228,12 @@ class Transform
         m_scale.x = glm::abs(m_scale.x);
         m_scale.y = glm::abs(m_scale.y);
         m_scale.z = glm::abs(m_scale.z);
+    }
+
+    SKY_INLINE void setWorldFromMatrix(const glm::mat4& matrix)
+    {
+        m_worldMatrix = matrix;
+        math::DecomposeMatrix(m_worldMatrix, m_worldPosition, m_worldRotation, m_worldScale);
     }
 
     void debugPrint() const
@@ -254,5 +265,10 @@ class Transform
     glm::vec3 m_position{0.0f, 0.0f, 0.0f};           ///< The position of the transform.
     glm::quat m_rotationQuat{1.0f, 0.0f, 0.0f, 0.0f}; ///< The rotation of the transform stored as a quaternion (identity).
     glm::vec3 m_scale{1.0f, 1.0f, 1.0f};              ///< The scale of the transform.
+
+    glm::mat4 m_worldMatrix{1.0f};
+    glm::vec3 m_worldPosition{0.0f};
+    glm::quat m_worldRotation{1, 0, 0, 0};
+    glm::vec3 m_worldScale{1.0f};
 };
 } // namespace sky

@@ -540,7 +540,7 @@ void SceneRenderer::update(Ref<Scene> scene)
                             ? AssetManager::getAsset<MaterialAsset>(modelComponent.customMaterialOverrides.at(i))->material 
                             : getMesh(mesh).material;
                         
-                        drawMesh(mesh, transform.getModelMatrix(), visibility,
+                        drawMesh(mesh, transform.getWorldMatrix(), visibility,
                             static_cast<uint32_t>(e), material);
 					}
 				});
@@ -551,7 +551,7 @@ void SceneRenderer::update(Ref<Scene> scene)
                 const auto material = modelComponent.builtinMaterial != NULL_UUID ?
 					AssetManager::getAsset<MaterialAsset>(modelComponent.builtinMaterial)->material :
                     m_materialCache.getDefaultMaterial();
-                drawMesh(m_builtinModels[modelComponent.type], transform.getModelMatrix(), 
+                drawMesh(m_builtinModels[modelComponent.type], transform.getWorldMatrix(), 
                     visibility, static_cast<uint32_t>(e), material);
             }
 		}
