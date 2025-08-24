@@ -154,10 +154,13 @@ void InspectorPanel::drawDefaultView()
 			ADD_COMPONENT_MENU(ModelComponent, ICON_FA_CUBE "  Mesh", []{});
 			ADD_COMPONENT_MENU(PointLightComponent, ICON_FA_LIGHTBULB "  Point Light", [&]{
 				entity.getComponent<PointLightComponent>().light.type = LightType::Point;
-			})
+			});
 			ADD_COMPONENT_MENU(SpotLightComponent, ICON_FA_LIGHTBULB "  Spot Light", [&]{
 				entity.getComponent<PointLightComponent>().light.type = LightType::Point;
-			})
+			});
+            ADD_COMPONENT_MENU(RigidBodyComponent, ICON_FA_CUBE "  Rigid Body", []{});
+            ADD_COMPONENT_MENU(BoxColliderComponent, ICON_FA_CUBE "   Box Collider", []{});
+            ADD_COMPONENT_MENU(SphereColliderComponent, ICON_FA_CIRCLE "   Sphere Collider", []{});
 
 			ImGui::EndPopup();        
 		}
@@ -184,6 +187,15 @@ void InspectorPanel::drawDefaultView()
         helper::imguiCollapsingHeaderStyle("CAMERA", [&](){
             drawCameraComponent();
         }, entity.hasComponent<CameraComponent>());
+        helper::imguiCollapsingHeaderStyle("RIGID BODY", [&](){
+            drawRigidBodyComponent();
+        }, entity.hasComponent<RigidBodyComponent>());
+        helper::imguiCollapsingHeaderStyle("BOX COLLIDER", [&](){
+            drawBoxColliderComponent();
+        }, entity.hasComponent<BoxColliderComponent>());
+        helper::imguiCollapsingHeaderStyle("SPHERE COLLIDER", [&](){
+            drawSphereColliderComponent();
+        }, entity.hasComponent<SphereColliderComponent>());
 	}
 }
 
@@ -991,6 +1003,164 @@ void InspectorPanel::drawCameraComponent()
             camera.camera.setViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
         }
 
+        ImGui::EndTable();
+    }
+}
+
+void InspectorPanel::drawRigidBodyComponent()
+{
+    auto entity = m_context->getSelectedEntity();
+    if (!entity.hasComponent<RigidBodyComponent>())
+        return;
+
+    auto &rb = entity.getComponent<RigidBodyComponent>();
+
+    if (ImGui::BeginTable("RigidBodyTable", 2, ImGuiTableFlags_Resizable))
+    {
+        ImVec2 headerPadding = ImVec2(10, 10);
+        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, headerPadding);
+
+        // Motion Type Row
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("Motion Type");
+        ImGui::TableNextColumn();
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        if (ImGui::BeginCombo(("##MotionType"), physics::motionTypeToString(rb.MotionType).c_str()))
+        {
+            for (int i = 0; i < 2; i++) // assuming enum has Count
+            {
+                physics::MotionType mt = (physics::MotionType)i;
+                bool isSelected = rb.MotionType == mt;
+                if (ImGui::Selectable(physics::motionTypeToString(mt).c_str(), isSelected))
+                    rb.MotionType = mt;
+                if (isSelected) ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+
+        if (rb.MotionType == physics::MotionType::Dynamic)
+        {
+            // Mass
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("Mass");
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            ImGui::DragFloat("##Mass", &rb.Mass, 0.1f, 0.0f, 10000.0f);
+
+            // Linear Damping
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("Linear Damping");
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            ImGui::DragFloat("##LinearDamping", &rb.LinearDamping, 0.01f, 0.0f, 1.0f);
+
+            // Angular Damping
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("Angular Damping");
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            ImGui::DragFloat("##AngularDamping", &rb.AngularDamping, 0.01f, 0.0f, 1.0f);
+
+            // Use Gravity
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("Use Gravity");
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            ImGui::Checkbox("##Use Gravity", &rb.UseGravity);
+
+            // Is Kinematic
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("Is Kinematic");
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            ImGui::Checkbox("##IsKinematic", &rb.IsKinematic);
+
+            // Constraints
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("Constraints");
+            ImGui::TableNextColumn();
+            if (ImGui::TreeNodeEx((void*)typeid(RigidBodyComponent).hash_code(),
+                ImGuiTreeNodeFlags_DefaultOpen, "Constraints"))
+            {
+                // TODO: constraint UI
+                ImGui::TreePop();
+            }
+        }
+
+        ImGui::PopStyleVar();
+        ImGui::EndTable();
+    }
+}
+
+void InspectorPanel::drawBoxColliderComponent()
+{
+    auto entity = m_context->getSelectedEntity();
+    if (!entity.hasComponent<BoxColliderComponent>()) return;
+
+    auto &collider = entity.getComponent<BoxColliderComponent>();
+
+    if (ImGui::BeginTable("BoxColliderTable", 2, ImGuiTableFlags_Resizable))
+    {
+        ImVec2 headerPadding = ImVec2(10, 10);
+        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, headerPadding);
+
+        // Size
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("Size");
+        ImGui::TableNextColumn();
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        ImGui::DragFloat3("##Size", &collider.Size.x, 0.1f, 0.0f, 1000.0f);
+
+        // Is Trigger
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("Is Trigger");
+        ImGui::TableNextColumn();
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        ImGui::Checkbox("##IsTrigger", &collider.IsTrigger);
+
+        ImGui::PopStyleVar();
+        ImGui::EndTable();
+    }
+}
+
+void InspectorPanel::drawSphereColliderComponent()
+{
+    auto entity = m_context->getSelectedEntity();
+    if (!entity.hasComponent<SphereColliderComponent>()) return;
+
+    auto &collider = entity.getComponent<SphereColliderComponent>();
+
+    if (ImGui::BeginTable("SphereColliderTable", 2, ImGuiTableFlags_Resizable))
+    {
+        ImVec2 headerPadding = ImVec2(10, 10);
+        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, headerPadding);
+
+        // Radius
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("Radius");
+        ImGui::TableNextColumn();
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        ImGui::DragFloat("##Radius", &collider.Radius, 0.1f, 0.0f, 10000.0f);
+
+        // Is Trigger
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("Is Trigger");
+        ImGui::TableNextColumn();
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        ImGui::Checkbox("##IsTrigger", &collider.IsTrigger);
+
+        ImGui::PopStyleVar();
         ImGui::EndTable();
     }
 }

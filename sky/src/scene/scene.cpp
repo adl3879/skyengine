@@ -2,6 +2,7 @@
 
 #include "entity.h"
 #include "components.h"
+#include "physics/physics_manager.h"
 #include "renderer/camera/editor_camera.h"
 #include "scene/components.h"
 #include "scene_manager.h"
@@ -16,19 +17,22 @@ namespace sky
 Scene::Scene(const std::string &name, SceneType type)
     : m_sceneName(name), m_sceneType(type) 
 {
-    m_sceneGraph = CreateRef<SceneGraph>(this);
-    m_cameraSystem = CreateRef<CameraSystem>(this);
-    m_transformSystem = CreateRef<TransformSystem>(this);
-
-	newScene(name);
-    m_rootEntity = createEntityWithUUID(getRootEntityUUID(), "Root");
+    init();
 }
 
 void Scene::init() 
 {
-    m_lightCache.init(Application::getRenderer()->getDevice());
-    
+    m_sceneGraph = CreateRef<SceneGraph>(this);
+    m_cameraSystem = CreateRef<CameraSystem>(this);
+    m_transformSystem = CreateRef<TransformSystem>(this);
+    m_physicsSystem = CreateRef<PhysicsSystem>(this);
     m_editorCamera = CreateRef<EditorCamera>(45.f, 16 / 9, 0.1f, 1000.f);
+
+	newScene(m_sceneName);
+
+    m_rootEntity = createEntityWithUUID(getRootEntityUUID(), "Root");
+    m_lightCache.init(Application::getRenderer()->getDevice());
+    m_physicsSystem->init();
 }
 
 void Scene::update(float dt)
@@ -37,6 +41,12 @@ void Scene::update(float dt)
     m_editorCamera->update(dt);
     m_cameraSystem->update();
     m_transformSystem->update();
+    m_physicsSystem->draw();
+}
+
+void Scene::fixedUpdate(float dt)
+{
+    m_physicsSystem->fixedUpdate(dt);
 }
 
 void Scene::onEvent(Event& e)

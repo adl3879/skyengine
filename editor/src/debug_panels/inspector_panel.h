@@ -42,6 +42,9 @@ class InspectorPanel
 	void drawSpotLightComponent();
 	void drawSpriteRendererComponent();
     void drawCameraComponent();
+    void drawRigidBodyComponent();
+    void drawBoxColliderComponent();
+    void drawSphereColliderComponent();
 
   private:
 	Ref<Scene> m_context;

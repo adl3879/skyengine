@@ -11,6 +11,7 @@ add_subdirectory(spdlog)
 add_subdirectory(vk-bootstrap)
 add_subdirectory(entt)
 add_subdirectory(yaml-cpp)
+add_subdirectory(jolt/Build)
 
 # set options before add_subdirectory
 # available options : TRACY_ENABLE , TRACY_ON_DEMAND , TRACY_NO_BROADCAST ,

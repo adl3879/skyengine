@@ -32,7 +32,8 @@ target_include_directories(sky
     vendor/yaml-cpp/include
     vendor/assimp/include
     vendor/tracy/public
-    vendor/ImGuizmo)
+    vendor/ImGuizmo
+    vendor/jolt)
 
 target_link_libraries(sky
     PRIVATE 
@@ -42,6 +43,7 @@ target_link_libraries(sky
         EnTT::EnTT
         yaml-cpp::yaml-cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/vendor/assimp/assimp-vc143-mt.lib
+        Jolt
     PUBLIC 
         glm 
         imgui

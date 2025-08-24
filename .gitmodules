@@ -25,3 +25,6 @@
 [submodule "sky/vendor/tracy"]
 	path = sky/vendor/tracy
 	url = https://github.com/wolfpld/tracy.git
+[submodule "sky/vendor/jolt"]
+	path = sky/vendor/jolt
+	url = https://github.com/jrouwe/JoltPhysics.git

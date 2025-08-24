@@ -51,7 +51,5 @@ class EditorLayer : public Layer
     TitlebarPanel       m_titlebarPanel;
     ViewportPanel       m_viewportPanel;
     EnvironmentPanel    m_environmentPanel;
-
-    Ref<Scene> m_activeScene;
 }; 
 } // namespace sky

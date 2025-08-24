@@ -10,6 +10,7 @@
 #include <vulkan/vulkan_core.h>
 
 #include "graphics/vulkan/vk_device.h"
+#include "physics/physics_manager.h"
 #include "scene/scene_manager.h"
 #include "core/events/event_bus.h"
 #include "core/resource/custom_thumbnail.h"
@@ -63,7 +64,12 @@ void Application::run()
         // make imgui calculate internal draw structures
         ImGui::Render();
 
-        for (Layer *layer : m_layerStack) layer->onUpdate(m_fps.getDeltaTime());
+        for (Layer *layer : m_layerStack) 
+        {
+            layer->onUpdate(m_fps.getDeltaTime());
+            float fixedTime = 1 / 90.0f; // Fixed time step for physics
+            layer->onFixedUpdate(fixedTime);
+        }
  
         // Render each target with its own command buffer
         {
@@ -82,7 +88,7 @@ void Application::run()
             if (scene->gameViewportIsVisible) 
             {
                 auto cmd = m_gfxDevice->beginOffscreenFrame();
-                m_renderer->render(cmd, SceneManager::get().getActiveScene(), RenderMode::Game);
+                m_renderer->render(cmd, SceneManager::get().getGameScene(), RenderMode::Game);
                 m_gfxDevice->endOffscreenFrame(cmd);
             }
 

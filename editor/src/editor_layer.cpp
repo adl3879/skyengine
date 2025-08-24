@@ -16,13 +16,12 @@ namespace sky
 EditorLayer::EditorLayer()
 {
     const auto window = Application::getWindow();
-    m_activeScene = SceneManager::get().getEditorScene();
-    m_activeScene->init();
 
     m_renderer = Application::getRenderer();
 
     auto extent = window->getExtent();
     m_renderer->init({extent.width, extent.height});
+    SceneManager::get().init();
 
     if (!ProjectManager::isProjectOpen())
     {
@@ -39,13 +38,12 @@ void EditorLayer::onAttach()
 
 void EditorLayer::onDetach() 
 {
-    m_activeScene->cleanup();
+    SceneManager::get().cleanup();
 }
 
 void EditorLayer::onUpdate(float dt) 
 {
-    m_activeScene = SceneManager::get().getEditorScene();
-    m_activeScene->update(dt);
+    SceneManager::get().update(dt);
     setPanelContexts();
 
     auto &droppedFiles = Application::getDroppedFiles();
@@ -59,7 +57,7 @@ void EditorLayer::onUpdate(float dt)
 
 void EditorLayer::onEvent(Event &e) 
 {
-    m_activeScene->onEvent(e);
+    SceneManager::get().onEvent(e);
     m_viewportPanel.onEvent(e);
 
     EventDispatcher dispatcher(e);
@@ -74,14 +72,17 @@ bool EditorLayer::onKeyPressed(KeyPressedEvent &e)
         case Key::F:
         {
             if (Input::isKeyPressed(Key::LeftShift)) 
-                m_activeScene->getEditorCamera()->toggleFreeLook();
+                SceneManager::get().getEditorScene()->getEditorCamera()->toggleFreeLook();
             break;
         }
     }
     return true;
 }
 
-void EditorLayer::onFixedUpdate(float dt) {}
+void EditorLayer::onFixedUpdate(float dt)
+{
+    SceneManager::get().fixedUpdate(dt);
+}
 
 void EditorLayer::onImGuiRender()
 {
@@ -138,11 +139,12 @@ void EditorLayer::onImGuiRender()
 
 void EditorLayer::setPanelContexts() 
 {
-	m_viewportPanel.setContext(m_activeScene);
-    m_sceneHierarchyPanel.setContext(m_activeScene);
-    m_titlebarPanel.setContext(m_activeScene);
-    m_inspectorPanel.setContext(m_activeScene);
-    m_environmentPanel.setContext(m_activeScene);
+    auto ctx = SceneManager::get().getEditorScene();
+	m_viewportPanel.setContext(ctx);
+    m_sceneHierarchyPanel.setContext(ctx);
+    m_titlebarPanel.setContext(ctx);
+    m_inspectorPanel.setContext(ctx);
+    m_environmentPanel.setContext(ctx);
 }
 
 void EditorLayer::registerEditorEvents() 
