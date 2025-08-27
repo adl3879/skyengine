@@ -1,6 +1,7 @@
 #include "camera_system.h"
 
 #include "core/application.h"
+#include "core/editor.h"
 #include "scene/components.h"
 #include "scene/entity.h"
 
@@ -85,13 +86,15 @@ void CameraSystem::update()
     auto view = m_scene->getRegistry().view<CameraComponent, TransformComponent>();
     for (auto entity : view)
     {
-        auto [camera, transform] = view.get<CameraComponent, TransformComponent>(entity);
-        
+        auto [camera, t] = view.get<CameraComponent, TransformComponent>(entity);
+        auto transform = t.transform;
+
         // Update camera position and rotation from transform
         camera.camera.setPosition(transform.getPosition());
         camera.camera.setRotation(transform.getRotationQuaternion());
 
-        camera.camera.setAspectRatio(m_scene->getGameViewportInfo().size.x / m_scene->getGameViewportInfo().size.y);
+        auto viewportSize = EditorInfo::get().gameViewportSize;
+        camera.camera.setAspectRatio(viewportSize.x / viewportSize.y);
 
         auto renderer = Application::getRenderer();
         if (m_scene->getSelectedEntity() == entity)

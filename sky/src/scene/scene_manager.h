@@ -2,6 +2,7 @@
 
 #include <skypch.h>
 
+#include "renderer/camera/editor_camera.h"
 #include "scene.h"
 #include "core/filesystem.h"
 
@@ -21,6 +22,9 @@ class SceneManager
     void setGameScene(const Ref<Scene> &scene) { m_gameScene = scene; }
     Ref<Scene> getGameScene() const { return m_gameScene; }
     Ref<Scene> getEditorScene() const { return m_editorScene; }
+
+    auto getEditorCamera() const { return m_editorCamera.get(); }
+    auto isEditorCameraFreeLook() const { return m_editorCamera->isFreeLook(); }
     
     void reset();
     bool sceneIsType(SceneType type) const;
@@ -42,6 +46,7 @@ class SceneManager
   private:
     Ref<Scene> m_gameScene;
     Ref<Scene> m_editorScene;
+    Ref<EditorCamera> m_editorCamera;
     bool m_inPlayMode = false;
 };
 } // namespace sky

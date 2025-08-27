@@ -90,8 +90,8 @@ void SceneSerializer::serializeEntity(YAML::Emitter &out, Entity entity, AssetHa
 	}
 	if (entity.hasComponent<TransformComponent>())
     {
-		auto &transformComponent = entity.getComponent<TransformComponent>();
-		transformComponent.serialize(out);
+		auto &tComponent = entity.getComponent<TransformComponent>().transform;
+		tComponent.serialize(out);
 	}
 	if (entity.hasComponent<ModelComponent>())
     {
@@ -150,6 +150,46 @@ void SceneSerializer::serializeEntity(YAML::Emitter &out, Entity entity, AssetHa
         out << YAML::EndMap;
     }
 
+    if (entity.hasComponent<RigidBodyComponent>())
+    {
+        out << YAML::Key << "rigidBody";
+        out << YAML::BeginMap;
+
+        const auto &rb = entity.getComponent<RigidBodyComponent>();
+        out << YAML::Key << "mass" << YAML::Value << rb.Mass;
+        out << YAML::Key << "motionType" << YAML::Value << physics::motionTypeToString(rb.MotionType);
+        out << YAML::Key << "linearDamping" << YAML::Value << rb.LinearDamping;
+        out << YAML::Key << "angularDamping" << YAML::Value << rb.AngularDamping;
+        out << YAML::Key << "isKinematic" << YAML::Value << rb.IsKinematic;
+        out << YAML::Key << "useGravity" << YAML::Value << rb.UseGravity;
+
+        out << YAML::EndMap;
+    }
+
+    if (entity.hasComponent<BoxColliderComponent>())
+    {
+        out << YAML::Key << "boxCollider";
+        out << YAML::BeginMap;
+
+        const auto &bc = entity.getComponent<BoxColliderComponent>();
+        out << YAML::Key << "size" << YAML::Value << bc.Size;
+        out << YAML::Key << "isTrigger" << YAML::Value << bc.IsTrigger;
+
+        out << YAML::EndMap;
+    }
+
+    if (entity.hasComponent<SphereColliderComponent>())
+    {
+        out << YAML::Key << "sphereCollider";
+        out << YAML::BeginMap;
+
+        const auto &sc = entity.getComponent<SphereColliderComponent>();
+        out << YAML::Key << "radius" << YAML::Value << sc.Radius;
+        out << YAML::Key << "isTrigger" << YAML::Value << sc.IsTrigger;
+
+        out << YAML::EndMap;
+    }
+
 	out << YAML::EndMap;
 }
 
@@ -168,8 +208,8 @@ void SceneSerializer::deserializeEntity(YAML::detail::iterator_value key, Entity
     }
 	if (auto transform = key["transform"])
     {
-		auto &transformComponent = entity.getComponent<TransformComponent>();
-		transformComponent.deserialize(key);
+		auto &tComponent = entity.getComponent<TransformComponent>().transform;
+		tComponent.deserialize(key);
     }
 	if (auto model = key["model"])
     {
@@ -184,26 +224,27 @@ void SceneSerializer::deserializeEntity(YAML::detail::iterator_value key, Entity
 			modelComponent.customMaterialOverrides[index] = handle;
 		}
     }
+    auto transform = entity.getComponent<TransformComponent>().transform;
 	if (auto dl = key["directionalLight"])
     {
 		auto &dlComponent = entity.addComponent<DirectionalLightComponent>();
 		dlComponent.light.type = LightType::Directional;
 		dlComponent.light.deserialize(key);
-		dlComponent.light.id = m_scene->addLightToCache(dlComponent.light, entity.getComponent<TransformComponent>());
+		dlComponent.light.id = m_scene->addLightToCache(dlComponent.light, transform);
     }
 	if (auto pl = key["pointLight"])
     {
 		auto &plComponent = entity.addComponent<PointLightComponent>();
 		plComponent.light.type = LightType::Point;
 		plComponent.light.deserialize(key);
-		plComponent.light.id = m_scene->addLightToCache(plComponent.light, entity.getComponent<TransformComponent>());
+		plComponent.light.id = m_scene->addLightToCache(plComponent.light, transform);
     }
 	if (auto sl = key["spotLight"])
     {
 		auto &slComponent = entity.addComponent<SpotLightComponent>();
 		slComponent.light.type = LightType::Spot;
 		slComponent.light.deserialize(key);
-		slComponent.light.id = m_scene->addLightToCache(slComponent.light, entity.getComponent<TransformComponent>());
+		slComponent.light.id = m_scene->addLightToCache(slComponent.light, transform);
     }
 	if (auto sprite = key["spriteRenderer"])
     {
@@ -229,6 +270,31 @@ void SceneSerializer::deserializeEntity(YAML::detail::iterator_value key, Entity
         camComp.camera.setNearClipPlane(camera["nearPlane"].as<float>());
         camComp.camera.setFarClipPlane(camera["farPlane"].as<float>());
         camComp.camera.setViewport(camera["viewport"].as<glm::vec4>());
+    }
+
+    if (auto rigidBody = key["rigidBody"])
+    {
+        auto &rb = entity.addComponent<RigidBodyComponent>();
+        rb.Mass = rigidBody["mass"].as<float>();
+        rb.MotionType = physics::motionTypeFromString(rigidBody["motionType"].as<std::string>());
+        rb.LinearDamping = rigidBody["linearDamping"].as<float>();
+        rb.AngularDamping = rigidBody["angularDamping"].as<float>();
+        rb.IsKinematic = rigidBody["isKinematic"].as<bool>();
+        rb.UseGravity = rigidBody["useGravity"].as<bool>();
+    }
+
+    if (auto boxCollider = key["boxCollider"])
+    {
+        auto &bc = entity.addComponent<BoxColliderComponent>();
+        bc.Size = boxCollider["size"].as<glm::vec3>();
+        bc.IsTrigger = boxCollider["isTrigger"].as<bool>();
+    }
+
+    if (auto sphereCollider = key["sphereCollider"])
+    {
+        auto &sc = entity.addComponent<SphereColliderComponent>();
+        sc.Radius = sphereCollider["radius"].as<float>();
+        sc.IsTrigger = sphereCollider["isTrigger"].as<bool>();
     }
 }
 } // namespace sky

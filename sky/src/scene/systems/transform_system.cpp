@@ -13,7 +13,7 @@ void TransformSystem::update()
 
 void TransformSystem::updateTransformRecursive(Entity entity, const glm::mat4 &parentMatrix)
 {
-    auto &transform = entity.getComponent<TransformComponent>();
+    auto &transform = entity.getComponent<TransformComponent>().transform;
 
     // Compute local model matrix
     glm::mat4 localMatrix = transform.getModelMatrix();

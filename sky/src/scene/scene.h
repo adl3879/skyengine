@@ -40,14 +40,6 @@ SceneType sceneTypeFromString(const std::string &type);
 class Scene : public Asset
 {
   public:
-    struct ViewportInfo
-    {
-        glm::vec2 size;
-        glm::vec2 mousePos;
-        bool isFocus;
-    };
-
-  public:
     Scene(const std::string &name = "Untitled", SceneType type = SceneType::Scene3D);
     ~Scene() = default;
 
@@ -68,10 +60,9 @@ class Scene : public Asset
 
     entt::registry &getRegistry() { return m_registry; }
     auto getEntityMap() const { return m_entityMap; }
-    const auto &getEditorCamera() { return m_editorCamera; }
+    void addEntityToMap(UUID uuid, entt::entity entity) { m_entityMap[uuid] = entity; }
     Entity getEntityFromUUID(UUID uuid);
     LightCache &getLightCache() { return m_lightCache; }
-    bool isEditorCameraFreeLook() const { return m_editorCamera->isFreeLook(); }
 
     LightID addLightToCache(const Light &light, const Transform &transform);
     bool hasDirectionalLight() const { return m_lightCache.getSunlightIndex() > -1; }
@@ -82,13 +73,10 @@ class Scene : public Asset
     Entity getRootEntity();
     auto getSceneGraph() const { return m_sceneGraph; }
     auto getCameraSystem() { return m_cameraSystem; }
+    auto getPhysicsSystem() { return m_physicsSystem; }
 
     void setPath(const fs::path &path) { m_path = path; }
     const fs::path &getPath() const { return m_path; }
-    void setViewportInfo(ViewportInfo info) { m_viewportInfo = info; }
-    ViewportInfo getViewportInfo() const { return m_viewportInfo; }
-    void setGameViewportInfo(ViewportInfo info) { m_gameViewportInfo = info; }
-    ViewportInfo getGameViewportInfo() const { return m_gameViewportInfo; }
 
     auto getEnvironment() const { return m_environment; }
     void setEnvironment(Environment env) { m_environment = env; }
@@ -124,8 +112,6 @@ class Scene : public Asset
     
     Ref<SceneGraph> m_sceneGraph;
     std::string m_sceneName;
-    ViewportInfo m_viewportInfo, m_gameViewportInfo;
-    Ref<EditorCamera> m_editorCamera;
     Ref<CameraSystem> m_cameraSystem;
     Ref<TransformSystem> m_transformSystem;
     Ref<PhysicsSystem> m_physicsSystem;

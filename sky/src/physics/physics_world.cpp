@@ -28,6 +28,7 @@
 #include "scene/scene.h"
 #include "scene/components.h"
 #include "scene/entity.h"
+#include "core/log/log.h"
 
 namespace sky
 {
@@ -179,8 +180,8 @@ ObjectLayerPairFilterImpl JoltObjectVSObjectLayerFilter;
 
 namespace physics
 {
-PhysicsWorld::PhysicsWorld(Scene *scene)
-    : m_scene(scene)
+PhysicsWorld::PhysicsWorld()
+    : m_scene(nullptr)
 {
     // Register allocation hook
     JPH::RegisterDefaultAllocator();
@@ -235,7 +236,7 @@ void PhysicsWorld::setGravity(const glm::vec3 &gravity)
     m_joltPhysicsSystem->SetGravity(JPH::Vec3(gravity.x, gravity.y, gravity.z));
 }
 
-void PhysicsWorld::addRigidBody(Ref<RigidBody> rb)
+void PhysicsWorld::addRigidBody(RigidBody *rb, UUID entityID)
 {
     JPH::BodyInterface &bodyInterface = m_joltPhysicsSystem->GetBodyInterface();
 
@@ -267,8 +268,7 @@ void PhysicsWorld::addRigidBody(Ref<RigidBody> rb)
         bodySettings.mMassPropertiesOverride.mMass = mass;
     }
 
-    Entity e = {rb->getEntity(), m_scene};
-    bodySettings.mUserData = static_cast<uint64_t>(e.getEntityID());
+    bodySettings.mUserData = static_cast<uint64_t>(entityID);
     // Create the actual rigid body
     JPH::BodyID body = m_joltBodyInterface->CreateAndAddBody(bodySettings, JPH::EActivation::Activate);
     m_registeredBodies.push_back((uint32_t)body.GetIndexAndSequenceNumber());
@@ -346,23 +346,14 @@ void PhysicsWorld::syncEntitiesTransforms()
     {
         auto bodyId = static_cast<JPH::BodyID>(body);
         JPH::Vec3 position = bodyInterface.GetCenterOfMassPosition(bodyId);
-        JPH::Vec3 velocity = bodyInterface.GetLinearVelocity(bodyId);
-        JPH::Mat44 joltTransform = bodyInterface.GetWorldTransform(bodyId);
-        const auto bodyRotation = bodyInterface.GetRotation(bodyId);
+        JPH::Quat rotation = bodyInterface.GetRotation(bodyId);
 
-        auto transform =
-            glm::mat4(joltTransform(0, 0), joltTransform(1, 0), joltTransform(2, 0), joltTransform(3, 0),
-                joltTransform(0, 1), joltTransform(1, 1), joltTransform(2, 1), joltTransform(3, 1),
-                joltTransform(0, 2), joltTransform(1, 2), joltTransform(2, 2), joltTransform(3, 2),
-                joltTransform(0, 3), joltTransform(1, 3), joltTransform(2, 3), joltTransform(3, 3));
-
-        auto entId = static_cast<entt::entity>(bodyInterface.GetUserData(bodyId));
-        Entity entity = Entity{entId, m_scene};
-        auto &transformComponent = entity.getComponent<TransformComponent>();
-        transformComponent.setScale(glm::vec3{0.5});
-        entity.getComponent<VisibilityComponent>() = false;
-
-        // transformComponent.setWorldFromMatrix(transform);
+        auto entId = static_cast<UUID>(bodyInterface.GetUserData(bodyId));
+        auto e = m_scene->getEntityFromUUID(entId);
+        auto &t = e.getComponent<TransformComponent>().transform;
+        
+        t.setPosition({position.GetX(), position.GetY(), position.GetZ()});
+        t.setRotation({rotation.GetX(), rotation.GetY(), rotation.GetZ(), rotation.GetW()});
     }
 }
 
@@ -419,7 +410,7 @@ void PhysicsWorld::clear()
     {
         for (auto &character : m_registeredCharacters)
         {
-            // character.second->RemoveFromPhysicsSystem();
+            character.second->RemoveFromPhysicsSystem();
         }
 
         m_registeredCharacters.clear();

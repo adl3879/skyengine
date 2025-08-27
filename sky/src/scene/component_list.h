@@ -17,6 +17,10 @@ using ComponentList = std::tuple<
     ModelComponent,
     RelationshipComponent,
     SpriteRendererComponent,
-    CameraComponent
+    CameraComponent,
+    RigidBodyComponent,
+    BoxColliderComponent,
+    CapsuleColliderComponent,
+    SphereColliderComponent
 >;
 } // namespace sky

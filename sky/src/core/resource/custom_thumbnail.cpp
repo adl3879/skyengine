@@ -275,8 +275,9 @@ void CustomThumbnail::generateSceneThumbnail(gfx::CommandBuffer cmd, const fs::p
         auto view = scene->getRegistry().view<TransformComponent, SpriteRendererComponent, VisibilityComponent>();
         for (auto &e : view)
         {
-            auto [transform, spriteRenderer, visibility] =
+            auto [t, spriteRenderer, visibility] =
                 view.get<TransformComponent, SpriteRendererComponent, VisibilityComponent>(e);
+            auto transform = t.transform;
 
             auto texture = AssetManager::getAsset<Texture2D>(spriteRenderer.textureHandle);
 			m_spriteRenderer.drawSprite(device, {
@@ -303,7 +304,7 @@ void CustomThumbnail::generateSceneThumbnail(gfx::CommandBuffer cmd, const fs::p
     m_forwardRenderer.draw3(device, 
         cmd, 
         drawImage.getExtent2D(), 
-        *scene->getEditorCamera(), 
+        *SceneManager::get().getEditorCamera(), 
         sceneDataBuffer.getBuffer(),
         renderer->getBuiltInModels(),
         renderer->getMeshCache(),

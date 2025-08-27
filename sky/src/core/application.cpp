@@ -73,25 +73,22 @@ void Application::run()
  
         // Render each target with its own command buffer
         {
-            auto scene = SceneManager::get().getEditorScene();
-            m_renderer->update(scene);
-
             // Render scene targets
-            if (scene->sceneViewportIsVisible) 
+            m_renderer->update(SceneManager::get().getEditorScene());
             {
                 auto cmd = m_gfxDevice->beginOffscreenFrame();
-                m_renderer->render(cmd, scene, RenderMode::Scene);
+                m_renderer->render(cmd, SceneManager::get().getEditorScene(), RenderMode::Scene);
                 m_gfxDevice->endOffscreenFrame(cmd);
             }
+            m_renderer->clearDrawCommands();
 
             // Render game targets  
-            if (scene->gameViewportIsVisible) 
+            m_renderer->update(SceneManager::get().getGameScene());
             {
                 auto cmd = m_gfxDevice->beginOffscreenFrame();
                 m_renderer->render(cmd, SceneManager::get().getGameScene(), RenderMode::Game);
                 m_gfxDevice->endOffscreenFrame(cmd);
             }
-
             m_renderer->clearDrawCommands();
         }
 

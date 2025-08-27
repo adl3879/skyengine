@@ -2,6 +2,7 @@
 
 #include <skypch.h>
 
+#include "core/uuid.h"
 #include "physics_debug_renderer.h"
 #include "physics_shapes.h"
 #include "rigid_body.h"
@@ -29,14 +30,14 @@ namespace physics
 class PhysicsWorld
 {
   public:
-    PhysicsWorld(Scene *scene);
+    PhysicsWorld();
     virtual ~PhysicsWorld() = default;
 
     void setScene(Scene *scene) { m_scene = scene; }
 
   public:
     void setGravity(const glm::vec3 &gravity);
-    void addRigidBody(Ref<RigidBody> rb);
+    void addRigidBody(RigidBody *rb, UUID entityID);
     void addForceToRigidBody(Entity entity, const glm::vec3 &force);
     void stepSimulation(float dt);
     void clear();

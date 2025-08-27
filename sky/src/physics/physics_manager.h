@@ -24,13 +24,13 @@ class PhysicsManager
     void setDrawDebug(bool value) { m_drawDebug = value; }
     [[nodiscard]] bool getDrawDebug() const { return m_drawDebug; }
 
-    void init(Scene *scene);
+    void init();
     void step(float dt);
     void stepFrame(int steps);
     void reset();
     void drawDebug();
     [[nodiscard]] bool IsRunning() const { return m_isRunning; }
-    void registerBody(Ref<RigidBody> rb);
+    void registerBody(RigidBody *rb, UUID entityID);
     void setScene(Scene *scene);
 
     void stop() { m_isRunning = false; }

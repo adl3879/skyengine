@@ -1,10 +1,15 @@
 #include "scene_manager.h"
 
+#include "core/log/log.h"
 #include "core/resource/custom_thumbnail.h"
+#include "entity.h"
 #include "physics/physics_manager.h"
+#include "scene/components.h"
 #include "scene_serializer.h"
 #include "asset_management/asset_manager.h"
 #include "component_list.h"
+#include "systems/transform_system.h"
+#include <glm/fwd.hpp>
 
 namespace sky
 {
@@ -60,10 +65,11 @@ SceneManager &SceneManager::get()
 
 void SceneManager::init()
 {
+    m_editorCamera = CreateRef<EditorCamera>(45.f, 16 / 9, 0.1f, 1000.f);
     m_editorScene = CreateRef<Scene>();
     m_gameScene = CreateRef<Scene>("Game Scene");
     // initialize physics manager with the editor scene
-    physics::PhysicsManager::get().init(m_editorScene.get());
+    physics::PhysicsManager::get().init();
 }
 
 void SceneManager::reset() 
@@ -116,7 +122,7 @@ Ref<Scene> SceneManager::cloneScene(const Ref<Scene> &source)
 {
     auto newScene = CreateRef<Scene>(source->getName() + " (Copy)", source->getSceneType());
     newScene->setPath(source->getPath());
-    // newScene->setEnvironment(source->getEnvironment());
+    newScene->setEnvironment(source->getEnvironment());
 
     auto &srcRegistry = source->getRegistry();
     auto &dstRegistry = newScene->getRegistry();
@@ -128,8 +134,9 @@ Ref<Scene> SceneManager::cloneScene(const Ref<Scene> &source)
     {
         auto dstEntity = dstRegistry.create();
         entityMap[entity] = dstEntity;
+        newScene->addEntityToMap(srcRegistry.get<IDComponent>(entity), dstEntity);
     }
-
+    
     // Clone all components except these
     cloneAllComponents(srcRegistry, dstRegistry, entityMap);
 
@@ -141,7 +148,11 @@ void SceneManager::enterPlayMode()
     if (m_inPlayMode) return;
 
     m_gameScene = cloneScene(m_editorScene);
+
     // physics manager should now use the game scene
+    m_gameScene->getPhysicsSystem()->init();
+    m_gameScene->getCameraSystem()->findAndSetPrimaryCamera(); 
+    
     physics::PhysicsManager::get().setScene(m_gameScene.get());
     physics::PhysicsManager::get().start();
 
@@ -152,16 +163,18 @@ void SceneManager::exitPlayMode()
 {
     if (!m_inPlayMode) return;
 
-    m_gameScene = m_editorScene;
     physics::PhysicsManager::get().stop();
-    // physics manager should now use the editor scene
-    physics::PhysicsManager::get().setScene(m_editorScene.get());
-
+    physics::PhysicsManager::get().reset();
+    
+    m_gameScene.reset();
+    m_gameScene = m_editorScene;
     m_inPlayMode = false;
 }
 
 void SceneManager::update(float dt)
 {
+    m_editorCamera->update(dt);
+
     m_gameScene->update(dt);
     m_editorScene->update(dt);
 }
@@ -174,6 +187,8 @@ void SceneManager::fixedUpdate(float dt)
 
 void SceneManager::onEvent(Event &e)
 {
+    m_editorCamera->onEvent(e);
+
     m_gameScene->onEvent(e);
     m_editorScene->onEvent(e);
 }

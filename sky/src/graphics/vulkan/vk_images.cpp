@@ -189,7 +189,7 @@ void generateMipmaps(VkCommandBuffer cmd, VkImage image, VkExtent2D imageExtent,
 
 void clearColorImage(VkCommandBuffer cmd, VkImage image, VkImageLayout imageLayout)
 {
-    //TODO: fix this later, on to greater things
+    // //TODO: fix this later, on to greater things
     // vkutil::transitionImage(cmd, image, imageLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
     // VkClearColorValue clearColor = {};

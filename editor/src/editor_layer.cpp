@@ -72,7 +72,7 @@ bool EditorLayer::onKeyPressed(KeyPressedEvent &e)
         case Key::F:
         {
             if (Input::isKeyPressed(Key::LeftShift)) 
-                SceneManager::get().getEditorScene()->getEditorCamera()->toggleFreeLook();
+                SceneManager::get().getEditorCamera()->toggleFreeLook();
             break;
         }
     }

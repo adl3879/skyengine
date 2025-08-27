@@ -150,9 +150,10 @@ void ForwardRendererPass::draw3(
     auto view = scene->getRegistry().view<TransformComponent, ModelComponent, VisibilityComponent>();
     for (auto &e : view)
     {
-        auto [transform, modelComponent, visibility] = 
+        auto [t, modelComponent, visibility] = 
             view.get<TransformComponent, ModelComponent, VisibilityComponent>(e);
 
+        auto transform = t.transform;
         if (modelComponent.type == ModelType::Custom)
         {
             AssetManager::getAssetAsync<Model>(modelComponent.handle, [=, &drawCommands](const Ref<Model> &model){

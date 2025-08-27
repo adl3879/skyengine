@@ -6,7 +6,7 @@ namespace sky
 {
 namespace physics
 {
-void PhysicsManager::registerBody(Ref<RigidBody> rb) { m_world->addRigidBody(rb); }
+void PhysicsManager::registerBody(RigidBody *rb, UUID entityID) { m_world->addRigidBody(rb, entityID); }
 
 void PhysicsManager::step(float dt)
 {
@@ -25,9 +25,9 @@ void PhysicsManager::drawDebug()
     m_world->drawDebug(&m_joltDebugRenderer);
 }
 
-void PhysicsManager::init(Scene *scene)
+void PhysicsManager::init()
 {
-    m_world = new PhysicsWorld(scene);
+    m_world = new PhysicsWorld();
     m_isRunning = false;
 }
 

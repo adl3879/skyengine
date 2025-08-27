@@ -18,6 +18,31 @@ class Transform
     Transform();
     ~Transform() = default;
 
+    // In Transform class
+    Transform(const Transform& other) 
+        : m_position(other.m_position)
+        , m_rotationQuat(other.m_rotationQuat)
+        , m_scale(other.m_scale)
+        , m_worldMatrix(other.m_worldMatrix)
+        , m_worldPosition(other.m_worldPosition)
+        , m_worldRotation(other.m_worldRotation)
+        , m_worldScale(other.m_worldScale)
+    {
+    }
+
+    Transform& operator=(const Transform& other) {
+        if (this != &other) {
+            m_position = other.m_position;
+            m_rotationQuat = other.m_rotationQuat;
+            m_scale = other.m_scale;
+            m_worldMatrix = other.m_worldMatrix;
+            m_worldPosition = other.m_worldPosition;
+            m_worldRotation = other.m_worldRotation;
+            m_worldScale = other.m_worldScale;
+        }
+        return *this;
+    }
+
     SKY_INLINE void setPosition(float x, float y, float z)
     {
         m_position.x = x;
@@ -235,6 +260,9 @@ class Transform
         m_worldMatrix = matrix;
         math::DecomposeMatrix(m_worldMatrix, m_worldPosition, m_worldRotation, m_worldScale);
     }
+
+    SKY_INLINE void setWorldPosition(const glm::vec3 pos) { m_worldPosition = pos; }
+    SKY_INLINE auto getWorldPosition() { return m_worldPosition; }
 
     void debugPrint() const
     {

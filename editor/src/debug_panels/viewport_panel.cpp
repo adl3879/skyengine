@@ -9,11 +9,13 @@
 #include "core/application.h"
 #include "asset_management/asset_manager.h"
 #include "asset_management/texture_importer.h"
+#include "core/editor.h"
 #include "core/events/key_codes.h"
 #include "scene/components.h"
 #include "scene/entity.h"
 #include "core/events/input.h"
 #include "core/helpers/image.h"
+#include "scene/scene_manager.h"
 
 namespace sky
 {
@@ -84,11 +86,11 @@ void ViewportPanel::drawSceneViewport()
 
     bool isMouseInViewport = mx >= 0 && mx <= viewportSize.x && my >= 0 && my <= viewportSize.y;
 
-    m_context->setViewportInfo({
-        .size = {viewportSize.x, viewportSize.y},
-        .mousePos = {mx * ratioX, (windowSize.y - my) * ratioY},
-        .isFocus = isMouseInViewport && !m_itemIsDraggedOver,
-    });
+    // set editor viewport info
+    EditorInfo::get().viewportMousePos = {mx * ratioX, (windowSize.y - my) * ratioY};
+    EditorInfo::get().viewportSize = {viewportSize.x, viewportSize.y};
+    EditorInfo::get().viewportIsFocus = isMouseInViewport && !m_itemIsDraggedOver;
+
     ImGui::Image(Application::getRenderer()->getSceneImage(), 
         viewportSize, 
         /*vertical flip*/ {0, 1}, {1, 0});
@@ -145,11 +147,7 @@ void ViewportPanel::drawGameViewport()
 
     auto viewportSize = ImGui::GetContentRegionAvail();
 
-    m_context->setGameViewportInfo({
-        .size = {viewportSize.x, viewportSize.y},
-        .mousePos = {0, 0},
-        .isFocus = ImGui::IsWindowFocused() && !ImGui::IsWindowCollapsed(),
-    });
+    EditorInfo::get().gameViewportSize = {viewportSize.x, viewportSize.y};
 
     ImGui::Image(Application::getRenderer()->getGameImage(), 
         viewportSize, 
@@ -161,48 +159,8 @@ void ViewportPanel::drawGameViewport()
     ImGui::PopStyleVar();
 }
 
-void ViewportPanel::drawCameraRect()
-{
-    // Use editor camera instead of game camera
-    auto camera = m_context->getEditorCamera();
-    ImDrawList* drawList = ImGui::GetWindowDrawList();
-    
-    // Get window dimensions and position
-    ImVec2 windowPos = ImGui::GetWindowPos();
-    ImVec2 windowSize = ImGui::GetWindowSize();
-    
-    // Calculate center of the window
-    float centerX = windowPos.x + windowSize.x * 0.5f;
-    float centerY = windowPos.y + windowSize.y * 0.5f;
-    
-    // Rectangle dimensions
-    float width = 400.0f;
-    float height = 200.0f;
-    
-    // Get camera position from editor camera
-    glm::vec3 cameraPos = camera->getPosition();
-    
-    // Calculate rectangle bounds from center, offset by camera position
-    float left = centerX - width * 0.5f + cameraPos.x;
-    float top = centerY - height * 0.5f + cameraPos.y;
-    float right = left + width;
-    float bottom = top + height;
-    
-    // Draw a yellow rectangle
-    drawList->AddRect(
-        ImVec2(left, top), 
-        ImVec2(right, bottom), 
-        IM_COL32(255, 255, 0, 255), 
-        0.0f, 
-        0, 
-        2.0f
-    );
-}
-
 void ViewportPanel::onEvent(Event &e) 
 {
-    if (!m_context->getViewportInfo().isFocus) return;
-
 	EventDispatcher dispatcher(e);
     dispatcher.dispatch<KeyPressedEvent>(SKY_BIND_EVENT_FN(ViewportPanel::onKeyPressed));
 }
@@ -236,9 +194,10 @@ const glm::vec3 ViewportPanel::getRayIntersectionPoint()
 	mx -= m_viewportBounds[0].x;
 	my -= m_viewportBounds[0].y;
 
-	auto proj = m_context->getEditorCamera()->getProjectionMatrix();
-	auto view = m_context->getEditorCamera()->getViewMatrix();
-	auto camPos = m_context->getEditorCamera()->getPosition();
+    auto editorCamera = SceneManager::get().getEditorCamera();
+	auto proj = editorCamera->getProjectionMatrix();
+	auto view = editorCamera->getViewMatrix();
+	auto camPos = editorCamera->getPosition();
 
 	float x_ndc = (2.0f * mx / windowSize.x) - 1.0f;
 	float y_ndc = 1.0f - (2.0f * -my / windowSize.y);
@@ -314,7 +273,7 @@ void ViewportPanel::handleViewportDrop()
                 auto handle = AssetManager::getOrCreateAssetHandle(path, assetType);
                 auto entity = m_context->createEntity(path.stem().string());
                 entity.addComponent<ModelComponent>().handle = handle;
-                entity.getComponent<TransformComponent>().setPosition(getRayIntersectionPoint());
+                entity.getComponent<TransformComponent>().transform.setPosition(getRayIntersectionPoint());
                 m_context->getSceneGraph()->parentEntity(m_context->getRootEntity(), entity);
                 m_context->setSelectedEntity(entity);
 				break;
@@ -356,8 +315,9 @@ void ViewportPanel::drawGizmo(const glm::vec2 &size)
 {
     auto selectedEntity = m_context->getSelectedEntity();
 
-    auto cameraView = m_context->getEditorCamera()->getView();
-    auto cameraProjection = m_context->getEditorCamera()->getProjection();
+    auto editorCamera = SceneManager::get().getEditorCamera();
+    auto cameraView = editorCamera->getView();
+    auto cameraProjection = editorCamera->getProjection();
 
     ImGuizmo::SetOrthographic(false);
     ImGuizmo::SetDrawlist();
@@ -365,7 +325,7 @@ void ViewportPanel::drawGizmo(const glm::vec2 &size)
 
     if (selectedEntity && m_gizmoType != -1)
     {
-        auto &tc = selectedEntity.getComponent<TransformComponent>();
+        auto &tc = selectedEntity.getComponent<TransformComponent>().transform;
 
         glm::mat4 transform = tc.getWorldMatrix();
 
@@ -394,7 +354,7 @@ void ViewportPanel::drawGizmo(const glm::vec2 &size)
                 if (rel.parent != NULL_UUID)
                 {
                     auto parentEntity = m_context->getEntityFromUUID(rel.parent);
-                    auto &parentTransform = parentEntity.getComponent<TransformComponent>();
+                    auto &parentTransform = parentEntity.getComponent<TransformComponent>().transform;
                     parentWorld = parentTransform.getWorldMatrix();
                 }
             }

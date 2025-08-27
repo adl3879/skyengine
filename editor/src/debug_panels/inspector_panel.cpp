@@ -448,7 +448,7 @@ void InspectorPanel::drawTransformComponent()
 	auto entity = m_context->getSelectedEntity();
 	if (ImGui::BeginTable("TransformTable", 2, ImGuiTableFlags_Resizable))
 	{
-		auto &transform = entity.getComponent<TransformComponent>();
+		auto &transform = entity.getComponent<TransformComponent>().transform;
 		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
 
 		ImVec2 headerPadding = ImVec2(10, 10); // Increase padding for header row

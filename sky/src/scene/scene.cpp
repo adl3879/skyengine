@@ -26,7 +26,6 @@ void Scene::init()
     m_cameraSystem = CreateRef<CameraSystem>(this);
     m_transformSystem = CreateRef<TransformSystem>(this);
     m_physicsSystem = CreateRef<PhysicsSystem>(this);
-    m_editorCamera = CreateRef<EditorCamera>(45.f, 16 / 9, 0.1f, 1000.f);
 
 	newScene(m_sceneName);
 
@@ -37,8 +36,6 @@ void Scene::init()
 
 void Scene::update(float dt)
 {
-    m_editorCamera->setViewportSize(m_viewportInfo.size);
-    m_editorCamera->update(dt);
     m_cameraSystem->update();
     m_transformSystem->update();
     m_physicsSystem->draw();
@@ -51,7 +48,6 @@ void Scene::fixedUpdate(float dt)
 
 void Scene::onEvent(Event& e)
 {
-    if (m_viewportInfo.isFocus) m_editorCamera->onEvent(e);
 }
 
 void Scene::cleanup() {}

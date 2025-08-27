@@ -21,6 +21,7 @@
 #include "core/helpers/image.h"
 #include "scene/scene.h"
 #include "scene/scene_manager.h"
+#include "core/editor.h"
 
 namespace sky
 {
@@ -306,7 +307,7 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode
 {    
     auto camSystem = scene->getCameraSystem();
     Camera* cam = mode == RenderMode::Scene 
-        ? static_cast<Camera*>(scene->getEditorCamera().get()) 
+        ? static_cast<Camera*>(SceneManager::get().getEditorCamera())
         : static_cast<Camera*>(camSystem->getActiveCameraForRendering());
 
     if (!cam)
@@ -327,7 +328,7 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode
             .proj = cam->getProjection(),
             .viewProj = cam->getViewProjection(),
             .cameraPos = {cam->getPosition(), 1.f},
-            .mousePos = scene->getViewportInfo().mousePos,
+            .mousePos = EditorInfo::get().viewportMousePos,
             .ambientColor = LinearColorNoAlpha::white(),
             .ambientIntensity = 0.3f,
             .irradianceMapId = m_ibl.getIrradianceMapId(),
@@ -527,12 +528,13 @@ void SceneRenderer::update(Ref<Scene> scene)
 		auto view = scene->getRegistry().view<TransformComponent, ModelComponent, VisibilityComponent>();
 		for (auto &e : view)
 		{
-			auto [transform, modelComponent, visibility] = 
+			auto [t, modelComponent, visibility] = 
                 view.get<TransformComponent, ModelComponent, VisibilityComponent>(e);
+            auto transform = t.transform;
 
             if (modelComponent.type == ModelType::Custom)
             {
-				AssetManager::getAssetAsync<Model>(modelComponent.handle, [=](const Ref<Model> &model){
+				AssetManager::getAssetAsync<Model>(modelComponent.handle, [=, this](const Ref<Model> &model){
 					for (size_t i = 0; i < model->meshes.size(); i++) 
 					{
                         const auto &mesh = model->meshes[i];
@@ -540,7 +542,7 @@ void SceneRenderer::update(Ref<Scene> scene)
                             ? AssetManager::getAsset<MaterialAsset>(modelComponent.customMaterialOverrides.at(i))->material 
                             : getMesh(mesh).material;
                         
-                        drawMesh(mesh, transform.getWorldMatrix(), visibility,
+                        drawMesh(mesh, transform.getModelMatrix(), visibility,
                             static_cast<uint32_t>(e), material);
 					}
 				});
@@ -551,7 +553,7 @@ void SceneRenderer::update(Ref<Scene> scene)
                 const auto material = modelComponent.builtinMaterial != NULL_UUID ?
 					AssetManager::getAsset<MaterialAsset>(modelComponent.builtinMaterial)->material :
                     m_materialCache.getDefaultMaterial();
-                drawMesh(m_builtinModels[modelComponent.type], transform.getWorldMatrix(), 
+                drawMesh(m_builtinModels[modelComponent.type], transform.getModelMatrix(), 
                     visibility, static_cast<uint32_t>(e), material);
             }
 		}
@@ -560,8 +562,9 @@ void SceneRenderer::update(Ref<Scene> scene)
         auto view = scene->getRegistry().view<TransformComponent, SpriteRendererComponent, VisibilityComponent>();
         for (auto &e : view)
         {
-            auto [transform, spriteRenderer, visibility] =
+            auto [t, spriteRenderer, visibility] =
                 view.get<TransformComponent, SpriteRendererComponent, VisibilityComponent>(e);
+            auto transform = t.transform;
 
             auto texture = AssetManager::getAsset<Texture2D>(spriteRenderer.textureHandle);
 			m_spriteRenderer.drawSprite(m_device, {
@@ -590,7 +593,8 @@ void SceneRenderer::updateLights(Ref<Scene> scene)
         auto view = scene->getRegistry().view<TransformComponent, DirectionalLightComponent>();
 		for (auto &e : view)
 		{
-			auto [transform, dl] = view.get<TransformComponent, DirectionalLightComponent>(e);
+			auto [t, dl] = view.get<TransformComponent, DirectionalLightComponent>(e);
+            auto transform = t.transform;
             lightCache.updateLight(dl.light.id, dl.light, transform);
 		}
     }
@@ -598,7 +602,8 @@ void SceneRenderer::updateLights(Ref<Scene> scene)
         auto view = scene->getRegistry().view<TransformComponent, PointLightComponent>();
 		for (auto &e : view)
 		{
-			auto [transform, pl] = view.get<TransformComponent, PointLightComponent>(e);
+			auto [t, pl] = view.get<TransformComponent, PointLightComponent>(e);
+            auto transform = t.transform;
             lightCache.updateLight(pl.light.id, pl.light, transform);
 		}
     }
@@ -606,7 +611,8 @@ void SceneRenderer::updateLights(Ref<Scene> scene)
         auto view = scene->getRegistry().view<TransformComponent, SpotLightComponent>();
 		for (auto &e : view)
 		{
-			auto [transform, sl] = view.get<TransformComponent, SpotLightComponent>(e);
+			auto [t, sl] = view.get<TransformComponent, SpotLightComponent>(e);
+            auto transform = t.transform;
             lightCache.updateLight(sl.light.id, sl.light, transform);
 		}
     }
@@ -615,9 +621,8 @@ void SceneRenderer::updateLights(Ref<Scene> scene)
 void SceneRenderer::mousePicking(Ref<Scene> scene) 
 {
     // TODO: mouse picking should only work on the viewport
-    if (ImGuizmo::IsUsing() 
-        || Input::isKeyPressed(Key::LeftAlt) 
-        || !scene->getViewportInfo().isFocus) return;
+    if (ImGuizmo::IsUsing() || Input::isKeyPressed(Key::LeftAlt)) return;
+
     static bool called = false;
 
     if (Input::isMouseButtonPressed(Mouse::ButtonLeft))

@@ -15,7 +15,6 @@ void PhysicsSystem::init()
 
 void PhysicsSystem::fixedUpdate(float dt)
 {
-    initRigidBodies();
     applyForces();
 
     physics::PhysicsManager::get().step(dt);
@@ -33,7 +32,7 @@ void PhysicsSystem::initShapes()
     {
         Entity ent = Entity{entity, m_scene};
         auto &boxComponent = ent.getComponent<BoxColliderComponent>();
-        boxComponent.Box = CreateRef<physics::Box>(boxComponent.Size);
+        boxComponent.Box = physics::Box{boxComponent.Size};
     }
 
     auto sphereView = m_scene->getRegistry().view<SphereColliderComponent>();
@@ -41,7 +40,7 @@ void PhysicsSystem::initShapes()
     {
         Entity ent = Entity{entity, m_scene};
         auto &sphereComponent = ent.getComponent<SphereColliderComponent>();
-        sphereComponent.Sphere = CreateRef<physics::Sphere>(sphereComponent.Radius);
+        sphereComponent.Sphere = physics::Sphere{sphereComponent.Radius};
     }
 
     // TODO: Add support for other shapes
@@ -53,10 +52,11 @@ void PhysicsSystem::initRigidBodies()
     auto view = m_scene->getRegistry().view<TransformComponent, RigidBodyComponent>();
     for (const auto entity : view)
     {
-        auto [transform, rb] = view.get<TransformComponent, RigidBodyComponent>(entity);
+        auto [t, rb] = view.get<TransformComponent, RigidBodyComponent>(entity);
+        auto transform = t.transform;
         Entity ent = Entity{entity, m_scene};
         auto &rigidBodyComponent = ent.getComponent<RigidBodyComponent>();
-        Ref<physics::RigidBody> rigidBody = nullptr;
+        std::optional<physics::RigidBody> rigidBody;
 
         if (rigidBodyComponent.getRigidBody()) continue;
 
@@ -64,10 +64,9 @@ void PhysicsSystem::initRigidBodies()
         if (ent.hasComponent<BoxColliderComponent>())
         {
             float mass = rigidBodyComponent.Mass;
-
             auto &boxComponent = ent.getComponent<BoxColliderComponent>();
             auto boxShape = CreateRef<physics::Box>(boxComponent.Size * transform.getScale());
-            rigidBody = CreateRef<physics::RigidBody>(mass, transform.getWorldMatrix(), boxShape, ent);
+            rigidBody = physics::RigidBody{mass, transform.getWorldMatrix(), boxShape, ent};
         }
 
         if (ent.hasComponent<SphereColliderComponent>())
@@ -75,7 +74,7 @@ void PhysicsSystem::initRigidBodies()
             float mass = rigidBodyComponent.Mass;
             auto &sphereComponent = ent.getComponent<SphereColliderComponent>();
             auto sphereShape = CreateRef<physics::Sphere>(sphereComponent.Radius * transform.getScale().x);
-            rigidBody = CreateRef<physics::RigidBody>(mass, transform.getWorldMatrix(), sphereShape, ent);
+            rigidBody = physics::RigidBody{mass, transform.getWorldMatrix(), sphereShape, ent};
         }
 
         if (ent.hasComponent<CapsuleColliderComponent>())
@@ -83,17 +82,17 @@ void PhysicsSystem::initRigidBodies()
             float mass = rigidBodyComponent.Mass;
             auto &capsuleComponent = ent.getComponent<CapsuleColliderComponent>();
             auto capsuleShape = CreateRef<physics::Capsule>(capsuleComponent.Radius, capsuleComponent.Height);
-            rigidBody = CreateRef<physics::RigidBody>(mass, transform.getWorldMatrix(), capsuleShape, ent);
+            rigidBody = physics::RigidBody{mass, transform.getWorldMatrix(), capsuleShape, ent};
         }
 
-        if (rigidBody != nullptr)
+        if (rigidBody.has_value())
         {
             rigidBody->MotionType = rigidBodyComponent.MotionType;
             rigidBody->LinearDamping = rigidBodyComponent.LinearDamping;
             rigidBody->AngularDamping = rigidBodyComponent.AngularDamping;
             rigidBody->IsKinematic = rigidBodyComponent.IsKinematic;
             rigidBody->UseGravity = rigidBodyComponent.UseGravity;
-            physics::PhysicsManager::get().registerBody(rigidBody);
+            physics::PhysicsManager::get().registerBody(&rigidBody.value(), ent.getComponent<IDComponent>());
         }
 
         rigidBodyComponent.RigidBody = rigidBody;

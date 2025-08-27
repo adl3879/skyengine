@@ -1,5 +1,6 @@
 #include "editor_camera.h"
 
+#include "core/editor.h"
 #include "core/events/input.h"
 #include "core/events/key_codes.h"
 #include "core/events/key_event.h"
@@ -67,6 +68,8 @@ float EditorCamera::zoomSpeed() const
 
 void EditorCamera::update(float ts)
 {
+    setViewportSize(EditorInfo::get().viewportSize);
+
     if (m_isFreeLook)
         updateFreeLook(ts);
     else

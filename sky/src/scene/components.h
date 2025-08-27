@@ -13,8 +13,15 @@ namespace sky
 {
 using IDComponent = UUID;
 using TagComponent = std::string;
-using TransformComponent = Transform;
 using VisibilityComponent = bool;
+
+struct TransformComponent
+{
+    Transform transform;
+
+    TransformComponent() = default;
+    TransformComponent(const Transform &t) : transform(t) {}
+};
 
 // Lights
 struct DirectionalLightComponent { Light light; };
@@ -74,7 +81,7 @@ struct CameraComponent
 
 struct RigidBodyComponent
 {
-    Ref<physics::RigidBody> RigidBody;
+    std::optional<physics::RigidBody> RigidBody;
     physics::MotionType MotionType = physics::MotionType::Static;
     float Mass = 1.0f;
     glm::vec3 QueuedForce{};
@@ -83,34 +90,28 @@ struct RigidBodyComponent
     bool IsKinematic = false;
     bool UseGravity = true;
 
-    [[nodiscard]] Ref<physics::RigidBody> getRigidBody() const { return RigidBody; }
+    auto getRigidBody() -> physics::RigidBody* { return RigidBody ? &(*RigidBody) : nullptr; }
 };
 
 struct CapsuleColliderComponent
 {
-    Ref<physics::PhysicShape> Capsule;
+    physics::PhysicShape Capsule;
     float Radius = 1.0f;
     float Height = 1.0f;
     bool IsTrigger = false;
-
-    CapsuleColliderComponent() : Capsule(CreateRef<physics::Capsule>(Radius, Height)) {}
 };
 
 struct SphereColliderComponent
 {
-    Ref<physics::PhysicShape> Sphere;
+    physics::PhysicShape Sphere;
     float Radius = 1.0f;
     bool IsTrigger = false;
-
-    SphereColliderComponent() : Sphere(CreateRef<physics::Sphere>(Radius)) {}
 };
 
 struct BoxColliderComponent
 {
-    Ref<physics::PhysicShape> Box;
+    physics::PhysicShape Box;
     glm::vec3 Size = glm::vec3(0.5f, 0.5f, 0.5f);
     bool IsTrigger = false;
-
-    BoxColliderComponent() : Box(CreateRef<physics::Box>(Size)) {}
 };
 }
