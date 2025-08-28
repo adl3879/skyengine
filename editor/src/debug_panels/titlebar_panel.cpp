@@ -175,15 +175,13 @@ void TitlebarPanel::render(float &outTitlebarHeight)
 
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 1.f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.2f, 0.2f, 0.6f));
-		if (m_context->isStopped() && ImGui::ImageButton("##play", m_playIcon, btnSize))
+		if (SceneManager::get().isInEditMode() && ImGui::ImageButton("##play", m_playIcon, btnSize))
 		{
-            m_context->setSceneState(SceneState::Play);
             SceneManager::get().enterPlayMode();
             ImGui::SetWindowFocus("Game");
 		}
-		else if (m_context->isPlaying() && ImGui::ImageButton("##stop", m_stopIcon, btnSize))
+		else if (SceneManager::get().isInPlayMode() && ImGui::ImageButton("##stop", m_stopIcon, btnSize))
 		{
-            m_context->setSceneState(SceneState::Stop);
             SceneManager::get().exitPlayMode();
             ImGui::SetWindowFocus("Scene");
 		}

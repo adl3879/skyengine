@@ -17,7 +17,7 @@ void PhysicsDebugRenderer::DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JP
         inColor.b / 255.0f
     };
 
-    auto lineRenderer = Application::getRenderer()->getDebugLineRenderer();
+    auto &lineRenderer = Application::getRenderer()->getDebugLineRenderer();
     lineRenderer.addLine(start, end, color);
 }
 
@@ -47,7 +47,58 @@ void PhysicsDebugRenderer::DrawGeometry(JPH::RMat44Arg inModelMatrix, const JPH:
     ECastShadow inCastShadow, 
     EDrawMode inDrawMode)
 {
-    // Not implemented
+    if (inGeometry == nullptr)
+    {
+        return;
+    }
+
+    // Convert color
+    glm::vec3 color = {
+        inModelColor.r / 255.0f,
+        inModelColor.g / 255.0f,
+        inModelColor.b / 255.0f
+    };
+
+    auto& lineRenderer = Application::getRenderer()->getDebugLineRenderer();
+
+    // Optional: Draw bounding box for this geometry
+    if (true)
+    {
+        JPH::Vec3 min = inWorldSpaceBounds.mMin;
+        JPH::Vec3 max = inWorldSpaceBounds.mMax;
+        
+        glm::vec3 corners[8] = {
+            {min.GetX(), min.GetY(), min.GetZ()}, // 0: min corner
+            {max.GetX(), min.GetY(), min.GetZ()}, // 1
+            {max.GetX(), max.GetY(), min.GetZ()}, // 2
+            {min.GetX(), max.GetY(), min.GetZ()}, // 3
+            {min.GetX(), min.GetY(), max.GetZ()}, // 4
+            {max.GetX(), min.GetY(), max.GetZ()}, // 5
+            {max.GetX(), max.GetY(), max.GetZ()}, // 6: max corner
+            {min.GetX(), max.GetY(), max.GetZ()}  // 7
+        };
+
+        // Draw bounding box edges with a dimmer color
+        glm::vec3 boxColor = color * 0.5f;
+        
+        // Bottom face
+        lineRenderer.addLine(corners[0], corners[1], boxColor);
+        lineRenderer.addLine(corners[1], corners[2], boxColor);
+        lineRenderer.addLine(corners[2], corners[3], boxColor);
+        lineRenderer.addLine(corners[3], corners[0], boxColor);
+        
+        // Top face
+        lineRenderer.addLine(corners[4], corners[5], boxColor);
+        lineRenderer.addLine(corners[5], corners[6], boxColor);
+        lineRenderer.addLine(corners[6], corners[7], boxColor);
+        lineRenderer.addLine(corners[7], corners[4], boxColor);
+        
+        // Vertical edges
+        lineRenderer.addLine(corners[0], corners[4], boxColor);
+        lineRenderer.addLine(corners[1], corners[5], boxColor);
+        lineRenderer.addLine(corners[2], corners[6], boxColor);
+        lineRenderer.addLine(corners[3], corners[7], boxColor);
+    }
 }
 
 void PhysicsDebugRenderer::DrawText3D(JPH::RVec3Arg inPosition, const std::string_view& inString, 

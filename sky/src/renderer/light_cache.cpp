@@ -13,74 +13,40 @@ void LightCache::init(gfx::Device &gfxDevice)
     m_lightDataCPU.reserve(MAX_LIGHTS);
 }
 
-void LightCache::upload(gfx::Device &gfxDevice, gfx::CommandBuffer cmd) 
+void LightCache::updateAndUpload(gfx::Device &gfxDevice, gfx::CommandBuffer cmd, 
+    const std::vector<std::pair<Light, Transform>>& lights) 
 {
-	m_lightDataBuffer.uploadNewData(
-		cmd,
-		gfxDevice.getCurrentFrameIndex(),
-		(void*)m_lightDataCPU.data(),
-		sizeof(GPULightData) * m_lightDataCPU.size());
-}
-
-LightID LightCache::addLight(const Light &light, const Transform &transform) 
-{
-	if (light.type == LightType::Directional)
-    {
-        //assert(m_sunlightIndex == -1 && "directional light was already added before in the frame");
-        m_sunlightIndex = (std::uint32_t)m_lightDataCPU.size();
+    m_lightDataCPU.clear();
+    m_sunlightIndex = UINT32_MAX;
+    
+    // Add all lights
+    for (const auto& [light, transform] : lights) {
+        if (m_lightDataCPU.size() >= MAX_LIGHTS) break;
+        
+        if (light.type == LightType::Directional) {
+            m_sunlightIndex = static_cast<std::uint32_t>(m_lightDataCPU.size());
+        }
+        
+        GPULightData ld{};
+        ld.position = transform.getPosition();
+        ld.type = light.getShaderType();
+        ld.direction = transform.getForwardDirection();
+        ld.range = light.range;
+        ld.color = LinearColorNoAlpha{light.color};
+        ld.intensity = light.intensity;
+        ld.scaleOffset = light.scaleOffset;
+        
+        m_lightDataCPU.push_back(ld);
     }
-
-    const auto id = getFreeLightID();
-
-    GPULightData ld{};
-    ld.position = transform.getPosition();
-    ld.type = light.getShaderType();
-    ld.direction = transform.getForwardDirection();
-    ld.range = light.range;
-    if (light.range == 0)
+    
+    // Upload to GPU
+    if (!m_lightDataCPU.empty()) 
     {
-        if (light.type == LightType::Point) ld.range = m_pointLightMaxRange;
-        else if (light.type == LightType::Spot) ld.range = m_spotLightMaxRange;
+        m_lightDataBuffer.uploadNewData(
+            cmd,
+            gfxDevice.getCurrentFrameIndex(),
+            (void*)m_lightDataCPU.data(),
+            sizeof(GPULightData) * m_lightDataCPU.size());
     }
-
-    ld.color = LinearColorNoAlpha{light.color};
-    ld.intensity = light.intensity;
-    if (light.type == LightType::Directional)
-    {
-        //ld.intensity = 1.0; // don't have intensity for directional light yet
-    }
-
-    ld.scaleOffset.x = light.scaleOffset.x;
-    ld.scaleOffset.y = light.scaleOffset.y;
-
-    m_lightDataCPU.push_back(ld);
-
-    return id;
-}
-
-void LightCache::updateLight(LightID id, const Light &light, const Transform &transform) 
-{
-    if (m_lightDataCPU.size() <= id) return;
-
-    auto &ld = m_lightDataCPU.at(id);
-	ld.position = transform.getPosition();
-    ld.type = light.getShaderType();
-    ld.direction = transform.getForwardDirection();
-    ld.range = light.range;
-
-	ld.color = LinearColorNoAlpha{light.color};
-    ld.intensity = light.intensity;
-
-    ld.scaleOffset = light.scaleOffset;
-}
-
-GPULightData LightCache::getLight(LightID id) 
-{ 
-    return GPULightData{}; 
-}
-
-LightID LightCache::getFreeLightID() 
-{
-    return m_lightDataCPU.size();
 }
 } // namespace sky

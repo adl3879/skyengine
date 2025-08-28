@@ -54,7 +54,7 @@ class PhysicsWorld
     JPH::BodyInterface *m_joltBodyInterface;
     BPLayerInterfaceImpl *m_joltBroadphaseLayerInterface;
 
-    std::vector<uint32_t> m_registeredBodies;
+    std::map<UUID, uint32_t> m_registeredBodies;
     std::map<uint32_t, JPH::Character *> m_registeredCharacters;
 
   private:

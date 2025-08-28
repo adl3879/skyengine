@@ -19,6 +19,7 @@ class EditorInfo
     glm::vec2 gameViewportSize;
     glm::vec2 viewportMousePos;
     bool viewportIsFocus;
+    bool viewportIsHovered;
 
   private:
     EditorInfo() = default;

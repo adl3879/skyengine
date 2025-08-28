@@ -87,10 +87,13 @@ void EditorCamera::onEvent(Event& e)
 
 bool EditorCamera::onMouseScrolled(MouseScrolledEvent &e)
 {
-    float delta = e.getYOffset() * 0.1f;
-    mouseZoom(delta);
-    updateView();
-    return false;
+    if (EditorInfo::get().viewportIsHovered) 
+    {
+        float delta = e.getYOffset() * 0.1f;
+        mouseZoom(delta);
+        updateView();
+    }
+    return true;
 }
 
 bool EditorCamera::onKeyPressed(KeyPressedEvent &e)

@@ -4,13 +4,11 @@
 
 #include <entt/entt.hpp>
 
-#include "core/transform/transform.h"
-#include "renderer/camera/editor_camera.h"
+#include "core/events/event.h"
 #include "core/uuid.h"
 #include "core/filesystem.h"
 #include "asset_management/asset.h"
 #include "renderer/environment.h"
-#include "renderer/light_cache.h"
 #include "scene/scene_graph.h"
 #include "scene/systems/camera_system.h"
 #include "systems/physics_system.h"
@@ -25,13 +23,6 @@ enum class SceneType
     Scene2D,
     Scene3D,
     SceneUI
-};
-
-enum class SceneState
-{
-    Play,
-    Pause,
-    Stop
 };
 
 std::string sceneTypeToString(SceneType type);
@@ -62,11 +53,7 @@ class Scene : public Asset
     auto getEntityMap() const { return m_entityMap; }
     void addEntityToMap(UUID uuid, entt::entity entity) { m_entityMap[uuid] = entity; }
     Entity getEntityFromUUID(UUID uuid);
-    LightCache &getLightCache() { return m_lightCache; }
-
-    LightID addLightToCache(const Light &light, const Transform &transform);
-    bool hasDirectionalLight() const { return m_lightCache.getSunlightIndex() > -1; }
-
+    
     Entity getSelectedEntity();
     void setSelectedEntity(Entity entity);
     const UUID getRootEntityUUID() const { return {0x0000000000000001}; }
@@ -82,12 +69,6 @@ class Scene : public Asset
     void setEnvironment(Environment env) { m_environment = env; }
     void useEnvironment(); 
 
-    void setSceneState(SceneState state) { m_sceneState = state; }
-    SceneState getSceneState() const { return m_sceneState; }
-    bool isPlaying() const { return m_sceneState == SceneState::Play; }
-    bool isPaused() const { return m_sceneState == SceneState::Pause; }
-    bool isStopped() const { return m_sceneState == SceneState::Stop; }
-    
     [[nodiscard]] AssetType getType() const override { return AssetType::Scene; }
 
   public:
@@ -108,14 +89,12 @@ class Scene : public Asset
     fs::path m_path;
 
     SceneType m_sceneType;
-    SceneState m_sceneState = SceneState::Stop;
     
     Ref<SceneGraph> m_sceneGraph;
     std::string m_sceneName;
     Ref<CameraSystem> m_cameraSystem;
     Ref<TransformSystem> m_transformSystem;
     Ref<PhysicsSystem> m_physicsSystem;
-    LightCache m_lightCache;
     Environment m_environment;
 };
 } // namespace sky

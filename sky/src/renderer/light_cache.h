@@ -5,7 +5,6 @@
 #include "light.h"
 #include "graphics/vulkan/vk_NBuffer.h"
 #include "graphics/vulkan/vk_device.h"
-#include "core/uuid.h"
 #include "core/transform/transform.h"
 
 namespace sky
@@ -14,12 +13,8 @@ class LightCache
 {
   public:
     void init(gfx::Device &gfxDevice);
-    void upload(gfx::Device &gfxDevice, gfx::CommandBuffer cmd);
-    LightID addLight(const Light &light, const Transform &transform);
-    void updateLight(LightID id, const Light &light, const Transform &transform);
-
-    GPULightData getLight(LightID id);
-    LightID getFreeLightID();
+    void updateAndUpload(gfx::Device &gfxDevice, gfx::CommandBuffer cmd, 
+        const std::vector<std::pair<Light, Transform>>& lights); 
 
     auto getSunlightIndex() const { return m_sunlightIndex; }
     auto getBuffer() const { return m_lightDataBuffer.getBuffer(); }

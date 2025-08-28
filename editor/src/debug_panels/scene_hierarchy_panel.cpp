@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include <tracy/Tracy.hpp>
 #include <IconsFontAwesome5.h>
+#include "core/application.h"
 #include "renderer/camera/game_camera.h"
 #include "scene/components.h"
 #include "asset_management/asset_manager.h"
@@ -270,28 +271,25 @@ Entity SceneHierarchyPanel::createEntityPopup()
     }
     if (ImGui::BeginMenu(ICON_FA_LIGHTBULB "  Light"))
     {
-        if (!m_context->hasDirectionalLight() && ImGui::MenuItem(ICON_FA_LIGHTBULB "  Directional Light")) 
+        if (!renderer->hasDirectionalLight() && ImGui::MenuItem(ICON_FA_LIGHTBULB "  Directional Light")) 
         {
             entity = m_context->createEntity("Directional Light");
             auto &dl = entity.addComponent<DirectionalLightComponent>().light;
             dl.type = LightType::Directional;
             dl.intensity = 2.f;
             dl.color = LinearColor::white();
-            dl.id = m_context->addLightToCache(dl, entity.getComponent<TransformComponent>().transform);
         }
         if (ImGui::MenuItem(ICON_FA_LIGHTBULB "  Point Light")) 
         {
 			entity = m_context->createEntity("Point Light");
             auto &pl = entity.addComponent<PointLightComponent>().light;
             pl.type = LightType::Point;
-            pl.id = m_context->addLightToCache(pl, entity.getComponent<TransformComponent>().transform);
         }
         if (ImGui::MenuItem(ICON_FA_LIGHTBULB "  Spot Light")) 
         {
 			entity = m_context->createEntity("Spot Light");
             auto &sl = entity.addComponent<SpotLightComponent>().light;
             sl.type = LightType::Spot;
-            sl.id = m_context->addLightToCache(sl, entity.getComponent<TransformComponent>().transform);
         }
         ImGui::EndPopup();
     }

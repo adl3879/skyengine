@@ -151,7 +151,7 @@ class GameCamera : public Camera
     int m_depth = 0; // Rendering order
     
     // Rendering settings
-    ClearFlags m_clearFlags = ClearFlags::Skybox;
+    ClearFlags m_clearFlags = ClearFlags::SolidColor;
     glm::vec4 m_backgroundColor = glm::vec4(0.19f, 0.3f, 0.47f, 1.0f); // Unity default blue
     
     // Cached matrices

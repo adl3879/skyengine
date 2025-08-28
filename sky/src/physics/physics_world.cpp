@@ -13,6 +13,7 @@
 #include <Jolt/Physics/Collision/Shape/CylinderShape.h>
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
+#include <Jolt/Math/Vec3.h>
 
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
@@ -24,6 +25,7 @@
 #include <glm/gtx/matrix_decompose.hpp>
 
 #include "Jolt/Physics/Body/BodyManager.h"
+#include "core/uuid.h"
 #include "physics_debug_renderer.h"
 #include "scene/scene.h"
 #include "scene/components.h"
@@ -228,7 +230,15 @@ PhysicsWorld::PhysicsWorld()
 
 void PhysicsWorld::drawDebug(PhysicsDebugRenderer *debugRenderer)
 {
-    // m_joltPhysicsSystem->DrawBodies(JPH::BodyManager::DrawSettings(), debugRenderer);
+    JPH::BodyManager::DrawSettings settings;
+    settings.mDrawShape = false;
+    settings.mDrawShapeWireframe = true;
+    settings.mDrawBoundingBox = true;
+    settings.mDrawCenterOfMassTransform = true;
+    settings.mDrawWorldTransform = true;
+    settings.mDrawShapeColor = JPH::BodyManager::EShapeColor::ShapeTypeColor;
+    
+    m_joltPhysicsSystem->DrawBodies(settings, debugRenderer);
 }
 
 void PhysicsWorld::setGravity(const glm::vec3 &gravity)
@@ -238,6 +248,9 @@ void PhysicsWorld::setGravity(const glm::vec3 &gravity)
 
 void PhysicsWorld::addRigidBody(RigidBody *rb, UUID entityID)
 {
+    // Avoid adding the same body multiple times
+    if (m_registeredBodies.find(entityID) != m_registeredBodies.end()) return;
+
     JPH::BodyInterface &bodyInterface = m_joltPhysicsSystem->GetBodyInterface();
 
     const float mass = rb->Mass;
@@ -261,7 +274,6 @@ void PhysicsWorld::addRigidBody(RigidBody *rb, UUID entityID)
     JPH::BodyCreationSettings bodySettings(joltShape, joltPos, joltRotation, motionType, Layers::MOVING);
     bodySettings.mLinearDamping = rb->LinearDamping;
     bodySettings.mAngularDamping = rb->AngularDamping;
-    // bodySettings.mGravityFactor = 0.05;
     if (mass > 0.0f)
     {
         bodySettings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
@@ -271,7 +283,7 @@ void PhysicsWorld::addRigidBody(RigidBody *rb, UUID entityID)
     bodySettings.mUserData = static_cast<uint64_t>(entityID);
     // Create the actual rigid body
     JPH::BodyID body = m_joltBodyInterface->CreateAndAddBody(bodySettings, JPH::EActivation::Activate);
-    m_registeredBodies.push_back((uint32_t)body.GetIndexAndSequenceNumber());
+    m_registeredBodies[entityID] = static_cast<uint32_t>(body.GetIndexAndSequenceNumber());
 }
 
 JPH::Ref<JPH::Shape> PhysicsWorld::getJoltShape(const Ref<PhysicShape> shape)
@@ -342,7 +354,8 @@ JPH::Ref<JPH::Shape> PhysicsWorld::getJoltShape(const Ref<PhysicShape> shape)
 void PhysicsWorld::syncEntitiesTransforms()
 {
     auto &bodyInterface = m_joltPhysicsSystem->GetBodyInterface();
-    for (const auto &body : m_registeredBodies)
+
+    for (const auto &[uuid, body] : m_registeredBodies)
     {
         auto bodyId = static_cast<JPH::BodyID>(body);
         JPH::Vec3 position = bodyInterface.GetCenterOfMassPosition(bodyId);
@@ -399,28 +412,24 @@ void PhysicsWorld::stepSimulation(float dt)
 
 void PhysicsWorld::clear()
 {
-    if (!m_registeredBodies.empty())
+    for (auto &[uuid, body] : m_registeredBodies)
     {
-        m_joltBodyInterface->RemoveBodies(reinterpret_cast<JPH::BodyID *>(m_registeredBodies.data()),
-            m_registeredBodies.size());
-        m_registeredBodies.clear();
+        auto bodyId = static_cast<JPH::BodyID>(body);
+        m_joltBodyInterface->RemoveBody(bodyId);
     }
+    m_registeredBodies.clear();
 
-    if (!m_registeredCharacters.empty())
+    for (auto &character : m_registeredCharacters)
     {
-        for (auto &character : m_registeredCharacters)
-        {
-            character.second->RemoveFromPhysicsSystem();
-        }
-
-        m_registeredCharacters.clear();
+        character.second->RemoveFromPhysicsSystem();
     }
+    m_registeredCharacters.clear();
 }
 
 void PhysicsWorld::addForceToRigidBody(Entity entity, const glm::vec3 &force)
 {
     auto &bodyInterface = m_joltPhysicsSystem->GetBodyInterface();
-    for (const auto &body : m_registeredBodies)
+    for (const auto &[uuid, body] : m_registeredBodies)
     {
         auto bodyId = static_cast<JPH::BodyID>(body);
         auto entityId = static_cast<uint32_t>(bodyInterface.GetUserData(bodyId));

@@ -8,6 +8,7 @@
 #include "core/uuid.h"
 #include "graphics/vulkan/vk_device.h"
 #include "graphics/vulkan/vk_types.h"
+#include "renderer/light_cache.h"
 #include "renderer/passes/infinite_grid.h"
 #include "renderer/passes/thumbnail_gradient.h"
 #include "renderer/passes/forward_renderer.h"
@@ -51,6 +52,7 @@ class CustomThumbnail
 
 	const glm::ivec2 m_size = {256, 256};
     LightCache m_lightCache;
+    std::vector<std::pair<Light, Transform>> m_lights;
 	VkFormat m_drawImageFormat{VK_FORMAT_R8G8B8A8_UNORM};
 
 	ThumbnailGradientPass m_thumbnailGradientPass;
@@ -88,7 +90,8 @@ class CustomThumbnail
     std::deque<ReadyMaterial> m_readyScene;
     std::deque<ReadyTexture> m_readyTextures;
 
-    enum class ThumbnailProcessingState {
+    enum class ThumbnailProcessingState 
+    {
         None,
         Material,
         Model,

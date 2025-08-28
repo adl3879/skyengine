@@ -4,6 +4,7 @@
 #include "scene/entity.h"
 #include "scene/components.h"
 #include "physics/physics_manager.h"
+#include "scene/scene_manager.h"
 
 namespace sky
 {
@@ -15,9 +16,16 @@ void PhysicsSystem::init()
 
 void PhysicsSystem::fixedUpdate(float dt)
 {
-    applyForces();
-
-    physics::PhysicsManager::get().step(dt);
+    if (SceneManager::get().isInEditMode())
+    {
+        initShapes();
+        initRigidBodies();
+    }
+    else if (SceneManager::get().isInPlayMode())
+    {
+        applyForces();
+        physics::PhysicsManager::get().step(dt);
+    }
 }
 
 void PhysicsSystem::draw()
@@ -58,7 +66,12 @@ void PhysicsSystem::initRigidBodies()
         auto &rigidBodyComponent = ent.getComponent<RigidBodyComponent>();
         std::optional<physics::RigidBody> rigidBody;
 
-        if (rigidBodyComponent.getRigidBody()) continue;
+        if (rigidBodyComponent.getRigidBody())
+        { 
+            auto rb = rigidBodyComponent.getRigidBody();
+            // physics::PhysicsManager::get().registerBody(rb, ent.getComponent<IDComponent>());
+            continue;
+        }
 
         // rigidBody will not be registered if it has no shape
         if (ent.hasComponent<BoxColliderComponent>())
@@ -92,7 +105,7 @@ void PhysicsSystem::initRigidBodies()
             rigidBody->AngularDamping = rigidBodyComponent.AngularDamping;
             rigidBody->IsKinematic = rigidBodyComponent.IsKinematic;
             rigidBody->UseGravity = rigidBodyComponent.UseGravity;
-            physics::PhysicsManager::get().registerBody(&rigidBody.value(), ent.getComponent<IDComponent>());
+            // physics::PhysicsManager::get().registerBody(&rigidBody.value(), ent.getComponent<IDComponent>());
         }
 
         rigidBodyComponent.RigidBody = rigidBody;

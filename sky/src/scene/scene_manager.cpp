@@ -70,6 +70,7 @@ void SceneManager::init()
     m_gameScene = CreateRef<Scene>("Game Scene");
     // initialize physics manager with the editor scene
     physics::PhysicsManager::get().init();
+    m_editorScene->getPhysicsSystem()->init();
 }
 
 void SceneManager::reset() 
@@ -145,7 +146,7 @@ Ref<Scene> SceneManager::cloneScene(const Ref<Scene> &source)
 
 void SceneManager::enterPlayMode()
 {
-    if (m_inPlayMode) return;
+    if (isInPlayMode()) return;
 
     m_gameScene = cloneScene(m_editorScene);
 
@@ -156,19 +157,20 @@ void SceneManager::enterPlayMode()
     physics::PhysicsManager::get().setScene(m_gameScene.get());
     physics::PhysicsManager::get().start();
 
-    m_inPlayMode = true;
+    m_sceneState = SceneState::Play;
 }
 
 void SceneManager::exitPlayMode()
 {
-    if (!m_inPlayMode) return;
+    if (!isInPlayMode()) return;
 
     physics::PhysicsManager::get().stop();
     physics::PhysicsManager::get().reset();
     
     m_gameScene.reset();
     m_gameScene = m_editorScene;
-    m_inPlayMode = false;
+
+    m_sceneState = SceneState::Edit;
 }
 
 void SceneManager::update(float dt)

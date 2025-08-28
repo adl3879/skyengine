@@ -66,6 +66,7 @@ void SceneRenderer::init(glm::ivec2 size)
     m_postFXPass.init(m_device, m_drawImageFormat);
     m_debugLineRenderer.init(m_device, m_drawImageFormat, m_samples);
     m_ibl.init(m_device);
+    m_lightCache.init(m_device);
 
     ImGui::CreateContext();
 
@@ -321,7 +322,6 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode
     const auto &targets = mode == RenderMode::Scene ? m_sceneRenderTargets : m_gameRenderTargets;
     auto &sceneDataBuffer = mode == RenderMode::Scene ? m_sceneDataBuffer : m_gameDataBuffer;
 
-    auto &lightCache = scene->getLightCache();
     {
         const auto gpuSceneData = GPUSceneData{
             .view = cam->getView(),
@@ -334,8 +334,8 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode
             .irradianceMapId = m_ibl.getIrradianceMapId(),
             .prefilterMapId = m_ibl.getPrefilterMapId(),
             .brdfLutId = m_ibl.getBrdfLutId(),
-            .lightsBuffer = lightCache.getBuffer().address,
-            .numLights = (uint32_t)lightCache.getSize(),
+            .lightsBuffer = m_lightCache.getBuffer().address,
+            .numLights = (uint32_t)m_lightCache.getSize(),
             .materialsBuffer = m_materialCache.getMaterialDataBufferAddress(),
         };
         uint32_t bufferIndex = m_device.getCurrentFrameIndex();
@@ -347,7 +347,7 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode
             sizeof(GPUSceneData));
 
         m_materialCache.upload(m_device, cmd);
-        lightCache.upload(m_device, cmd);
+        m_lightCache.updateAndUpload(m_device, cmd, collectLights(scene));
 	}
 
     const auto &drawImage = m_device.getImage(targets.color);
@@ -415,7 +415,8 @@ void SceneRenderer::render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode
 
         m_debugLineRenderer.draw(m_device, cmd, sceneDataBuffer.getBuffer());
 
-        if (mode == RenderMode::Scene) mousePicking(scene);
+        if (mode == RenderMode::Scene && EditorInfo::get().viewportIsFocus) 
+            mousePicking(scene);
 	}
     vkCmdEndRendering(cmd);
     
@@ -542,6 +543,7 @@ void SceneRenderer::update(Ref<Scene> scene)
                             ? AssetManager::getAsset<MaterialAsset>(modelComponent.customMaterialOverrides.at(i))->material 
                             : getMesh(mesh).material;
                         
+                        //! transform.getModelMatrix() will affect parent/child transforms
                         drawMesh(mesh, transform.getModelMatrix(), visibility,
                             static_cast<uint32_t>(e), material);
 					}
@@ -553,6 +555,8 @@ void SceneRenderer::update(Ref<Scene> scene)
                 const auto material = modelComponent.builtinMaterial != NULL_UUID ?
 					AssetManager::getAsset<MaterialAsset>(modelComponent.builtinMaterial)->material :
                     m_materialCache.getDefaultMaterial();
+
+                //! transform.getModelMatrix() will affect parent/child transforms
                 drawMesh(m_builtinModels[modelComponent.type], transform.getModelMatrix(), 
                     visibility, static_cast<uint32_t>(e), material);
             }
@@ -577,8 +581,6 @@ void SceneRenderer::update(Ref<Scene> scene)
 			});
 		}
     }
-
-    updateLights(scene);
 }
 
 void SceneRenderer::updateMaterial(MaterialID id, Material material) 
@@ -586,37 +588,37 @@ void SceneRenderer::updateMaterial(MaterialID id, Material material)
     m_materialCache.updateMaterial(m_device, id, material);
 }
 
-void SceneRenderer::updateLights(Ref<Scene> scene) 
+std::vector<std::pair<Light, Transform>> SceneRenderer::collectLights(Ref<Scene> scene) 
 {
-    auto &lightCache = scene->getLightCache();
-	{
+    std::vector<std::pair<Light, Transform>> lights;
+    {
         auto view = scene->getRegistry().view<TransformComponent, DirectionalLightComponent>();
-		for (auto &e : view)
-		{
-			auto [t, dl] = view.get<TransformComponent, DirectionalLightComponent>(e);
-            auto transform = t.transform;
-            lightCache.updateLight(dl.light.id, dl.light, transform);
-		}
+        for (auto &e : view)
+        {
+            auto [t, dl] = view.get<TransformComponent, DirectionalLightComponent>(e);
+            lights.emplace_back(dl.light, t.transform);
+        }
     }
-	{
+    {
         auto view = scene->getRegistry().view<TransformComponent, PointLightComponent>();
-		for (auto &e : view)
-		{
-			auto [t, pl] = view.get<TransformComponent, PointLightComponent>(e);
-            auto transform = t.transform;
-            lightCache.updateLight(pl.light.id, pl.light, transform);
-		}
+        for (auto &e : view)
+        {
+            auto [t, pl] = view.get<TransformComponent, PointLightComponent>(e);
+            lights.emplace_back(pl.light, t.transform);
+        }
     }
-	{
+    {
         auto view = scene->getRegistry().view<TransformComponent, SpotLightComponent>();
-		for (auto &e : view)
-		{
-			auto [t, sl] = view.get<TransformComponent, SpotLightComponent>(e);
-            auto transform = t.transform;
-            lightCache.updateLight(sl.light.id, sl.light, transform);
-		}
+        for (auto &e : view)
+        {
+            auto [t, sl] = view.get<TransformComponent, SpotLightComponent>(e);
+            lights.emplace_back(sl.light, t.transform);
+        }
     }
+    
+    return lights;
 }
+
 
 void SceneRenderer::mousePicking(Ref<Scene> scene) 
 {

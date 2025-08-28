@@ -8,6 +8,13 @@
 
 namespace sky
 {
+enum class SceneState
+{
+    Edit = 0,
+    Play,
+    Pause
+};
+
 class SceneManager
 {
   public:
@@ -25,6 +32,12 @@ class SceneManager
 
     auto getEditorCamera() const { return m_editorCamera.get(); }
     auto isEditorCameraFreeLook() const { return m_editorCamera->isFreeLook(); }
+
+    SceneState getSceneState() const { return m_sceneState; }
+    void setSceneState(SceneState state) { m_sceneState = state; }
+    bool isInEditMode() const { return m_sceneState == SceneState::Edit; }
+    bool isInPlayMode() const { return m_sceneState == SceneState::Play; }
+    bool isInPauseMode() const { return m_sceneState == SceneState::Pause; } 
     
     void reset();
     bool sceneIsType(SceneType type) const;
@@ -47,6 +60,6 @@ class SceneManager
     Ref<Scene> m_gameScene;
     Ref<Scene> m_editorScene;
     Ref<EditorCamera> m_editorCamera;
-    bool m_inPlayMode = false;
+    SceneState m_sceneState{SceneState::Edit};
 };
 } // namespace sky

@@ -267,7 +267,7 @@ ImageID GameCamera::getPreviewImage()
             "scene data");
     }
 
-    auto lightCache = scene->getLightCache();
+    auto lightCache = renderer->getLightCache();
 
     // Calculate new projection matrix with aspect ratio of 420/280
     auto viewportRatio = m_viewport.z / m_viewport.w;

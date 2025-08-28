@@ -111,7 +111,7 @@ struct SphereColliderComponent
 struct BoxColliderComponent
 {
     physics::PhysicShape Box;
-    glm::vec3 Size = glm::vec3(0.5f, 0.5f, 0.5f);
+    glm::vec3 Size{1.f, 1.f, 1.f};
     bool IsTrigger = false;
 };
 }

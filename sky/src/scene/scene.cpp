@@ -30,7 +30,6 @@ void Scene::init()
 	newScene(m_sceneName);
 
     m_rootEntity = createEntityWithUUID(getRootEntityUUID(), "Root");
-    m_lightCache.init(Application::getRenderer()->getDevice());
     m_physicsSystem->init();
 }
 
@@ -111,11 +110,6 @@ Entity Scene::getRootEntity()
 void Scene::setSelectedEntity(Entity entity) 
 {
     if (m_registry.valid(entity)) m_selectedEntity = entity.getEntityID();
-}
-
-LightID Scene::addLightToCache(const Light &light, const Transform &transform)
-{
-    return m_lightCache.addLight(light, transform);
 }
 
 void Scene::useEnvironment()

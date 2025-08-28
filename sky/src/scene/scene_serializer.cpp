@@ -230,21 +230,18 @@ void SceneSerializer::deserializeEntity(YAML::detail::iterator_value key, Entity
 		auto &dlComponent = entity.addComponent<DirectionalLightComponent>();
 		dlComponent.light.type = LightType::Directional;
 		dlComponent.light.deserialize(key);
-		dlComponent.light.id = m_scene->addLightToCache(dlComponent.light, transform);
     }
 	if (auto pl = key["pointLight"])
     {
 		auto &plComponent = entity.addComponent<PointLightComponent>();
 		plComponent.light.type = LightType::Point;
 		plComponent.light.deserialize(key);
-		plComponent.light.id = m_scene->addLightToCache(plComponent.light, transform);
     }
 	if (auto sl = key["spotLight"])
     {
 		auto &slComponent = entity.addComponent<SpotLightComponent>();
 		slComponent.light.type = LightType::Spot;
 		slComponent.light.deserialize(key);
-		slComponent.light.id = m_scene->addLightToCache(slComponent.light, transform);
     }
 	if (auto sprite = key["spriteRenderer"])
     {

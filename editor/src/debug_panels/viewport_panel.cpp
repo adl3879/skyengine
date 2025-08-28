@@ -89,7 +89,8 @@ void ViewportPanel::drawSceneViewport()
     // set editor viewport info
     EditorInfo::get().viewportMousePos = {mx * ratioX, (windowSize.y - my) * ratioY};
     EditorInfo::get().viewportSize = {viewportSize.x, viewportSize.y};
-    EditorInfo::get().viewportIsFocus = isMouseInViewport && !m_itemIsDraggedOver;
+    EditorInfo::get().viewportIsHovered = isMouseInViewport && !m_itemIsDraggedOver;
+    EditorInfo::get().viewportIsFocus = ImGui::IsWindowFocused();
 
     ImGui::Image(Application::getRenderer()->getSceneImage(), 
         viewportSize, 

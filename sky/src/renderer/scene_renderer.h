@@ -4,6 +4,7 @@
 #include <vulkan/vulkan_core.h>
 
 #include "image_based_lighting.h"
+#include "light_cache.h"
 #include "passes/debug_line_renderer.h"
 #include "passes/post_fx.h"
 #include "renderer/passes/depth_resolve.h"
@@ -47,9 +48,7 @@ class SceneRenderer
 
     void init(glm::ivec2 size);
     void render(gfx::CommandBuffer &cmd, Ref<Scene> scene, RenderMode mode);
-    void renderImgui(gfx::CommandBuffer &cmd, 
-        VkImage swapchainImage,
-        uint32_t swapchainImageIndex);
+    void renderImgui(gfx::CommandBuffer &cmd, VkImage swapchainImage, uint32_t swapchainImageIndex);
     void update(Ref<Scene> scene);
 
     void initBuiltins();
@@ -84,6 +83,9 @@ class SceneRenderer
     auto getSphereMesh() const { return m_builtinModels.at(ModelType::Sphere); }
     auto getCubeMesh() const { return m_builtinModels.at(ModelType::Cube); }
 
+    LightCache &getLightCache() { return m_lightCache; }
+    bool hasDirectionalLight() const { return m_lightCache.getSunlightIndex() > -1; }
+
     // Final draw image from the scene renderer
     ImageID getSceneImage() const { return m_sceneRenderTargets.postFX; }
     ImageID getGameImage() const { return m_gameRenderTargets.postFX; }
@@ -92,7 +94,7 @@ class SceneRenderer
     void destroy();
     void createDrawImage(glm::ivec2 size);
     void initSceneData();
-    void updateLights(Ref<Scene> scene);
+    std::vector<std::pair<Light, Transform>> collectLights(Ref<Scene> scene);
     void mousePicking(Ref<Scene> scene);
     bool isMultisamplingEnabled() const;
 
@@ -135,6 +137,8 @@ class SceneRenderer
 
     gfx::NBuffer m_sceneDataBuffer;
     gfx::NBuffer m_gameDataBuffer;
+    ImageBasedLighting m_ibl;
+    LightCache m_lightCache;
 
   private: 
     RenderTargets m_sceneRenderTargets;
@@ -148,7 +152,6 @@ class SceneRenderer
     PostFXPass m_postFXPass;
     // SkyboxPass m_skyboxPass;
     SpriteBatchRenderer m_spriteRenderer;
-    ImageBasedLighting m_ibl;
 	gfx::ImGuiBackend m_imguiBackend;
     DebugLineRenderer m_debugLineRenderer;
 

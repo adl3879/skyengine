@@ -32,10 +32,9 @@ CustomThumbnail::CustomThumbnail()
 	m_lightCache.init(device);
 	auto transform = Transform{};
 	transform.rotateDegrees({120.f, 30.f, 0.f});
-	m_lightCache.addLight(Light{
-        .type = LightType::Directional, 
-        .color = LinearColorNoAlpha::white(), 
-        .intensity = 5.f}, transform);
+
+    m_lights.emplace_back(Light{.type = LightType::Directional, 
+        .color = LinearColorNoAlpha::white(), .intensity = 5.f}, transform);
 
     m_thumbnailGradientPass.init(device, m_drawImageFormat);
 	m_forwardRenderer.init(device, m_drawImageFormat, VK_SAMPLE_COUNT_1_BIT);
@@ -234,7 +233,7 @@ void CustomThumbnail::generateSceneThumbnail(gfx::CommandBuffer cmd, const fs::p
     // 0.01f is just a random number (not significant for any reason)
     cam->update(0.01f);
 
-    auto lightCache = scene->getLightCache();
+    auto lightCache = renderer->getLightCache();
 
     const auto gpuSceneData = SceneRenderer::GPUSceneData{
 		.view = cam->getView(),
@@ -342,7 +341,7 @@ void CustomThumbnail::generateMaterialThumbnail(gfx::CommandBuffer cmd,
 
     auto proj = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 100.0f);
 
-	m_lightCache.upload(device, cmd);
+	m_lightCache.updateAndUpload(device, cmd, m_lights);
 
     const auto gpuSceneData = SceneRenderer::GPUSceneData{
 		.view = view,
@@ -441,7 +440,7 @@ void CustomThumbnail::generateModelThumbnail(gfx::CommandBuffer cmd,
         distanceFromCenter * 0.1f,  // Near plane
         distanceFromCenter * 2.0f); // Far plane
 
-	m_lightCache.upload(device, cmd);
+	m_lightCache.updateAndUpload(device, cmd, m_lights);
 
     const auto gpuSceneData = SceneRenderer::GPUSceneData{
 		.view = view,
